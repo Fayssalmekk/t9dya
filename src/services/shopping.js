@@ -167,25 +167,6 @@ export async function createShoppingList(householdId, userId, title, plannedFor,
   return listRef.id
 }
 
-export async function ensureDefaultShoppingList(householdId, userId, legacyItems = []) {
-  const listRef = doc(db, 'households', householdId, 'lists', 'inbox')
-  const batch = writeBatch(db)
-  batch.set(listRef, {
-    title: 'Course du jour',
-    plannedFor: Timestamp.now(),
-    status: 'active',
-    createdBy: userId,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  }, { merge: true })
-  legacyItems.filter((item) => !item.listId).forEach((item) => batch.update(doc(db, 'households', householdId, 'items', item.id), {
-    listId: listRef.id,
-    updatedAt: serverTimestamp()
-  }))
-  batch.update(doc(db, 'households', householdId), { activeListId: listRef.id, updatedAt: serverTimestamp() })
-  await batch.commit()
-}
-
 export async function selectShoppingList(householdId, listId) {
   return updateDoc(doc(db, 'households', householdId), { activeListId: listId, updatedAt: serverTimestamp() })
 }
@@ -212,10 +193,9 @@ export async function startShoppingRun(householdId, listId, userId) {
   })
 }
 
-export async function finishShoppingList(householdId, list, items, userId) {
+export async function finishShoppingList(householdId, list, items, userId, fallbackListId = null) {
   const bought = items.filter((item) => item.bought)
   const remaining = items.filter((item) => !item.bought)
-  const nextListRef = doc(collection(db, 'households', householdId, 'lists'))
   const batch = writeBatch(db)
   const total = bought.reduce((sum, item) => sum + (Number.isFinite(item.paidPrice) ? item.paidPrice : 0), 0)
 
@@ -243,23 +223,30 @@ export async function finishShoppingList(householdId, list, items, userId) {
     updatedAt: serverTimestamp()
   })
 
-  batch.set(nextListRef, {
-    title: remaining.length ? 'À acheter' : 'Nouvelle course',
-    plannedFor: Timestamp.now(),
-    status: 'active',
-    createdBy: userId,
-    carriedFrom: list.id,
-    createdAt: serverTimestamp(),
+  items.forEach((item) => batch.delete(doc(db, 'households', householdId, 'items', item.id)))
+  batch.update(doc(db, 'households', householdId), {
+    activeListId: fallbackListId || deleteField(),
     updatedAt: serverTimestamp()
   })
-  remaining.forEach((item) => batch.update(doc(db, 'households', householdId, 'items', item.id), {
-    listId: nextListRef.id,
-    updatedAt: serverTimestamp()
-  }))
-  bought.forEach((item) => batch.delete(doc(db, 'households', householdId, 'items', item.id)))
-  batch.update(doc(db, 'households', householdId), { activeListId: nextListRef.id, updatedAt: serverTimestamp() })
   await batch.commit()
-  return nextListRef.id
+  return fallbackListId
+}
+
+export async function deleteShoppingList(householdId, list, items, fallbackListId, isCurrentList) {
+  const batch = writeBatch(db)
+
+  batch.delete(doc(db, 'households', householdId, 'lists', list.id))
+  items.forEach((item) => batch.delete(doc(db, 'households', householdId, 'items', item.id)))
+
+  if (isCurrentList) {
+    batch.update(doc(db, 'households', householdId), {
+      activeListId: fallbackListId || deleteField(),
+      updatedAt: serverTimestamp()
+    })
+  }
+
+  await batch.commit()
+  return fallbackListId || null
 }
 
 export async function unmarkItemBought(householdId, item) {
@@ -309,4 +296,24 @@ export async function setMonthlyBudget(householdId, monthly) {
     'budget.monthly': Number(monthly),
     updatedAt: serverTimestamp()
   })
+}
+
+export async function createCustomProduct(householdId, userId, product) {
+  const productRef = doc(collection(db, 'households', householdId, 'customProducts'))
+  const data = {
+    name: product.name.trim(),
+    altName: product.altName.trim(),
+    brand: product.brand.trim(),
+    format: product.format.trim(),
+    category: product.category,
+    categoryName: product.categoryName,
+    emoji: product.emoji,
+    unit: product.unit,
+    defaultPrice: Number(product.defaultPrice) || 0,
+    createdBy: userId,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  }
+  await setDoc(productRef, data)
+  return { id: `custom-${productRef.id}`, customDocId: productRef.id, isCustom: true, ...data }
 }

@@ -64,6 +64,7 @@ service cloud.firestore {
         allow read, write: if collectionName in [
           'items',
           'lists',
+          'customProducts',
           'purchases',
           'priceHistory',
           'templates',

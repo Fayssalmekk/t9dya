@@ -10,7 +10,7 @@ export default function NewListSheet({ onClose }) {
   const { allItems } = useShopping()
   const { notify } = usePlatform()
   const today = new Date().toISOString().slice(0, 10)
-  const [title, setTitle] = useState('Course du jour')
+  const [title, setTitle] = useState('')
   const [date, setDate] = useState(today)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')

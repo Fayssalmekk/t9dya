@@ -2,7 +2,6 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore'
 import { useAuth } from './AuthContext'
 import { db } from '../services/firebase'
-import { ensureDefaultShoppingList } from '../services/shopping'
 
 const ShoppingContext = createContext(null)
 
@@ -12,6 +11,7 @@ export function ShoppingProvider({ children }) {
   const { household, user } = useAuth()
   const [allItems, setAllItems] = useState([])
   const [lists, setLists] = useState([])
+  const [customProducts, setCustomProducts] = useState([])
   const [purchases, setPurchases] = useState([])
   const [itemsLoading, setItemsLoading] = useState(true)
   const [purchasesLoading, setPurchasesLoading] = useState(true)
@@ -34,17 +34,25 @@ export function ShoppingProvider({ children }) {
 
   useEffect(() => {
     if (!household?.id) return undefined
+    const customProductsQuery = query(collection(db, 'households', household.id, 'customProducts'), orderBy('createdAt', 'desc'))
+    return onSnapshot(customProductsQuery, (snapshot) => {
+      setCustomProducts(snapshot.docs.map((product) => ({
+        id: `custom-${product.id}`,
+        customDocId: product.id,
+        isCustom: true,
+        ...product.data()
+      })))
+    }, () => setError('Impossible de charger vos produits personnalisés.'))
+  }, [household?.id])
+
+  useEffect(() => {
+    if (!household?.id) return undefined
     const listsQuery = query(collection(db, 'households', household.id, 'lists'), orderBy('createdAt', 'desc'))
     return onSnapshot(listsQuery, (snapshot) => {
       setLists(snapshot.docs.map((list) => ({ id: list.id, ...list.data() })))
       setListsLoading(false)
     }, () => setListsLoading(false))
   }, [household?.id])
-
-  useEffect(() => {
-    if (listsLoading || itemsLoading || lists.length || !household?.id || !user?.uid) return
-    ensureDefaultShoppingList(household.id, user.uid, allItems).catch(() => setError('Impossible de créer la première liste de courses.'))
-  }, [allItems, household?.id, itemsLoading, lists.length, listsLoading, user?.uid])
 
   useEffect(() => {
     if (!household?.id) return undefined
@@ -84,6 +92,7 @@ export function ShoppingProvider({ children }) {
     items,
     allItems,
     lists,
+    customProducts,
     activeList,
     incomingRequest,
     purchases,
@@ -92,7 +101,7 @@ export function ShoppingProvider({ children }) {
     error,
     activeItems: items.filter((item) => !item.bought),
     boughtItems: items.filter((item) => item.bought)
-  }), [activeList, allItems, error, incomingRequest, items, itemsLoading, lists, listsLoading, purchases, purchasesLoading])
+  }), [activeList, allItems, customProducts, error, incomingRequest, items, itemsLoading, lists, listsLoading, purchases, purchasesLoading])
 
   return <ShoppingContext.Provider value={value}>{children}</ShoppingContext.Provider>
 }

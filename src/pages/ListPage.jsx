@@ -1,4 +1,4 @@
-import { Archive, ArrowLeft, CalendarDays, ChevronDown, ChevronRight, CircleCheckBig, Clock3, PackageCheck, Plus, ScanLine, Send, Share2, Sparkles, X } from 'lucide-react'
+import { Archive, ArrowLeft, CalendarDays, ChevronDown, ChevronRight, CircleCheckBig, Plus, ScanLine, Send, Share2, Sparkles, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppHeader from '../components/AppHeader'
@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext'
 import { usePlatform } from '../context/PlatformContext'
 import { useShopping } from '../context/ShoppingContext'
 import { catalogById } from '../data/catalog'
-import { finishShoppingList, removeShoppingItem, requestShoppingRun, restoreShoppingItem, selectShoppingList, startShoppingRun, unmarkItemBought, validateMany } from '../services/shopping'
+import { deleteShoppingList, finishShoppingList, removeShoppingItem, requestShoppingRun, restoreShoppingItem, selectShoppingList, startShoppingRun, unmarkItemBought, validateMany } from '../services/shopping'
 
 export default function ListPage() {
   const { user, household } = useAuth()
@@ -24,6 +24,8 @@ export default function ListPage() {
   const [finishing, setFinishing] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
   const [viewedListId, setViewedListId] = useState(null)
+  const [listToDelete, setListToDelete] = useState(null)
+  const [deletingList, setDeletingList] = useState(false)
   const wakeLockRef = useRef(null)
 
   const activeList = viewedListId ? lists.find((list) => list.id === viewedListId) || syncedActiveList : syncedActiveList
@@ -91,8 +93,9 @@ export default function ListPage() {
     if (!activeList) return
     setFinishing(true)
     try {
-      await finishShoppingList(household.id, activeList, items, user.uid)
-      notify('Course archivée · les articles restants sont conservés')
+      const fallback = lists.find((list) => list.status !== 'completed' && list.id !== activeList.id)
+      await finishShoppingList(household.id, activeList, items, user.uid, fallback?.id)
+      notify('Course archivée · aucune nouvelle liste créée')
       setShowFinish(false)
       setShoppingMode(false)
       setShowDetail(false)
@@ -114,11 +117,30 @@ export default function ListPage() {
     setShoppingMode(false)
   }
 
+  const confirmDeleteList = async () => {
+    if (!listToDelete) return
+    setDeletingList(true)
+    const listItems = allItems.filter((item) => item.listId === listToDelete.id || (listToDelete.id === 'inbox' && !item.listId))
+    const fallback = lists.find((list) => list.status !== 'completed' && list.id !== listToDelete.id)
+    const isCurrentList = syncedActiveList?.id === listToDelete.id
+    try {
+      await deleteShoppingList(household.id, listToDelete, listItems, fallback?.id, isCurrentList)
+      notify(`Liste « ${listToDelete.title} » supprimée`)
+      setListToDelete(null)
+      if (viewedListId === listToDelete.id) closeDetail()
+    } catch {
+      notify('Impossible de supprimer cette liste')
+    } finally {
+      setDeletingList(false)
+    }
+  }
+
   if (!showDetail) {
     return (
       <>
-        <ListsOverview lists={lists} allItems={allItems} loading={loading} incomingRequest={incomingRequest} onOpen={openList} onNew={() => setShowNewList(true)} />
+        <ListsOverview lists={lists} allItems={allItems} loading={loading} incomingRequest={incomingRequest} onOpen={openList} onDelete={setListToDelete} onNew={() => setShowNewList(true)} />
         {showNewList && <NewListSheet onClose={() => setShowNewList(false)} />}
+        {listToDelete && <DeleteListDialog list={listToDelete} itemCount={listToDelete.status === 'completed' ? listToDelete.summary?.itemCount || 0 : allItems.filter((item) => item.listId === listToDelete.id || (listToDelete.id === 'inbox' && !item.listId)).length} deleting={deletingList} onCancel={() => setListToDelete(null)} onConfirm={confirmDeleteList} />}
       </>
     )
   }
@@ -184,7 +206,116 @@ export default function ListPage() {
       )}
       {buyingItem && <BoughtPriceSheet item={buyingItem} onClose={() => setBuyingItem(null)} />}
       {items.length > 0 && !shoppingMode && <button type="button" onClick={() => setShowFinish(true)} className="mt-7 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-surface font-extrabold shadow-sm dark:border-slate-700"><Archive size={20} />Terminer et archiver cette course</button>}
-      {showFinish && <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true"><button type="button" className="absolute inset-0 bg-slate-950/50" onClick={() => setShowFinish(false)} aria-label="Fermer" /><section className="relative w-full max-w-lg rounded-t-[2rem] bg-surface p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"><button type="button" onClick={() => setShowFinish(false)} className="absolute right-5 top-5 grid h-11 w-11 place-items-center rounded-xl bg-canvas" aria-label="Fermer"><X size={19} /></button><span className="text-4xl">🧾</span><h2 className="mt-4 text-xl font-extrabold">Terminer « {activeList?.title} » ?</h2><p className="mt-2 text-sm leading-6 text-muted">{boughtItems.length} produits achetés seront archivés avec un total de {boughtItems.reduce((sum, item) => sum + (item.paidPrice || 0), 0).toFixed(2)} DH. Les {activeItems.length} produits restants seront automatiquement déplacés dans la prochaine liste.</p><button type="button" disabled={finishing} onClick={finishList} className="mt-6 min-h-14 w-full rounded-2xl bg-accent-600 font-extrabold text-white disabled:opacity-60">{finishing ? 'Archivage…' : 'Terminer et conserver le reste'}</button></section></div>}
+      {showFinish && <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true"><button type="button" className="absolute inset-0 bg-slate-950/50" onClick={() => setShowFinish(false)} aria-label="Fermer" /><section className="relative w-full max-w-lg rounded-t-[2rem] bg-surface p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"><button type="button" onClick={() => setShowFinish(false)} className="absolute right-5 top-5 grid h-11 w-11 place-items-center rounded-xl bg-canvas" aria-label="Fermer"><X size={19} /></button><span className="text-4xl">🧾</span><h2 className="mt-4 text-xl font-extrabold">Terminer « {activeList?.title} » ?</h2><p className="mt-2 text-sm leading-6 text-muted">{boughtItems.length} produits achetés seront archivés avec un total de {boughtItems.reduce((sum, item) => sum + (item.paidPrice || 0), 0).toFixed(2)} DH. Les {activeItems.length} produits non achetés resteront indiqués comme reportés dans le résumé. Aucune nouvelle liste ne sera créée automatiquement.</p><button type="button" disabled={finishing} onClick={finishList} className="mt-6 min-h-14 w-full rounded-2xl bg-accent-600 font-extrabold text-white disabled:opacity-60">{finishing ? 'Archivage…' : 'Terminer cette course'}</button></section></div>}
     </main>
+  )
+}
+
+function ListsOverview({ lists, allItems, loading, incomingRequest, onOpen, onDelete, onNew }) {
+  const activeLists = lists.filter((list) => list.status !== 'completed')
+  const completedLists = lists.filter((list) => list.status === 'completed')
+  const completedByMonth = completedLists.reduce((groups, list) => {
+    const date = list.completedAt?.toDate?.() || list.plannedFor?.toDate?.() || list.createdAt?.toDate?.() || new Date()
+    const key = date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+    groups[key] ||= []
+    groups[key].push(list)
+    return groups
+  }, {})
+
+  return (
+    <main className="mx-auto min-h-dvh w-full max-w-2xl px-4 pb-32 pt-6 sm:px-6">
+      <AppHeader title="Mes courses" subtitle="Une liste claire pour chaque sortie" />
+
+      <button type="button" onClick={onNew} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-accent-600 font-extrabold text-white shadow-lg shadow-teal-600/20 transition active:scale-[0.99]"><Plus size={21} />Créer une nouvelle liste</button>
+
+      {incomingRequest && <button type="button" onClick={() => onOpen(incomingRequest)} className="mt-4 flex min-h-20 w-full items-center gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left text-amber-900 shadow-sm dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100"><span className="grid h-11 w-11 place-items-center rounded-xl bg-amber-400 text-2xl">🛒</span><span className="min-w-0 flex-1"><strong className="block truncate">Course demandée</strong><small className="mt-1 block truncate">{incomingRequest.title} vous attend</small></span><ChevronRight size={21} /></button>}
+
+      <section className="mt-8">
+        <div className="flex items-end justify-between gap-4"><div><p className="text-xs font-extrabold uppercase tracking-[0.16em] text-accent-700">À faire</p><h2 className="mt-1 text-xl font-extrabold">Listes actives</h2></div><span className="rounded-full bg-accent-50 px-3 py-1 text-xs font-extrabold text-accent-700">{activeLists.length}</span></div>
+        <div className="mt-4 space-y-3">
+          {loading ? <><ListSkeleton /><ListSkeleton /></> : activeLists.length ? activeLists.map((list) => <CourseCard key={list.id} list={list} items={allItems.filter((item) => item.listId === list.id || (list.id === 'inbox' && !item.listId))} active onOpen={onOpen} onDelete={onDelete} />) : <div className="rounded-2xl border border-dashed border-slate-300 p-7 text-center dark:border-slate-700"><span className="text-4xl">📝</span><p className="mt-3 font-bold">Aucune liste active</p><p className="mt-1 text-sm text-muted">Créez la prochaine course en un clic.</p></div>}
+        </div>
+      </section>
+
+      <section className="mt-9">
+        <div className="flex items-end justify-between gap-4"><div><p className="text-xs font-extrabold uppercase tracking-[0.16em] text-muted">Archives</p><h2 className="mt-1 text-xl font-extrabold">Courses terminées</h2></div><Archive size={20} className="text-muted" /></div>
+        {Object.keys(completedByMonth).length ? <div className="mt-5 space-y-7">{Object.entries(completedByMonth).map(([month, monthLists]) => <div key={month}><h3 className="mb-3 capitalize text-sm font-extrabold text-muted">{month}</h3><div className="space-y-3">{monthLists.map((list) => <CourseCard key={list.id} list={list} items={[]} onOpen={onOpen} onDelete={onDelete} />)}</div></div>)}</div> : <div className="mt-4 rounded-2xl bg-surface p-6 text-center text-sm text-muted shadow-sm">Les courses terminées apparaîtront ici, classées par mois.</div>}
+      </section>
+    </main>
+  )
+}
+
+function CourseCard({ list, items, active = false, onOpen, onDelete }) {
+  const date = list.plannedFor?.toDate?.() || list.createdAt?.toDate?.() || new Date()
+  const boughtCount = active ? items.filter((item) => item.bought).length : list.summary?.boughtCount || 0
+  const itemCount = active ? items.length : list.summary?.itemCount || 0
+  const amount = active
+    ? items.filter((item) => !item.bought).reduce((sum, item) => sum + Number(item.estimatedPrice || 0) * Number(item.quantity || 1), 0)
+    : Number(list.summary?.total || 0)
+  const statusLabel = list.status === 'requested' ? 'Demandée' : list.status === 'shopping' ? 'En magasin' : active ? 'Active' : 'Terminée'
+
+  return (
+    <article className={`flex min-h-28 items-stretch overflow-hidden rounded-[1.4rem] border transition ${active ? 'border-accent-100 bg-surface shadow-card hover:border-accent-500' : 'border-slate-200 bg-slate-100/80 text-slate-500 dark:border-slate-800 dark:bg-slate-900/60'}`}>
+      <button type="button" onClick={() => onOpen(list)} className="group flex min-w-0 flex-1 items-center gap-4 p-4 text-left active:scale-[0.99]">
+        <span className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-2xl ${active ? 'bg-accent-50' : 'bg-slate-200 grayscale dark:bg-slate-800'}`}>{active ? '🛒' : '✓'}</span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2"><strong className={`truncate text-base ${active ? 'text-ink' : ''}`}>{list.title}</strong><small className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-black uppercase ${active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500 dark:bg-slate-800'}`}>{statusLabel}</small></span>
+          <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs font-semibold text-muted"><span>{date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span><span>{itemCount} produit{itemCount !== 1 ? 's' : ''}</span><span>{boughtCount}/{itemCount} acheté{boughtCount !== 1 ? 's' : ''}</span></span>
+          <span className={`mt-2 block text-sm font-extrabold ${active ? 'text-accent-700' : 'text-slate-500'}`}>{active ? 'Estimation' : 'Total'} · {amount.toFixed(2)} DH</span>
+        </span>
+        <ChevronRight className="shrink-0 text-muted transition group-hover:translate-x-1" size={21} />
+      </button>
+      <button type="button" onClick={() => onDelete(list)} className="my-3 mr-3 grid min-h-11 w-11 shrink-0 place-items-center self-center rounded-xl text-slate-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950" aria-label={`Supprimer la liste ${list.title}`} title="Supprimer la liste"><Trash2 size={18} /></button>
+    </article>
+  )
+}
+
+function ArchivedListDetail({ list, onBack }) {
+  const summary = list.summary || {}
+  const completedDate = list.completedAt?.toDate?.() || list.plannedFor?.toDate?.()
+  const archivedItems = summary.items || []
+
+  return (
+    <main className="mx-auto min-h-dvh w-full max-w-2xl px-4 pb-32 pt-6 text-ink sm:px-6">
+      <button type="button" onClick={onBack} className="mb-4 flex min-h-11 items-center gap-2 rounded-xl pr-4 text-sm font-extrabold text-muted hover:text-ink"><ArrowLeft size={20} />Toutes les courses</button>
+      <AppHeader title={list.title} subtitle="Course terminée et archivée" />
+      <section className="rounded-[1.75rem] bg-slate-900 p-5 text-white shadow-card">
+        <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-wider text-white/60">Total payé</p><p className="mt-2 text-3xl font-black">{Number(summary.total || 0).toFixed(2)} <span className="text-base text-white/65">DH</span></p></div><span className="grid h-12 w-12 place-items-center rounded-xl bg-white/10 text-2xl">✓</span></div>
+        <div className="mt-5 grid grid-cols-3 gap-2 border-t border-white/10 pt-4 text-center"><ArchiveMetric label="Produits" value={summary.itemCount || 0} /><ArchiveMetric label="Achetés" value={summary.boughtCount || 0} /><ArchiveMetric label="Reportés" value={summary.remainingCount || 0} /></div>
+      </section>
+      <div className="mt-4 flex flex-wrap gap-2 text-sm font-semibold text-muted">{completedDate && <span className="flex items-center gap-2 rounded-full bg-surface px-3 py-2 shadow-sm"><CalendarDays size={16} />{completedDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>}{summary.stores?.map((store) => <span key={store} className="rounded-full bg-surface px-3 py-2 shadow-sm">{store}</span>)}</div>
+      <section className="mt-7"><h2 className="font-extrabold">Contenu de la course</h2><div className="mt-3 space-y-3">{archivedItems.length ? archivedItems.map((item, index) => <article key={`${item.productId}-${index}`} className={`flex items-center gap-3 rounded-2xl p-4 ${item.bought ? 'bg-surface shadow-sm' : 'border border-dashed border-slate-300 bg-canvas text-muted dark:border-slate-700'}`}><span className="grid h-11 w-11 place-items-center rounded-xl bg-canvas text-2xl">{catalogById[item.productId]?.emoji || item.emoji || '🛒'}</span><div className="min-w-0 flex-1"><strong className="block truncate">{item.name}</strong><small className="text-muted">{item.quantity} {item.unit}{item.brand ? ` · ${item.brand}` : ''}</small></div><strong className="whitespace-nowrap text-sm">{item.bought ? Number(item.paidPrice || 0).toFixed(2) + ' DH' : 'Reporté'}</strong></article>) : <p className="rounded-2xl bg-surface p-6 text-center text-sm text-muted">Aucun détail disponible pour cette ancienne course.</p>}</div></section>
+    </main>
+  )
+}
+
+function ArchiveMetric({ label, value }) {
+  return <div><strong className="block text-xl">{value}</strong><span className="text-[10px] font-bold uppercase text-white/55">{label}</span></div>
+}
+
+function ListSkeleton() {
+  return <div className="h-28 animate-pulse rounded-[1.4rem] bg-slate-200 dark:bg-slate-800" />
+}
+
+function DeleteListDialog({ list, itemCount, deleting, onCancel, onConfirm }) {
+  const isArchived = list.status === 'completed'
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center p-5" role="dialog" aria-modal="true" aria-labelledby="delete-list-title">
+      <button type="button" onClick={onCancel} className="absolute inset-0 bg-slate-950/55 backdrop-blur-[2px]" aria-label="Annuler" />
+      <section className="relative w-full max-w-sm rounded-[1.75rem] bg-surface p-6 text-center shadow-2xl">
+        <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-red-50 text-red-600 dark:bg-red-950"><Trash2 size={25} /></span>
+        <h2 id="delete-list-title" className="mt-5 text-xl font-extrabold">Supprimer « {list.title} » ?</h2>
+        <p className="mt-2 text-sm leading-6 text-muted">
+          {isArchived
+            ? `Le résumé archivé de cette course (${itemCount} produits) sera supprimé. Les achats réels resteront dans l’historique et le budget.`
+            : `Cette liste et ses ${itemCount} produit${itemCount !== 1 ? 's' : ''} seront supprimés. L’historique des achats déjà payés sera conservé.`}
+        </p>
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <button type="button" onClick={onCancel} disabled={deleting} className="min-h-12 rounded-xl bg-canvas font-extrabold text-ink">Annuler</button>
+          <button type="button" onClick={onConfirm} disabled={deleting} className="min-h-12 rounded-xl bg-red-600 font-extrabold text-white disabled:opacity-60">{deleting ? 'Suppression…' : 'Supprimer'}</button>
+        </div>
+      </section>
+    </div>
   )
 }

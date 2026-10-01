@@ -34,10 +34,14 @@ export default function AddProductSheet() {
 
   const submit = async (event) => {
     event.preventDefault()
+    if (!activeList) {
+      setError('Créez et ouvrez d’abord une liste de courses.')
+      return
+    }
     setSubmitting(true)
     setError('')
     try {
-      const result = await addShoppingItem(household.id, activeList?.id || 'inbox', product, user, { quantity, unit, note }, duplicate)
+      const result = await addShoppingItem(household.id, activeList.id, product, user, { quantity, unit, note }, duplicate)
       closeProduct()
       notify(result.merged ? `Quantité de ${product.name} mise à jour` : `${product.name} ajouté à la liste`)
     } catch {
