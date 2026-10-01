@@ -58,16 +58,6 @@ service cloud.firestore {
 
       allow delete: if false;
 
-      match /presence/{userId} {
-        allow read: if isMember(householdId);
-        allow create, update: if isMember(householdId)
-          && request.auth.uid == userId
-          && request.resource.data.keys().hasOnly(['uid', 'state', 'lastSeen'])
-          && request.resource.data.uid == request.auth.uid
-          && request.resource.data.state in ['online', 'away'];
-        allow delete: if false;
-      }
-
       match /{collectionName}/{documentId} {
         allow read, write: if collectionName in [
           'items',

@@ -1,10 +1,32 @@
-import { Check, ChevronDown, PackagePlus, X } from 'lucide-react'
+import { Check, ChevronDown, PackagePlus, Search, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { categories } from '../data/catalog'
 import { createCustomProduct } from '../services/shopping'
 
-const icons = ['🛒', '🍅', '🥔', '🥕', '🧅', '🥬', '🍎', '🍌', '🍋', '🍗', '🥩', '🐟', '🍤', '🥚', '🥛', '🧀', '🧈', '🥖', '🍞', '🥐', '🍚', '🍝', '🥫', '🫙', '🧃', '🥤', '💧', '🍪', '🍫', '🍿', '🧴', '🧼', '🧽', '🧻', '👶', '❄️', '🌾', '☕', '🍵', '🌶️']
+const iconOptions = [
+  ['🛒', 'Courses', 'panier caddie t9dya achats sou9'],
+  ['🍅', 'Tomate', 'maticha tomate sauce'], ['🥔', 'Pomme de terre', 'btata patate frites'], ['🥕', 'Carotte', 'khizou légumes'],
+  ['🧅', 'Oignon', 'bsla légume'], ['🧄', 'Ail', 'touma ail'], ['🥬', 'Salade', 'khoss laitue légumes'], ['🥒', 'Concombre', 'khyar concombre'],
+  ['🫑', 'Poivron', 'felfla poivron'], ['🍆', 'Aubergine', 'denjal aubergine'], ['🫛', 'Petits pois', 'jelbana pois'], ['🌽', 'Maïs', 'dra mais'],
+  ['🍎', 'Pomme', 'tfa7 fruit'], ['🍌', 'Banane', 'banane fruit'], ['🍊', 'Orange', 'limoun orange fruit'], ['🍋', 'Citron', 'hamed 7amed citron'],
+  ['🍉', 'Pastèque', 'dellah pastèque'], ['🍓', 'Fraise', 'fraise fruit'], ['🍇', 'Raisin', '3neb raisin'], ['🥑', 'Avocat', 'avocat fruit'],
+  ['🍗', 'Poulet', 'djaj poulet viande'], ['🥩', 'Viande', 'l7em viande boeuf'], ['🐟', 'Poisson', 'hout poisson'], ['🍤', 'Crevettes', 'crevette gambas poisson'],
+  ['🥚', 'Œufs', 'bid oeuf'], ['🥛', 'Lait', 'hlib lait raibi'], ['🧀', 'Fromage', 'fromage cheddar rouge blanc'], ['🧈', 'Beurre', 'zebda beurre'],
+  ['🥣', 'Yaourt', 'danone yaourt raibi laitier'], ['🥖', 'Baguette', 'khobz pain baguette'], ['🍞', 'Pain', 'khobz toast pain'], ['🥐', 'Viennoiserie', 'croissant pain'],
+  ['🍚', 'Riz', 'roz riz'], ['🍝', 'Pâtes', 'makarona spaghetti pâtes'], ['🥫', 'Conserve', 'conserve tomate thon'], ['🫘', 'Légumineuses', 'loubia haricot lentille 3dess'],
+  ['🫒', 'Huile', 'zit huile olive'], ['🌾', 'Farine', 'd9i9 farine semoule'], ['🧂', 'Sel', 'ml7 sel épice'], ['🍬', 'Sucre', 'sokkar sucre bonbon'],
+  ['🌶️', 'Épices', 'ibzar poivre harissa piment'], ['🍯', 'Miel', 'miel confiture'], ['🫙', 'Pot et sauce', 'sauce mayonnaise moutarde confiture'], ['🥜', 'Fruits secs', 'cacahuète amande noix'],
+  ['💧', 'Eau', 'ma eau bouteille'], ['🧃', 'Jus', '3asir jus boisson'], ['🥤', 'Soda', 'boisson gazeuse cola'], ['☕', 'Café', 'qahwa café'],
+  ['🍵', 'Thé', 'atay thé'], ['🍪', 'Biscuits', 'biscuit cookies goûter'], ['🍫', 'Chocolat', 'chocolat cacao'], ['🍿', 'Snack', 'popcorn chips apéritif'],
+  ['❄️', 'Surgelé', 'congelé glace surgelé'], ['🍦', 'Glace', 'glace dessert'], ['🍰', 'Gâteau', 'gateau pâtisserie dessert'], ['🍕', 'Pizza', 'pizza surgelé'],
+  ['🧴', 'Hygiène', 'shampooing gel crème beauté'], ['🧼', 'Savon', 'saboun savon lessive'], ['🪥', 'Dents', 'dentifrice brosse dents'], ['🧻', 'Papier toilette', 'papier toilette mouchoir'],
+  ['🧽', 'Éponge', 'éponge ménage nettoyage'], ['🧹', 'Balai', 'balai ménage nettoyage'], ['🧺', 'Lessive', 'linge lessive adoucissant'], ['🗑️', 'Poubelle', 'sac poubelle déchets'],
+  ['🧪', 'Produit ménager', 'javel désinfectant nettoyant sol ménage'], ['🪣', 'Seau', 'seau ménage'], ['🧤', 'Gants', 'gants ménage'], ['🌸', 'Parfum', 'parfum désodorisant fleur'],
+  ['👶', 'Bébé', 'bébé enfant'], ['🍼', 'Biberon', 'lait bébé biberon'], ['🧷', 'Couches', 'couche bébé diaper'], ['🐾', 'Animal', 'chat chien croquettes'],
+  ['💊', 'Pharmacie', 'médicament vitamine santé'], ['🩹', 'Soin', 'pansement pharmacie'], ['🔋', 'Piles', 'pile batterie maison'], ['💡', 'Ampoule', 'lampe ampoule maison'],
+  ['📦', 'Autre produit', 'boîte paquet autre'], ['🎁', 'Cadeau', 'cadeau fête'], ['🔥', 'Charbon', 'charbon barbecue feu']
+].map(([emoji, label, keywords]) => ({ emoji, label, keywords }))
 const units = ['pièce', 'kg', 'g', 'L', 'pack', 'boîte', 'bouteille', 'sachet', 'pot', 'barquette', 'botte', 'plateau', 'rouleau']
 const normalize = (value) => value.trim().toLocaleLowerCase('fr').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 
@@ -22,7 +44,18 @@ export default function CreateCustomProductSheet({ initialName = '', existingPro
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [iconSearch, setIconSearch] = useState(initialName)
   const category = useMemo(() => categories.find((item) => item.id === form.category), [form.category])
+  const filteredIcons = useMemo(() => {
+    const needle = normalize(iconSearch)
+    if (!needle) return iconOptions
+    const words = needle.split(/\s+/).filter(Boolean)
+    return iconOptions.filter((option) => {
+      const searchable = normalize(`${option.label} ${option.keywords}`)
+      return words.some((word) => searchable.includes(word))
+    })
+  }, [iconSearch])
+  const selectedIcon = iconOptions.find((option) => option.emoji === form.emoji)
 
   const update = (field, value) => setForm((current) => ({ ...current, [field]: value }))
 
@@ -65,7 +98,11 @@ export default function CreateCustomProductSheet({ initialName = '', existingPro
           <Field label="Prix estimé"><div className="relative"><input type="number" min="0" step="0.5" inputMode="decimal" value={form.defaultPrice} onChange={(event) => update('defaultPrice', event.target.value)} placeholder="0" className="field-input pr-14" /><span className="absolute right-4 top-3.5 text-sm font-bold text-muted">DH</span></div></Field>
         </div>
 
-        <fieldset className="mt-5"><legend className="text-sm font-bold">Choisir une icône *</legend><div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-2">{icons.map((emoji) => <button key={emoji} type="button" onClick={() => update('emoji', emoji)} className={`relative grid h-12 w-12 shrink-0 place-items-center rounded-xl text-2xl transition ${form.emoji === emoji ? 'bg-accent-100 ring-2 ring-accent-500' : 'bg-canvas'}`} aria-label={`Choisir ${emoji}`} aria-pressed={form.emoji === emoji}>{emoji}{form.emoji === emoji && <Check className="absolute -right-1 -top-1 rounded-full bg-accent-600 p-0.5 text-white" size={15} />}</button>)}</div></fieldset>
+        <fieldset className="mt-5">
+          <div className="flex items-center justify-between gap-3"><legend className="text-sm font-bold">Choisir une icône *</legend><span className="rounded-full bg-accent-50 px-3 py-1 text-xs font-extrabold text-accent-700">{form.emoji} {selectedIcon?.label}</span></div>
+          <label className="mt-3 flex min-h-12 items-center gap-2 rounded-xl border border-slate-200 bg-canvas px-3 dark:border-slate-700"><Search className="shrink-0 text-muted" size={18} /><span className="sr-only">Rechercher une icône</span><input value={iconSearch} onChange={(event) => setIconSearch(event.target.value)} placeholder="Tomate, lait, ménage, bébé…" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />{iconSearch && <button type="button" onClick={() => setIconSearch('')} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted" aria-label="Effacer la recherche d’icône"><X size={16} /></button>}</label>
+          {filteredIcons.length ? <div className="mt-3 grid max-h-52 grid-cols-6 gap-2 overflow-y-auto p-0.5 sm:grid-cols-8">{filteredIcons.map(({ emoji, label }) => <button key={`${emoji}-${label}`} type="button" onClick={() => update('emoji', emoji)} className={`relative grid aspect-square min-h-11 place-items-center rounded-xl text-2xl transition ${form.emoji === emoji ? 'bg-accent-100 ring-2 ring-accent-500' : 'bg-canvas hover:bg-slate-100 dark:hover:bg-slate-800'}`} aria-label={label} title={label} aria-pressed={form.emoji === emoji}>{emoji}{form.emoji === emoji && <Check className="absolute -right-1 -top-1 rounded-full bg-accent-600 p-0.5 text-white" size={15} />}</button>)}</div> : <div className="mt-3 rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm text-muted dark:border-slate-700">Aucune icône pour « {iconSearch} ». Essayez un autre mot.</div>}
+        </fieldset>
 
         {error && <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700 dark:bg-red-950 dark:text-red-200" role="alert">{error}</p>}
         <button type="submit" disabled={saving} className="mt-6 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-accent-600 font-extrabold text-white shadow-lg shadow-teal-600/20 disabled:opacity-60"><PackagePlus size={20} />{saving ? 'Enregistrement…' : willAddToList ? 'Enregistrer et ajouter à la liste' : 'Enregistrer dans le catalogue'}</button>

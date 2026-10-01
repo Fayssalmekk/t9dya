@@ -10,6 +10,47 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      (() => {
+        const repairKey = 't9dya-pwa-repair-at'
+        const showRepairScreen = () => {
+          const root = document.getElementById('root')
+          if (!root || root.childElementCount) return
+          root.innerHTML = '<main style="min-height:100vh;display:grid;place-items:center;padding:24px;background:#f8fafc;color:#0f172a;font-family:system-ui,sans-serif"><section style="width:100%;max-width:380px;padding:28px;border-radius:28px;background:white;text-align:center;box-shadow:0 18px 45px rgba(15,23,42,.12)"><div style="font-size:42px">🛠️</div><h1 style="margin:16px 0 8px;font-size:22px">Mise à jour de T9dya</h1><p style="margin:0;color:#64748b;line-height:1.6">Une ancienne version bloque encore le démarrage.</p><button onclick="sessionStorage.removeItem(\'t9dya-pwa-repair-at\');window.__t9dyaRepairApp(\'manual\')" style="width:100%;min-height:50px;margin-top:22px;border:0;border-radius:14px;background:#0d9488;color:white;font-weight:800;font-size:16px">Réparer et relancer</button></section></main>'
+        }
+
+        window.__t9dyaRepairApp = async () => {
+          const now = Date.now()
+          const lastRepair = Number(sessionStorage.getItem(repairKey) || 0)
+          if (now - lastRepair < 15000) {
+            showRepairScreen()
+            return
+          }
+          sessionStorage.setItem(repairKey, String(now))
+          try {
+            if ('serviceWorker' in navigator) {
+              const registrations = await navigator.serviceWorker.getRegistrations()
+              await Promise.all(registrations.map((registration) => registration.unregister()))
+            }
+            if ('caches' in window) {
+              const cacheNames = await caches.keys()
+              await Promise.all(cacheNames.map((name) => caches.delete(name)))
+            }
+          } finally {
+            const freshUrl = new URL(window.location.href)
+            freshUrl.searchParams.set('__t9dya_refresh', String(now))
+            window.location.replace(freshUrl.toString())
+          }
+        }
+
+        window.addEventListener('error', (event) => {
+          if (event.target?.tagName === 'SCRIPT' && navigator.onLine) window.__t9dyaRepairApp('script-error')
+        }, true)
+        window.setTimeout(() => {
+          if (!document.getElementById('root')?.childElementCount && navigator.onLine) window.__t9dyaRepairApp('empty-root')
+        }, 15000)
+      })()
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
