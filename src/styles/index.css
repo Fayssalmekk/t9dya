@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --color-accent-50: 240 253 250;
+  --color-accent-100: 204 251 241;
+  --color-accent-500: 20 184 166;
+  --color-accent-600: 13 148 136;
+  --color-accent-700: 15 118 110;
+  --color-canvas: 248 250 252;
+  --color-surface: 255 255 255;
+  --color-ink: 15 23 42;
+  --color-muted: 100 116 139;
+}
+
+.dark {
+  color-scheme: dark;
+  --color-accent-50: 19 78 74;
+  --color-accent-100: 17 94 89;
+  --color-accent-500: 45 212 191;
+  --color-accent-600: 20 184 166;
+  --color-accent-700: 94 234 212;
+  --color-canvas: 2 6 23;
+  --color-surface: 15 23 42;
+  --color-ink: 241 245 249;
+  --color-muted: 148 163 184;
+}
+
+html {
+  min-width: 320px;
+  background: rgb(var(--color-canvas));
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid rgb(var(--color-accent-500));
+  outline-offset: 3px;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

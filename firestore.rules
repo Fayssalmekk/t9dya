@@ -1,0 +1,80 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function validMembers(members) {
+      return members is list
+        && members.size() >= 1
+        && members.size() <= 2
+        && members.toSet().size() == members.size();
+    }
+
+    function isMember(householdId) {
+      return signedIn()
+        && request.auth.uid in get(/databases/$(database)/documents/households/$(householdId)).data.members;
+    }
+
+    match /users/{userId} {
+      allow create, read, update: if signedIn() && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    match /households/{householdId} {
+      allow create: if signedIn()
+        && validMembers(request.resource.data.members)
+        && request.resource.data.members.size() == 1
+        && request.resource.data.members[0] == request.auth.uid
+        && request.resource.data.memberProfiles.keys().hasOnly([request.auth.uid])
+        && request.resource.data.memberProfiles[request.auth.uid].uid == request.auth.uid
+        && request.resource.data.inviteCode == householdId;
+
+      allow get: if signedIn() && request.auth.uid in resource.data.members;
+      allow list: if false;
+
+      // The second partner can join by updating only membership metadata. The
+      // invite code is also the document ID, so joining does not require a read.
+      allow update: if signedIn() && (
+        (
+          request.auth.uid in resource.data.members
+          && request.resource.data.members == resource.data.members
+        )
+        ||
+        (
+          !(request.auth.uid in resource.data.members)
+          && validMembers(resource.data.members)
+          && resource.data.members.size() == 1
+          && validMembers(request.resource.data.members)
+          && request.resource.data.members.size() == 2
+          && request.resource.data.members.toSet().hasAll(resource.data.members)
+          && request.auth.uid in request.resource.data.members
+          && request.resource.data.memberProfiles.keys().size() == 2
+          && request.resource.data.memberProfiles.keys().hasAll(resource.data.memberProfiles.keys())
+          && request.resource.data.memberProfiles[request.auth.uid].uid == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'memberProfiles', 'updatedAt'])
+        )
+      );
+
+      allow delete: if false;
+
+      match /{collectionName}/{documentId} {
+        allow read, write: if collectionName in [
+          'items',
+          'lists',
+          'purchases',
+          'priceHistory',
+          'templates',
+          'pantry',
+          'trips'
+        ] && isMember(householdId);
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
