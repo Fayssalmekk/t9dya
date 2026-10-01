@@ -117,6 +117,20 @@ export default function ListPage() {
     setShoppingMode(false)
   }
 
+  useEffect(() => {
+    const returnToListsHome = () => {
+      setShowDetail(false)
+      setViewedListId(null)
+      setShoppingMode(false)
+      setBuyingItem(null)
+      setShowFinish(false)
+      setShowNewList(false)
+      setListToDelete(null)
+    }
+    window.addEventListener('t9dya:list-home', returnToListsHome)
+    return () => window.removeEventListener('t9dya:list-home', returnToListsHome)
+  }, [])
+
   const confirmDeleteList = async () => {
     if (!listToDelete) return
     setDeletingList(true)
