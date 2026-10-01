@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/ai.js": {
+      "maxDuration": 60
+    }
+  },
   "headers": [
     {
       "source": "/",
@@ -14,9 +19,7 @@
     }
   ],
   "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

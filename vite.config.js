@@ -1,18 +1,23 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { viteAiMiddleware } from './scripts/viteAiMiddleware'
 
-export default defineConfig(({ mode }) => ({
-  plugins: [
-    react(),
-    VitePWA({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+
+  return {
+    plugins: [
+      react(),
+      viteAiMiddleware(env),
+      VitePWA({
       disable: mode === 'app-check',
       registerType: 'autoUpdate',
       includeAssets: ['t9dya-icon.svg'],
       manifest: {
-        name: 'T9dya - Courses et budget',
-        short_name: 'T9dya',
-        description: 'Liste de courses partagee et suivi du budget du foyer.',
+        name: 'Notre espace - T9dya et Hwayj',
+        short_name: 'Notre espace',
+        description: 'Courses, budget du foyer et dressing personnel.',
         theme_color: '#0f766e',
         background_color: '#f8fafc',
         display: 'standalone',
@@ -33,6 +38,7 @@ export default defineConfig(({ mode }) => ({
         cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,svg,woff2}']
       }
-    })
-  ]
-}))
+      })
+    ]
+  }
+})

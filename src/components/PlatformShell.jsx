@@ -22,25 +22,25 @@ function PlatformContent() {
   const location = useLocation()
   const navigate = useNavigate()
   const { incomingRequest } = useShopping()
-  const showFab = location.pathname === '/list'
+  const showFab = location.pathname === '/t9dya/list' || location.pathname === '/t9dya'
 
   return (
     <div className="min-h-dvh bg-canvas text-ink">
       <Suspense fallback={<PageFallback />}>
         <Routes>
-          <Route path="/list" element={<ListPage />} />
-          <Route path="/catalog" element={<CatalogPage />} />
-          <Route path="/charges" element={<ChargesPage />} />
-          <Route path="/envelopes" element={<EnvelopesPage />} />
-          <Route path="/budget" element={<Navigate to="/charges" replace />} />
-          <Route path="/history" element={<HistoryPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<Navigate to="/list" replace />} />
+          <Route path="list" element={<ListPage />} />
+          <Route path="catalog" element={<CatalogPage />} />
+          <Route path="charges" element={<ChargesPage />} />
+          <Route path="envelopes" element={<EnvelopesPage />} />
+          <Route path="budget" element={<Navigate to="/t9dya/charges" replace />} />
+          <Route path="history" element={<HistoryPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="*" element={<Navigate to="/t9dya/list" replace />} />
         </Routes>
       </Suspense>
-      {incomingRequest && location.pathname !== '/list' && <button type="button" onClick={() => navigate('/list')} className="fixed left-1/2 top-4 z-40 flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 items-center gap-3 rounded-2xl bg-amber-400 p-4 text-left text-slate-950 shadow-2xl"><span className="text-2xl">🛒</span><span className="min-w-0 flex-1"><strong className="block">Course demandée</strong><small className="block truncate">{incomingRequest.title} vous attend</small></span><span className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-extrabold text-white">Voir</span></button>}
+      {incomingRequest && location.pathname !== '/t9dya/list' && <button type="button" onClick={() => navigate('/t9dya/list')} className="fixed left-1/2 top-4 z-40 flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 items-center gap-3 rounded-2xl bg-amber-400 p-4 text-left text-slate-950 shadow-2xl"><span className="text-2xl">🛒</span><span className="min-w-0 flex-1"><strong className="block">Course demandée</strong><small className="block truncate">{incomingRequest.title} vous attend</small></span><span className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-extrabold text-white">Voir</span></button>}
       {showFab && (
-        <button type="button" onClick={() => navigate('/catalog')} className="fixed bottom-24 right-5 z-20 grid h-14 w-14 place-items-center rounded-2xl bg-accent-600 text-white shadow-[0_12px_30px_-8px_rgba(13,148,136,0.75)] transition hover:-translate-y-0.5 hover:bg-accent-700 active:scale-95 sm:right-[calc(50%-21rem)]" aria-label="Ajouter un produit">
+        <button type="button" onClick={() => navigate('/t9dya/catalog')} className="fixed bottom-24 right-5 z-20 grid h-14 w-14 place-items-center rounded-2xl bg-accent-600 text-white shadow-[0_12px_30px_-8px_rgba(13,148,136,0.75)] transition hover:-translate-y-0.5 hover:bg-accent-700 active:scale-95 sm:right-[calc(50%-21rem)]" aria-label="Ajouter un produit">
           <Plus size={27} strokeWidth={2.5} />
         </button>
       )}

@@ -1,10 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import {
-  onAuthStateChanged,
-  sendPasswordResetEmail,
-  signInWithEmailAndPassword,
-  signOut as firebaseSignOut
-} from 'firebase/auth'
+import { onAuthStateChanged, sendPasswordResetEmail, signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth'
 import { doc, onSnapshot } from 'firebase/firestore'
 import { auth, db } from '../services/firebase'
 
@@ -18,11 +13,13 @@ export function AuthProvider({ children }) {
   const [profileLoading, setProfileLoading] = useState(false)
   const [householdLoading, setHouseholdLoading] = useState(false)
   const [dataError, setDataError] = useState('')
+  const [accountClosed, setAccountClosed] = useState(false)
 
   useEffect(() => onAuthStateChanged(auth, (nextUser) => {
     setUser(nextUser)
     setProfile(null)
     setHousehold(null)
+    setAccountClosed(false)
     setProfileLoading(Boolean(nextUser))
     setHouseholdLoading(false)
     setAuthLoading(false)
@@ -30,21 +27,20 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (!user) return undefined
-
-    const profileRef = doc(db, 'users', user.uid)
-
-    return onSnapshot(profileRef, async (snapshot) => {
+    return onSnapshot(doc(db, 'users', user.uid), (snapshot) => {
       if (snapshot.exists()) {
         const nextProfile = { id: snapshot.id, ...snapshot.data() }
         setProfile(nextProfile)
+        setAccountClosed(false)
         setHouseholdLoading(Boolean(nextProfile.householdId))
         if (!nextProfile.householdId) setHousehold(null)
+        setDataError('')
       } else {
         setProfile(null)
         setHousehold(null)
-        setDataError('Ce compte n’est pas autorisé à utiliser ce foyer.')
+        setAccountClosed(true)
+        setDataError('Ce compte n’est pas autorisé à utiliser cette plateforme.')
       }
-      if (snapshot.exists()) setDataError('')
       setProfileLoading(false)
     }, () => {
       setDataError('Impossible de charger votre profil. Vérifiez Firestore et ses règles.')
@@ -55,7 +51,6 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const householdId = profile?.householdId
     if (!user || !householdId) return undefined
-
     return onSnapshot(doc(db, 'households', householdId), (snapshot) => {
       setHousehold(snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null)
       setDataError(snapshot.exists() ? '' : 'Ce foyer est introuvable.')
@@ -72,11 +67,12 @@ export function AuthProvider({ children }) {
     profile,
     household,
     dataError,
+    accountClosed,
     initializing: authLoading || profileLoading || householdLoading,
     signIn: (email, password) => signInWithEmailAndPassword(auth, email.trim(), password),
     resetPassword: (email) => sendPasswordResetEmail(auth, email.trim()),
     signOut: () => firebaseSignOut(auth)
-  }), [authLoading, dataError, household, householdLoading, profile, profileLoading, user])
+  }), [accountClosed, authLoading, dataError, household, householdLoading, profile, profileLoading, user])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

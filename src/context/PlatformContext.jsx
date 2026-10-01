@@ -7,19 +7,12 @@ export function PlatformProvider({ children }) {
   const [toast, setToast] = useState(null)
 
   const notify = (message, action) => {
-    setToast({ message, action, key: Date.now() })
-    window.setTimeout(() => setToast((current) => current?.message === message ? null : current), 4500)
+    const key = Date.now()
+    setToast({ message, action, key })
+    window.setTimeout(() => setToast((current) => current?.key === key ? null : current), 4500)
   }
 
-  const value = useMemo(() => ({
-    selectedProduct,
-    openProduct: setSelectedProduct,
-    closeProduct: () => setSelectedProduct(null),
-    toast,
-    dismissToast: () => setToast(null),
-    notify
-  }), [selectedProduct, toast])
-
+  const value = useMemo(() => ({ selectedProduct, openProduct: setSelectedProduct, closeProduct: () => setSelectedProduct(null), toast, dismissToast: () => setToast(null), notify }), [selectedProduct, toast])
   return <PlatformContext.Provider value={value}>{children}</PlatformContext.Provider>
 }
 
