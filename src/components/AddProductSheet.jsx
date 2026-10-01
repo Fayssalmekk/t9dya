@@ -6,7 +6,7 @@ import { usePlatform } from '../context/PlatformContext'
 import { useShopping } from '../context/ShoppingContext'
 import { addShoppingItem } from '../services/shopping'
 
-const units = ['pièce', 'kg', 'g', 'L', 'pack', 'boîte', 'bouteille', 'sachet', 'pot', 'barquette', 'botte']
+const units = ['pièce', 'kg', 'g', 'L', 'pack', 'boîte', 'bouteille', 'sachet', 'pot', 'barquette', 'botte', 'plateau', 'rouleau']
 
 export default function AddProductSheet() {
   const { user, household } = useAuth()

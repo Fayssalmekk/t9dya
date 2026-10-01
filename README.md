@@ -18,6 +18,8 @@ Application mobile-first de liste de courses partagee et de suivi du budget pour
 
 Suivez le guide détaillé pour débutants dans [`docs/firebase-setup.md`](docs/firebase-setup.md). Il couvre la console Firebase, les commandes PowerShell, le déploiement des règles, le test avec deux comptes et les erreurs fréquentes.
 
+Le fonctionnement des charges mensuelles et des enveloppes est expliqué dans [`docs/budget-et-enveloppes.md`](docs/budget-et-enveloppes.md).
+
 ## Deploiement GitHub vers Vercel
 
 1. Creez un depot GitHub, validez les fichiers puis poussez la branche principale.
@@ -41,6 +43,9 @@ Suivez le guide détaillé pour débutants dans [`docs/firebase-setup.md`](docs/
 - `households/{id}/items` : liste de courses active
 - `households/{id}/purchases` : achats confirmes
 - `households/{id}/priceHistory` : historique de prix par produit
+- `households/{id}/customProducts` : produits personnels permanents et partages par le foyer
+- `households/{id}/charges` et `chargePayments` : charges récurrentes et règlements mensuels
+- `households/{id}/envelopes` et `envelopeTransactions` : enveloppes, soldes et mouvements
 - `households/{id}/templates` : listes recurrentes
 - `households/{id}/pantry` : produits a surveiller
 - `households/{id}/trips` : sorties de courses archivees

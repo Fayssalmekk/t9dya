@@ -78,7 +78,7 @@ npx firebase deploy --only firestore:rules,firestore:indexes
 
 Le message final doit contenir `Deploy complete!`. Pour vérifier, ouvrez **Firestore Database → Règles** et confirmez que la date de publication vient de changer.
 
-La collection `lists` utilisée pour les courses datées et archivées est autorisée par ces règles. Après une mise à jour de T9dya qui modifie `firestore.rules`, relancez toujours cette commande avant de tester la nouvelle fonctionnalité.
+Les collections `lists`, `customProducts`, `charges`, `chargePayments`, `envelopes` et `envelopeTransactions` sont autorisées par ces règles. Elles servent aux courses, aux produits personnels et au budget partagé. Après une mise à jour de T9dya qui modifie `firestore.rules`, relancez toujours cette commande avant de tester la nouvelle fonctionnalité.
 
 Attention : les règles locales remplacent celles qui se trouvent dans la console Firebase.
 
@@ -98,7 +98,9 @@ Dans **Firestore Database → Données**, vous verrez :
 
 - `users/{uid}` : profil privé et identifiant du foyer de chaque compte;
 - `households/{code}` : foyer partagé, deux UID maximum et profils du couple;
-- plus tard, les sous-collections `items`, `purchases`, `priceHistory`, `templates`, `pantry` et `trips`.
+- les sous-collections `items`, `lists`, `purchases`, `priceHistory` et `customProducts` pour les courses;
+- `charges` et `chargePayments` pour les charges mensuelles et leur statut par mois;
+- `envelopes` et `envelopeTransactions` pour le solde et l’historique des enveloppes.
 
 Évitez de modifier ces documents à la main : une faute dans un UID peut bloquer l’accès au foyer.
 

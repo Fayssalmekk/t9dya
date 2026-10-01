@@ -8,7 +8,7 @@ const icons = ['🛒', '🍅', '🥔', '🥕', '🧅', '🥬', '🍎', '🍌', '
 const units = ['pièce', 'kg', 'g', 'L', 'pack', 'boîte', 'bouteille', 'sachet', 'pot', 'barquette', 'botte', 'plateau', 'rouleau']
 const normalize = (value) => value.trim().toLocaleLowerCase('fr').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 
-export default function CreateCustomProductSheet({ initialName = '', existingProducts, onClose, onCreated }) {
+export default function CreateCustomProductSheet({ initialName = '', existingProducts, willAddToList, onClose, onCreated }) {
   const { household, user } = useAuth()
   const [form, setForm] = useState({
     name: initialName,
@@ -68,7 +68,7 @@ export default function CreateCustomProductSheet({ initialName = '', existingPro
         <fieldset className="mt-5"><legend className="text-sm font-bold">Choisir une icône *</legend><div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-2">{icons.map((emoji) => <button key={emoji} type="button" onClick={() => update('emoji', emoji)} className={`relative grid h-12 w-12 shrink-0 place-items-center rounded-xl text-2xl transition ${form.emoji === emoji ? 'bg-accent-100 ring-2 ring-accent-500' : 'bg-canvas'}`} aria-label={`Choisir ${emoji}`} aria-pressed={form.emoji === emoji}>{emoji}{form.emoji === emoji && <Check className="absolute -right-1 -top-1 rounded-full bg-accent-600 p-0.5 text-white" size={15} />}</button>)}</div></fieldset>
 
         {error && <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700 dark:bg-red-950 dark:text-red-200" role="alert">{error}</p>}
-        <button type="submit" disabled={saving} className="mt-6 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-accent-600 font-extrabold text-white shadow-lg shadow-teal-600/20 disabled:opacity-60"><PackagePlus size={20} />{saving ? 'Enregistrement…' : 'Enregistrer et ajouter'}</button>
+        <button type="submit" disabled={saving} className="mt-6 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-accent-600 font-extrabold text-white shadow-lg shadow-teal-600/20 disabled:opacity-60"><PackagePlus size={20} />{saving ? 'Enregistrement…' : willAddToList ? 'Enregistrer et ajouter à la liste' : 'Enregistrer dans le catalogue'}</button>
       </form>
     </div>
   )
