@@ -7,9 +7,8 @@ import Notice from '../components/Notice'
 import { getFirebaseErrorMessage } from '../utils/firebaseErrors'
 
 export default function AuthPage() {
-  const { signIn, signUp, resetPassword } = useAuth()
-  const [mode, setMode] = useState('login')
-  const [form, setForm] = useState({ name: '', email: '', password: '' })
+  const { signIn, resetPassword } = useAuth()
+  const [form, setForm] = useState({ email: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState(null)
@@ -21,8 +20,7 @@ export default function AuthPage() {
     setSubmitting(true)
     setMessage(null)
     try {
-      if (mode === 'register') await signUp(form.name, form.email, form.password)
-      else await signIn(form.email, form.password)
+      await signIn(form.email, form.password)
     } catch (error) {
       setMessage({ type: 'error', text: getFirebaseErrorMessage(error) })
     } finally {
@@ -47,37 +45,26 @@ export default function AuthPage() {
     <main className="min-h-dvh bg-canvas px-5 py-8 text-ink sm:grid sm:place-items-center">
       <section className="mx-auto w-full max-w-md rounded-card bg-surface p-6 shadow-card sm:p-8">
         <Brand />
-        <div className="mt-8 grid grid-cols-2 rounded-xl bg-slate-100 p-1 dark:bg-slate-800" aria-label="Type de connexion">
-          {[
-            ['login', 'Se connecter'],
-            ['register', 'Créer un compte']
-          ].map(([value, label]) => (
-            <button key={value} type="button" onClick={() => { setMode(value); setMessage(null) }} className={`min-h-11 rounded-lg px-3 text-sm font-semibold transition ${mode === value ? 'bg-surface text-accent-700 shadow-sm' : 'text-muted'}`} aria-pressed={mode === value}>
-              {label}
-            </button>
-          ))}
-        </div>
-
         <div className="mt-7">
-          <h1 className="text-2xl font-bold">{mode === 'login' ? 'Bon retour 👋' : 'Bienvenue chez vous'}</h1>
-          <p className="mt-2 text-sm leading-6 text-muted">{mode === 'login' ? 'Retrouvez votre liste partagée.' : 'Créez votre compte, puis invitez votre partenaire.'}</p>
+          <span className="inline-flex rounded-full bg-accent-50 px-3 py-1.5 text-xs font-extrabold text-accent-700">🔒 Foyer privé · 2 comptes</span>
+          <h1 className="mt-4 text-2xl font-bold">Bon retour 👋</h1>
+          <p className="mt-2 text-sm leading-6 text-muted">Connectez-vous avec l’un des deux comptes autorisés.</p>
         </div>
 
         <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
-          {mode === 'register' && <FormField id="name" name="name" label="Votre prénom" value={form.name} onChange={updateField} autoComplete="name" required maxLength={40} placeholder="Fatima" />}
           <FormField id="email" name="email" label="Adresse e-mail" value={form.email} onChange={updateField} type="email" autoComplete="email" required placeholder="vous@exemple.com" />
           <div className="relative">
-            <FormField id="password" name="password" label="Mot de passe" value={form.password} onChange={updateField} type={showPassword ? 'text' : 'password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} required minLength={6} hint={mode === 'register' ? 'Au moins 6 caractères.' : undefined} />
+            <FormField id="password" name="password" label="Mot de passe" value={form.password} onChange={updateField} type={showPassword ? 'text' : 'password'} autoComplete="current-password" required minLength={6} />
             <button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-2 top-8 grid min-h-11 min-w-11 place-items-center rounded-lg text-muted hover:bg-slate-100 dark:hover:bg-slate-800" aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
           {message && <Notice type={message.type}>{message.text}</Notice>}
           <button type="submit" disabled={submitting} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent-600 px-5 font-bold text-white transition hover:bg-accent-700 disabled:cursor-not-allowed disabled:opacity-60">
-            {submitting ? 'Patientez…' : mode === 'login' ? 'Se connecter' : 'Créer mon compte'}
+            {submitting ? 'Patientez…' : 'Se connecter'}
             {!submitting && <ArrowRight size={19} aria-hidden="true" />}
           </button>
-          {mode === 'login' && <button type="button" onClick={handleReset} className="min-h-11 w-full text-sm font-semibold text-accent-700 hover:underline">Mot de passe oublié ?</button>}
+          <button type="button" onClick={handleReset} className="min-h-11 w-full text-sm font-semibold text-accent-700 hover:underline">Mot de passe oublié ?</button>
         </form>
       </section>
     </main>

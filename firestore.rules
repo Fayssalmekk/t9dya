@@ -19,18 +19,16 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow create, read, update: if signedIn() && request.auth.uid == userId;
+      // Registration is closed: the two existing profile documents remain usable,
+      // but no authenticated account can create another T9dya profile.
+      allow create: if false;
+      allow read, update: if signedIn() && request.auth.uid == userId;
       allow delete: if false;
     }
 
     match /households/{householdId} {
-      allow create: if signedIn()
-        && validMembers(request.resource.data.members)
-        && request.resource.data.members.size() == 1
-        && request.resource.data.members[0] == request.auth.uid
-        && request.resource.data.memberProfiles.keys().hasOnly([request.auth.uid])
-        && request.resource.data.memberProfiles[request.auth.uid].uid == request.auth.uid
-        && request.resource.data.inviteCode == householdId;
+      // The household already exists and the platform is now closed to new ones.
+      allow create: if false;
 
       allow get: if signedIn() && request.auth.uid in resource.data.members;
       allow list: if false;

@@ -1,13 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import {
-  createUserWithEmailAndPassword,
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  updateProfile
+  signOut as firebaseSignOut
 } from 'firebase/auth'
-import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
+import { doc, onSnapshot } from 'firebase/firestore'
 import { auth, db } from '../services/firebase'
 
 const AuthContext = createContext(null)
@@ -42,16 +40,11 @@ export function AuthProvider({ children }) {
         setHouseholdLoading(Boolean(nextProfile.householdId))
         if (!nextProfile.householdId) setHousehold(null)
       } else {
-        await setDoc(profileRef, {
-          uid: user.uid,
-          displayName: user.displayName || user.email?.split('@')[0] || 'Membre',
-          email: user.email || '',
-          householdId: null,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        })
+        setProfile(null)
+        setHousehold(null)
+        setDataError('Ce compte n’est pas autorisé à utiliser ce foyer.')
       }
-      setDataError('')
+      if (snapshot.exists()) setDataError('')
       setProfileLoading(false)
     }, () => {
       setDataError('Impossible de charger votre profil. Vérifiez Firestore et ses règles.')
@@ -81,20 +74,6 @@ export function AuthProvider({ children }) {
     dataError,
     initializing: authLoading || profileLoading || householdLoading,
     signIn: (email, password) => signInWithEmailAndPassword(auth, email.trim(), password),
-    signUp: async (name, email, password) => {
-      const credential = await createUserWithEmailAndPassword(auth, email.trim(), password)
-      const displayName = name.trim()
-      await updateProfile(credential.user, { displayName })
-      await setDoc(doc(db, 'users', credential.user.uid), {
-        uid: credential.user.uid,
-        displayName,
-        email: credential.user.email,
-        householdId: null,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      })
-      return credential.user
-    },
     resetPassword: (email) => sendPasswordResetEmail(auth, email.trim()),
     signOut: () => firebaseSignOut(auth)
   }), [authLoading, dataError, household, householdLoading, profile, profileLoading, user])

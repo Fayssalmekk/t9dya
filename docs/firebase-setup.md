@@ -34,7 +34,7 @@ Après une modification de `.env`, arrêtez `npm run dev` avec `Ctrl+C`, puis re
 5. Activez le premier bouton **Email/Password** et laissez **Email link** désactivé.
 6. Cliquez sur **Enregistrer**.
 
-Vous ne devez pas créer les deux utilisateurs dans la console : vous et votre épouse créerez vos comptes directement dans T9dya.
+Les deux comptes ayant déjà été créés, T9dya fonctionne maintenant en mode **connexion uniquement**. Ne désactivez pas Email/Password dans Firebase : cela empêcherait aussi les deux comptes existants de se connecter.
 
 ## 3. Créer Cloud Firestore
 
@@ -82,15 +82,15 @@ Les collections `lists`, `customProducts`, `charges`, `chargePayments`, `envelop
 
 Attention : les règles locales remplacent celles qui se trouvent dans la console Firebase.
 
-## 6. Tester les deux comptes
+## 6. Tester les deux comptes existants
 
 1. Lancez l’application avec `npm run dev`.
-2. Créez votre compte, puis choisissez **Créer notre foyer**.
-3. Copiez le code qui commence par `T9DYA-`.
-4. Ouvrez une fenêtre privée, ou un deuxième téléphone, avec la même adresse.
-5. Créez le compte de votre épouse.
-6. Choisissez **Rejoindre mon partenaire** et collez le code.
-7. Le premier écran doit passer automatiquement de `1 personne sur 2` à `2 personnes sur 2`.
+2. Connectez-vous avec le premier compte existant.
+3. Ouvrez une fenêtre privée ou un deuxième téléphone.
+4. Connectez-vous avec le second compte existant.
+5. Vérifiez que les mêmes listes, charges et enveloppes apparaissent sur les deux appareils.
+
+Le formulaire d’inscription a été supprimé. Les règles Firestore refusent aussi la création de nouveaux profils et foyers. Un éventuel compte Firebase créé en dehors de T9dya ne pourra donc lire ni modifier les données de votre foyer.
 
 ## 7. Comprendre les données
 
