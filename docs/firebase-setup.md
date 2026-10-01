@@ -80,6 +80,8 @@ Le message final doit contenir `Deploy complete!`. Pour vérifier, ouvrez **Fire
 
 Les collections `lists`, `customProducts`, `charges`, `chargePayments`, `envelopes` et `envelopeTransactions` sont autorisées par ces règles. Elles servent aux courses, aux produits personnels et au budget partagé. Après une mise à jour de T9dya qui modifie `firestore.rules`, relancez toujours cette commande avant de tester la nouvelle fonctionnalité.
 
+La collection `presence` contient uniquement l’état **en ligne/absent** et la dernière activité des deux membres. L’indicateur apparaît dans les en-têtes de l’application. Comme cette version gratuite utilise uniquement Firestore, une coupure brutale d’Internet peut laisser le partenaire affiché en ligne pendant environ deux minutes avant l’expiration automatique.
+
 Attention : les règles locales remplacent celles qui se trouvent dans la console Firebase.
 
 ## 6. Tester les deux comptes existants

@@ -4,6 +4,7 @@ import { lazy, Suspense } from 'react'
 import BottomNavigation from './BottomNavigation'
 import Toast from './Toast'
 import { PlatformProvider } from '../context/PlatformContext'
+import { PresenceProvider } from '../context/PresenceContext'
 import { useShopping } from '../context/ShoppingContext'
 
 const AddProductSheet = lazy(() => import('./AddProductSheet'))
@@ -52,5 +53,5 @@ function PlatformContent() {
 }
 
 export default function PlatformShell() {
-  return <PlatformProvider><PlatformContent /></PlatformProvider>
+  return <PlatformProvider><PresenceProvider><PlatformContent /></PresenceProvider></PlatformProvider>
 }
