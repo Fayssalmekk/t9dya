@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { useAuth } from '../../../context/AuthContext'
 import { useShopping } from '../../../context/ShoppingContext'
 import { addShoppingItem } from '../../../services/shopping'
-import { ensureRequiredInsulins, subscribeAppointments, subscribeChecks, subscribeDoses, subscribeMeals, subscribeMedications, subscribeReadings, updateMedication } from '../services/health'
+import { ensureRequiredInsulins, subscribeAppointments, subscribeChecks, subscribeDoses, subscribeMeals, subscribeMedications, subscribeReadings, subscribeWater, updateMedication } from '../services/health'
 
 const HealthContext = createContext(null)
 
@@ -20,6 +20,7 @@ export function HealthProvider({ children }) {
   const [checks, setChecks] = useState([])
   const [appointments, setAppointments] = useState([])
   const [meals, setMeals] = useState([])
+  const [waterEntries, setWaterEntries] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -30,7 +31,7 @@ export function HealthProvider({ children }) {
     const subscriptions = [
       subscribeReadings(healthOwnerId, (value) => { setReadings(value.map((item) => ({ ...item, healthOwnerId }))); setLoading(false); setError('') }, fail),
       subscribeDoses(healthOwnerId, (value) => setDoses(value.map((item) => ({ ...item, healthOwnerId }))), fail), subscribeMedications(healthOwnerId, (value) => setMedications(value.map((item) => ({ ...item, healthOwnerId }))), fail),
-      subscribeChecks(healthOwnerId, (value) => setChecks(value.map((item) => ({ ...item, healthOwnerId }))), fail), subscribeAppointments(healthOwnerId, (value) => setAppointments(value.map((item) => ({ ...item, healthOwnerId }))), fail), subscribeMeals(healthOwnerId, (value) => setMeals(value.map((item) => ({ ...item, healthOwnerId }))), fail)
+      subscribeChecks(healthOwnerId, (value) => setChecks(value.map((item) => ({ ...item, healthOwnerId }))), fail), subscribeAppointments(healthOwnerId, (value) => setAppointments(value.map((item) => ({ ...item, healthOwnerId }))), fail), subscribeMeals(healthOwnerId, (value) => setMeals(value.map((item) => ({ ...item, healthOwnerId }))), fail), subscribeWater(healthOwnerId, (value) => setWaterEntries(value.map((item) => ({ ...item, healthOwnerId }))), fail)
     ]
     return () => subscriptions.forEach((unsubscribe) => unsubscribe())
   }, [activeHealthProfile?.diabetic, healthOwnerId])
@@ -41,8 +42,9 @@ export function HealthProvider({ children }) {
     medications: medications.filter((item) => item.healthOwnerId === healthOwnerId),
     checks: checks.filter((item) => item.healthOwnerId === healthOwnerId),
     appointments: appointments.filter((item) => item.healthOwnerId === healthOwnerId),
-    meals: meals.filter((item) => item.healthOwnerId === healthOwnerId)
-  }), [appointments, checks, doses, healthOwnerId, meals, medications, readings])
+    meals: meals.filter((item) => item.healthOwnerId === healthOwnerId),
+    waterEntries: waterEntries.filter((item) => item.healthOwnerId === healthOwnerId)
+  }), [appointments, checks, doses, healthOwnerId, meals, medications, readings, waterEntries])
 
   useEffect(() => {
     const activeLists = lists.filter((list) => list.status !== 'completed')

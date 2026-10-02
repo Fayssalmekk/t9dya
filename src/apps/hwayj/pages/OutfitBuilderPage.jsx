@@ -1,14 +1,15 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { CalendarDays, ChevronLeft, ChevronRight, LoaderCircle, Plus, RotateCcw, Save, Sparkles, Tag, X } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { usePlatform } from '../../../context/PlatformContext'
 import HwayjHeader from '../components/HwayjHeader'
+import ClothingImage from '../components/ClothingImage'
 import { useWardrobe } from '../context/WardrobeContext'
 import { callHwayjAI } from '../services/ai'
-import { getClothingImage, saveOutfit } from '../services/wardrobe'
+import { getClothingImage, getOutfitImage, saveOutfit } from '../services/wardrobe'
 import { wardrobeBySlot } from '../utils/clothingTypes'
-import { createVisionImage, finalizeImages } from '../utils/images'
+import { createVisionImage, finalizeOutfitImage } from '../utils/images'
 import { getWardrobeGender } from '../utils/profileGender'
 
 const MotionButton = motion.button
@@ -42,6 +43,16 @@ function OutfitComposer({ outfitId, outfit, clothes }) {
   const [generating, setGenerating] = useState(false)
   const [saving, setSaving] = useState(false)
   const swipeStarts = useRef({})
+
+  useEffect(() => {
+    if (!outfit?.id || outfit.mode !== 'ai') return undefined
+    let cancelled = false
+    getOutfitImage(ownerId, outfit.id).then((image) => {
+      if (!image || cancelled) return
+      setAiPreview(image)
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [outfit?.id, outfit?.mode, ownerId])
 
   const selectedItem = (slot) => clothes.find((item) => item.id === manual[slot])
   const choices = (slot) => slot === 'top' ? tops : slots.bottom
@@ -90,7 +101,7 @@ function OutfitComposer({ outfitId, outfit, clothes }) {
       const selected = aiItems.map((id) => clothes.find((item) => item.id === id)).filter(Boolean)
       const images = await Promise.all(selected.map(async (item) => createVisionImage(await getClothingImage(ownerId, item.id) || item.thumb)))
       const result = await callHwayjAI('compose', { images, names: selected.map((item) => item.name), gender: getWardrobeGender(ownerProfile) })
-      const prepared = await finalizeImages(result.image)
+      const prepared = await finalizeOutfitImage(result.image)
       setAiPreview(prepared.image)
       setAiPreviewThumb(prepared.thumb)
       notify('Look complexe généré')
@@ -119,7 +130,7 @@ function OutfitComposer({ outfitId, outfit, clothes }) {
         season: details.season,
         mode: type,
         items,
-        ...(type === 'ai' ? { previewThumb: aiPreviewThumb || aiPreview } : {}),
+        ...(type === 'ai' ? { previewImage: aiPreview, previewThumb: aiPreviewThumb || aiPreview } : {}),
       }, outfitId)
       notify('Tenue enregistrée')
       navigate('/hwayj/outfits', { replace: true })
@@ -137,9 +148,9 @@ function OutfitComposer({ outfitId, outfit, clothes }) {
       <HwayjHeader title="Composer" subtitle={type === 'manual' ? 'Un haut + un bas, simplement' : 'Les looks complexes avec GPT'} backTo="/hwayj/outfits" />
       {!isOwnWardrobe && <div className="mb-4 rounded-2xl bg-violet-50 p-4 text-sm font-bold text-violet-800 dark:bg-violet-950 dark:text-violet-200">Vous explorez le dressing de {ownerProfile?.displayName || 'votre partenaire'}. Revenez sur votre profil pour créer et enregistrer une tenue.</div>}
       <div className="mb-4 grid grid-cols-2 rounded-2xl bg-surface p-1 shadow-sm"><button type="button" onClick={() => setType('manual')} className={`min-h-12 rounded-xl text-sm font-black ${type === 'manual' ? 'bg-violet-600 text-white' : 'text-muted'}`}>Manuel · Haut + bas</button><button type="button" onClick={() => setType('ai')} className={`flex min-h-12 items-center justify-center gap-2 rounded-xl text-sm font-black ${type === 'ai' ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white' : 'text-muted'}`}><Sparkles size={17} />Look IA</button></div>
-      {type === 'manual' ? <ManualLook manual={manual} selectedItem={selectedItem} cycle={cycle} swipeArea={swipeArea} directions={directions} clear={clear} /> : <AiLook clothes={clothes} itemIds={aiItems} preview={aiPreview} pickerOpen={pickerOpen} setPickerOpen={setPickerOpen} addItem={addAiItem} removeItem={removeAiItem} clear={clear} generate={generateAiLook} generating={generating} readOnly={!isOwnWardrobe} />}
+      {type === 'manual' ? <ManualLook ownerId={ownerId} manual={manual} selectedItem={selectedItem} cycle={cycle} swipeArea={swipeArea} directions={directions} clear={clear} /> : <AiLook ownerId={ownerId} clothes={clothes} itemIds={aiItems} preview={aiPreview} pickerOpen={pickerOpen} setPickerOpen={setPickerOpen} addItem={addAiItem} removeItem={removeAiItem} clear={clear} generate={generateAiLook} generating={generating} readOnly={!isOwnWardrobe} />}
       <button type="button" onClick={openSave} disabled={!canSave || !isOwnWardrobe} className="mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 font-black text-white disabled:opacity-40"><Save size={20} />{isOwnWardrobe ? (type === 'manual' ? 'Enregistrer cette tenue' : 'Enregistrer ce look IA') : 'Lecture seule'}</button>
-      {saveOpen && <SaveOutfitModal type={type} top={selectedItem('top')} bottom={selectedItem('bottom')} aiPreview={aiPreview} details={details} setDetails={setDetails} saving={saving} onClose={() => setSaveOpen(false)} onSave={save} />}
+      {saveOpen && <SaveOutfitModal ownerId={ownerId} type={type} top={selectedItem('top')} bottom={selectedItem('bottom')} aiPreview={aiPreview} details={details} setDetails={setDetails} saving={saving} onClose={() => setSaveOpen(false)} onSave={save} />}
     </main>
   )
 }
@@ -160,7 +171,8 @@ function SaveOutfitModal({ type, top, bottom, aiPreview, details, setDetails, sa
 }
 
 function GarmentImage({ item, direction = 1, className }) {
-  return <AnimatePresence initial={false} mode="popLayout">{item && <MotionButton key={item.id} type="button" initial={{ x: direction * 85, opacity: 0, scale: 0.96 }} animate={{ x: 0, opacity: 1, scale: 1 }} exit={{ x: direction * -85, opacity: 0, scale: 0.96 }} transition={{ type: 'spring', stiffness: 310, damping: 29 }} className={className} aria-label={item.name}><img src={item.thumb} alt={item.name} draggable="false" className="h-full w-full object-contain" /></MotionButton>}</AnimatePresence>
+  const { ownerId } = useWardrobe()
+  return <AnimatePresence initial={false} mode="popLayout">{item && <MotionButton key={item.id} type="button" initial={{ x: direction * 85, opacity: 0, scale: 0.96 }} animate={{ x: 0, opacity: 1, scale: 1 }} exit={{ x: direction * -85, opacity: 0, scale: 0.96 }} transition={{ type: 'spring', stiffness: 310, damping: 29 }} className={className} aria-label={item.name}><ClothingImage ownerId={ownerId} item={item} className="h-full w-full object-contain" /></MotionButton>}</AnimatePresence>
 }
 
 function PreviewArrows({ onPrevious, onNext, label }) {

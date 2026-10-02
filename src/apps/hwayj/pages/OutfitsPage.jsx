@@ -2,6 +2,8 @@ import { Heart, Plus, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { usePlatform } from '../../../context/PlatformContext'
 import HwayjHeader from '../components/HwayjHeader'
+import ClothingImage from '../components/ClothingImage'
+import OutfitImage from '../components/OutfitImage'
 import { useWardrobe } from '../context/WardrobeContext'
 import { deleteOutfit, updateOutfit } from '../services/wardrobe'
 
@@ -19,7 +21,7 @@ export default function OutfitsPage() {
         {orderedOutfits.map((outfit) => (
           <article key={outfit.id} className="rounded-[1.5rem] bg-surface p-4 shadow-card">
             <Link to={`/hwayj/outfits/${outfit.id}`} className="block">
-              <OutfitPreview outfit={outfit} clothes={clothes} />
+              <OutfitPreview outfit={outfit} clothes={clothes} ownerId={ownerId} />
               <strong className="mt-3 block truncate">{outfit.name}</strong>
               <small className="text-muted">{outfit.mode === 'ai' ? 'Look généré · ' : `${outfit.occasion || 'Toute occasion'} · `}{outfit.items?.length || 0} pièces</small>
               <OutfitReferences outfit={outfit} clothes={clothes} />
@@ -39,13 +41,13 @@ function OutfitReferences({ outfit, clothes }) {
   return <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800"><span className="text-[9px] font-black uppercase tracking-[0.14em] text-muted">Pièces à porter</span><div className="mt-2 flex flex-wrap gap-1.5">{items.map((item) => <span key={item.id} className="flex min-w-0 items-center gap-1.5 rounded-full bg-canvas py-1 pl-1 pr-2"><img src={item.thumb} alt="" className="h-7 w-7 shrink-0 rounded-full bg-white object-contain" /><small className="max-w-24 truncate text-[10px] font-bold">{item.name}</small></span>)}</div></div>
 }
 
-function OutfitPreview({ outfit, clothes }) {
+function OutfitPreview({ outfit, clothes, ownerId }) {
   if (outfit.previewThumb) {
-    return <div className="grid h-64 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-slate-50 to-violet-50 p-3 dark:from-slate-900 dark:to-violet-950/40"><img src={outfit.previewThumb} alt={outfit.name} className="block max-h-full max-w-full object-contain" /></div>
+    return <div className="grid aspect-[2/3] max-h-[30rem] w-full place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-slate-50 to-violet-50 p-3 dark:from-slate-900 dark:to-violet-950/40"><OutfitImage ownerId={ownerId} outfit={outfit} className="block h-full w-full object-contain" /></div>
   }
   const topEntry = outfit.items?.find((entry) => entry.slot === 'top') || outfit.items?.[0]
   const bottomEntry = outfit.items?.find((entry) => entry.slot === 'bottom') || outfit.items?.[1]
   const top = clothes.find((item) => item.id === topEntry?.itemId)
   const bottom = clothes.find((item) => item.id === bottomEntry?.itemId)
-  return <div className="flex h-64 flex-col items-center justify-center gap-[2px] overflow-hidden rounded-2xl bg-gradient-to-br from-slate-50 to-violet-50 p-2 dark:from-slate-900 dark:to-violet-950/40"><img src={top?.thumb} alt={top?.name || ''} className="h-[7.25rem] w-40 object-contain" /><img src={bottom?.thumb} alt={bottom?.name || ''} className="h-[8rem] w-40 object-contain" /></div>
+  return <div className="flex aspect-[2/3] max-h-[30rem] w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-2xl bg-gradient-to-br from-slate-50 to-violet-50 p-3 dark:from-slate-900 dark:to-violet-950/40">{top && <ClothingImage ownerId={ownerId} item={top} className="min-h-0 w-full flex-1 object-contain" />}{bottom && <ClothingImage ownerId={ownerId} item={bottom} className="min-h-0 w-full flex-1 object-contain" />}</div>
 }

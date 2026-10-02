@@ -5,6 +5,7 @@ import { collection, onSnapshot } from 'firebase/firestore'
 import { db } from '../../services/firebase'
 import { useAuth } from '../../context/AuthContext'
 import { todayKey } from '../s7a/utils/dates'
+import { isMedicationDueOnDate } from '../s7a/utils/medicationSchedule'
 import { syncHealthNotifications } from '../../native/notifications'
 
 const TODAY = todayKey
@@ -43,7 +44,7 @@ export default function HealthHubAlerts() {
   const alerts = useMemo(() => {
     const low = medications.filter((item) => item.stockInitialized && item.stock <= item.lowStockThreshold).map((item) => ({ id: `stock-${item.ownerId}-${item.id}`, icon: PackageSearch, label: `${item.ownerName} · ${item.name} : stock faible`, to: `/s7a/diabetes?profile=${item.ownerId}` }))
     const checkedToday = new Set(checks.filter((item) => item.date === TODAY && item.taken).map((item) => `${item.ownerId}:${item.medicationId}`))
-    const due = medications.filter((item) => item.kind === 'supplement' && !checkedToday.has(`${item.ownerId}:${item.id}`) && (!item.reminderTimes?.[0] || item.reminderTimes[0] <= CURRENT_TIME)).map((item) => ({ id: `dose-${item.ownerId}-${item.id}`, icon: Bell, label: `${item.ownerName} · ${item.name} : prise à confirmer`, to: `/s7a/today?profile=${item.ownerId}` }))
+    const due = medications.filter((item) => item.kind === 'supplement' && isMedicationDueOnDate(item, TODAY) && !checkedToday.has(`${item.ownerId}:${item.id}`) && (!item.reminderTimes?.[0] || item.reminderTimes[0] <= CURRENT_TIME)).map((item) => ({ id: `dose-${item.ownerId}-${item.id}`, icon: Bell, label: `${item.ownerName} · ${item.name} : prise à confirmer`, to: `/s7a/today?profile=${item.ownerId}` }))
     const soon = appointments.filter((item) => { const days = Math.ceil((new Date(`${item.date}T12:00:00`) - new Date(`${TODAY}T12:00:00`)) / MS_DAY); return days >= 0 && days <= item.reminderDays }).map((item) => ({ id: `rdv-${item.ownerId}-${item.id}`, icon: CalendarClock, label: `${item.ownerName} · RDV ${item.doctor} le ${item.date}`, to: `/s7a/appointments?profile=${item.ownerId}` }))
     return [...due, ...low, ...soon].slice(0, 4)
   }, [appointments, checks, medications])

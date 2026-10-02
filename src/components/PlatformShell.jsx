@@ -9,8 +9,6 @@ import { useShopping } from '../context/ShoppingContext'
 const AddProductSheet = lazy(() => import('./AddProductSheet'))
 const ListPage = lazy(() => import('../pages/ListPage'))
 const CatalogPage = lazy(() => import('../pages/CatalogPage'))
-const ChargesPage = lazy(() => import('../pages/ChargesPage'))
-const EnvelopesPage = lazy(() => import('../pages/EnvelopesPage'))
 const HistoryPage = lazy(() => import('../pages/HistoryPage'))
 const CuisineSwipePage = lazy(() => import('../pages/CuisineSwipePage'))
 
@@ -30,9 +28,9 @@ function PlatformContent() {
         <Routes>
           <Route path="list" element={<ListPage />} />
           <Route path="catalog" element={<CatalogPage />} />
-          <Route path="charges" element={<ChargesPage />} />
-          <Route path="envelopes" element={<EnvelopesPage />} />
-          <Route path="budget" element={<Navigate to="/t9dya/charges" replace />} />
+          <Route path="charges" element={<Navigate to="/budget/charges" replace />} />
+          <Route path="envelopes" element={<Navigate to="/budget/envelopes" replace />} />
+          <Route path="budget" element={<Navigate to="/budget/overview" replace />} />
           <Route path="history" element={<HistoryPage />} />
           <Route path="cuisine" element={<CuisineSwipePage />} />
           <Route path="settings" element={<Navigate to="/settings" replace />} />

@@ -11,14 +11,14 @@ const methods = {
 }
 
 export function makeRecipes(type, rows) {
-  return rows.map(([id, name_fr, name_darija, origin, required, optional = '', prepTime = 30, difficulty = 'Facile'], index) => ({
-    id, type, name_fr, name_darija, origin,
+  return rows.map(([id, name_fr, name_darija, origin, required, optional = '', prepTime = 30, difficulty = 'Facile', customSteps], index) => ({
+    id, type, name_fr, name_darija, origin: origin === 'moroccan-street-food' ? 'moroccan' : origin,
     imageUrl: `https://images.unsplash.com/photo-${photos[type][index % photos[type].length]}?auto=format&fit=crop&w=900&q=82`,
     prepTime, difficulty,
     ingredients: [
       ...required.split(' ').filter(Boolean).map((ingredientId) => ({ ingredientId, required: true })),
       ...optional.split(' ').filter(Boolean).map((ingredientId) => ({ ingredientId, required: false }))
     ],
-    steps: methods[type](name_fr)
+    steps: customSteps || methods[type](name_fr)
   }))
 }

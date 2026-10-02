@@ -31,6 +31,11 @@ export async function getClothingImage(uid, itemId) {
   return snapshot.exists() ? snapshot.data().image : null
 }
 
+export async function getOutfitImage(uid, outfitId) {
+  const snapshot = await getDoc(doc(db, 'users', uid, 'outfitImages', outfitId))
+  return snapshot.exists() ? snapshot.data().image : null
+}
+
 export function updateClothingItem(uid, itemId, changes) {
   return updateDoc(doc(db, 'users', uid, 'clothes', itemId), { ...changes, updatedAt: serverTimestamp() })
 }
@@ -60,12 +65,22 @@ export async function restoreClothingItem(uid, itemId, backup) {
 
 export async function saveOutfit(uid, outfit, outfitId) {
   const reference = outfitId ? doc(db, 'users', uid, 'outfits', outfitId) : doc(userCollection(uid, 'outfits'))
-  await setDoc(reference, { ...outfit, updatedAt: serverTimestamp(), ...(outfitId ? {} : { createdAt: serverTimestamp() }) }, { merge: true })
+  const { previewImage, ...outfitData } = outfit
+  if (previewImage && (!previewImage.startsWith('data:image/') || previewImage.length > 900000)) throw new Error('IMAGE_TOO_LARGE')
+  const batch = writeBatch(db)
+  batch.set(reference, { ...outfitData, updatedAt: serverTimestamp(), ...(outfitId ? {} : { createdAt: serverTimestamp() }) }, { merge: true })
+  const imageRef = doc(db, 'users', uid, 'outfitImages', reference.id)
+  if (previewImage) batch.set(imageRef, { image: previewImage, updatedAt: serverTimestamp() })
+  else if (outfitData.mode !== 'ai') batch.delete(imageRef)
+  await batch.commit()
   return reference.id
 }
 
 export function deleteOutfit(uid, outfitId) {
-  return deleteDoc(doc(db, 'users', uid, 'outfits', outfitId))
+  const batch = writeBatch(db)
+  batch.delete(doc(db, 'users', uid, 'outfits', outfitId))
+  batch.delete(doc(db, 'users', uid, 'outfitImages', outfitId))
+  return batch.commit()
 }
 
 export function updateOutfit(uid, outfitId, changes) {

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">T9DYA</string>
+    <string name="title_activity_main">T9DYA</string>
+    <string name="package_name">com.t9dya.app</string>
+    <string name="custom_url_scheme">com.t9dya.app</string>
+</resources>

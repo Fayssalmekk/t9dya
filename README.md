@@ -1,6 +1,6 @@
 # T9dya
 
-Application mobile-first de liste de courses partagee et de suivi du budget pour un foyer de deux personnes.
+Plateforme mobile-first privée pour un foyer de deux personnes : courses et repas T9dya, budget, dressing Hwayj et santé S7a.
 
 Une IA ou un développeur qui reprend le projet doit commencer par lire [`docs/AI_HANDOFF.md`](docs/AI_HANDOFF.md), puis `prompt.md` et `docs/SETUP.md`.
 
@@ -20,7 +20,7 @@ Une IA ou un développeur qui reprend le projet doit commencer par lire [`docs/A
 
 Suivez le guide détaillé pour débutants dans [`docs/firebase-setup.md`](docs/firebase-setup.md). Il couvre la console Firebase, les commandes PowerShell, le déploiement des règles, le test avec deux comptes et les erreurs fréquentes.
 
-Le fonctionnement des charges mensuelles et des enveloppes est expliqué dans [`docs/budget-et-enveloppes.md`](docs/budget-et-enveloppes.md).
+Le fonctionnement du journal des dépenses, des charges et des enveloppes est expliqué dans la section Budget de [`docs/AI_HANDOFF.md`](docs/AI_HANDOFF.md#9-application-budget).
 
 ## Deploiement GitHub vers Vercel
 
@@ -48,6 +48,7 @@ Le fonctionnement des charges mensuelles et des enveloppes est expliqué dans [`
 - `households/{id}/customProducts` : produits personnels permanents et partages par le foyer
 - `households/{id}/charges` et `chargePayments` : charges récurrentes et règlements mensuels
 - `households/{id}/envelopes` et `envelopeTransactions` : enveloppes, soldes et mouvements
+- `households/{id}/expenses` : journal des dépenses et source de l’argent
 - `households/{id}/templates` : listes recurrentes
 - `households/{id}/pantry` : produits a surveiller
 - `households/{id}/trips` : sorties de courses archivees

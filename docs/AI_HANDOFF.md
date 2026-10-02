@@ -2,7 +2,7 @@
 
 Dernière mise à jour : 2 octobre 2026.
 
-Ce document est le point d’entrée pour toute IA ou tout développeur qui reprend le projet. Il décrit l’état réel du dépôt, ses trois applications, les règles métier, les données, la sécurité, Android et les décisions déjà prises.
+Ce document est le point d’entrée pour toute IA ou tout développeur qui reprend le projet. Il décrit l’état réel du dépôt, ses quatre applications, les règles métier, les données, la sécurité, Android et les décisions déjà prises.
 
 ## 1. Ordre de lecture obligatoire
 
@@ -18,11 +18,12 @@ Règles importantes héritées de `prompt.md` : ne pas recréer le projet, ne pa
 
 ## 2. Vision du produit
 
-T9DYA est un portail privé pour un foyer de deux personnes. Après connexion et sélection/création du foyer, le Hub présente exactement trois applications :
+T9DYA est un portail privé pour un foyer de deux personnes. Après connexion et sélection/création du foyer, le Hub présente quatre applications :
 
-1. **T9dya** : listes de courses, catalogue, cuisine, charges, enveloppes et historique.
-2. **Hwayj** : dressing, vêtements et composition de tenues.
-3. **S7a ya s7a** : suivi santé, diabète, traitements, stocks et rendez-vous.
+1. **T9dya** : listes de courses, catalogue, cuisine et historique d’achats.
+2. **Budget** : vue financière, dépenses quotidiennes, charges fixes et enveloppes.
+3. **Hwayj** : dressing, vêtements et composition de tenues.
+4. **S7a ya s7a** : suivi santé, diabète, traitements, stocks et rendez-vous.
 
 Il n’y a plus d’application “Dar/Maison” ni de carte “bientôt disponible” dans le Hub. Ne réintroduire aucun placeholder sans demande explicite.
 
@@ -52,7 +53,7 @@ Les photos Hwayj et repas sont compressées dans le navigateur puis enregistrée
 
 - `src/main.jsx` : thème initial, initialisation Capacitor, PWA et montage React.
 - `src/App.jsx` : garde globale Auth/Profil/Foyer et routes des applications.
-- `src/apps/registry.js` : registre des trois applications du Hub.
+- `src/apps/registry.js` : registre des quatre applications du Hub.
 - `src/context/AuthContext.jsx` : session Firebase, profil `users/{uid}` et foyer.
 - `src/services/firebase.js` : initialisation Firebase et cache Firestore persistant.
 - `firestore.rules` : véritable barrière d’autorisation des données.
@@ -68,9 +69,9 @@ Les photos Hwayj et repas sont compressées dans le navigateur puis enregistrée
 2. Sans utilisateur Firebase : uniquement `/auth`; toute autre URL redirige vers `/auth`.
 3. Avec un compte sans document `users/{uid}` : page “Accès privé”.
 4. Avec un profil sans foyer : la racine affiche `HouseholdPage`; les autres URL retournent à `/`.
-5. Avec profil et foyer : Hub `/`, réglages `/settings`, puis routes `/t9dya/*`, `/hwayj/*`, `/s7a/*`.
+5. Avec profil et foyer : Hub `/`, réglages `/settings`, puis routes `/t9dya/*`, `/budget/*`, `/hwayj/*`, `/s7a/*`.
 
-Les anciens chemins `/list`, `/catalog`, `/charges`, `/envelopes`, `/budget` et `/history` redirigent vers T9dya pour préserver les anciens favoris.
+Les anciens chemins `/list`, `/catalog` et `/history` redirigent vers T9dya. `/charges`, `/envelopes`, `/t9dya/charges`, `/t9dya/envelopes` et `/t9dya/budget` redirigent vers l’application Budget. `/budget` ouvre sa vue globale.
 
 L’application n’a aucun écran d’inscription. Les deux comptes Firebase sont créés manuellement. Un compte Firebase supplémentaire ne peut ni obtenir de profil Firestore, ni appeler l’API IA, car les règles et `ALLOWED_UIDS` fonctionnent en fail-closed.
 
@@ -84,7 +85,7 @@ Fichiers :
 - `src/apps/hub/HealthHubAlerts.jsx`
 - `src/services/household.js`
 
-Le Hub affiche le foyer, ses deux membres, les alertes santé et les trois cartes du registre. Pour ajouter un jour une vraie application, créer son dossier, son composant racine et une entrée activée dans `src/apps/registry.js`.
+Le Hub affiche le foyer, ses deux membres, les alertes santé et les quatre cartes du registre. Pour ajouter un jour une vraie application, créer son dossier, son composant racine et une entrée activée dans `src/apps/registry.js`.
 
 Les réglages du Hub gèrent :
 
@@ -150,6 +151,7 @@ Toutes sont accessibles uniquement aux deux membres du foyer :
 - `chargePayments`
 - `envelopes`
 - `envelopeTransactions`
+- `expenses`
 - `purchases`
 - `priceHistory`
 - `templates`
@@ -169,13 +171,10 @@ Le composant monte `ShoppingProvider`, puis `PlatformShell`. Les pages historiqu
 - `/t9dya/list` : accueil des listes et détail d’une liste.
 - `/t9dya/catalog` : catalogue et ajout de produits.
 - `/t9dya/cuisine` : suggestions de recettes par swipe.
-- `/t9dya/charges` : charges mensuelles.
-- `/t9dya/envelopes` : enveloppes d’argent.
 - `/t9dya/history` : historique des achats.
-- `/t9dya/budget` : redirection vers charges.
 - `/t9dya/settings` : redirection vers les réglages du Hub.
 
-La navigation inférieure contient Liste, Catalogue, Cuisine, Charges, Enveloppes, puis “Plus” pour l’historique.
+La navigation inférieure contient uniquement Liste, Catalogue, Cuisine et Historique. Toute la gestion financière se trouve dans l’application Budget.
 
 ### Logique des listes
 
@@ -206,10 +205,31 @@ Fichiers dans `src/features/cuisine` et page `src/pages/CuisineSwipePage.jsx`.
 
 Types : repas, desserts et jus. L’utilisateur swipe les ingrédients disponibles. Le système calcule les recettes compatibles et les ingrédients manquants. Les réponses et statistiques de disponibilité sont dans `localStorage` :
 
-- `t9dya-cuisine-session-v1`
+- `t9dya-cuisine-session-v2`
 - `t9dya-cuisine-availability-v1`
 
 Les ingrédients souvent disponibles remontent en priorité grâce aux scores locaux. Les bases nécessitant normalement de la farine sont représentées comme produits prêts à l’emploi : pâte à pizza, pain tacos, supports panini, etc. Les ingrédients manquants d’une recette peuvent être ajoutés à une liste existante.
+
+Le catalogue Cuisine couvre aussi les produits pratiques courants au Maroc : préparation pour flan, crème pâtissière et béchamel prêtes, boudoirs, spéculoos, frites, nuggets, chicken rings et légumes surgelés. Les desserts proposent notamment tiramisus, mouhalabias fruitées, kika à la crème, Jawhara express, ghribas, flans froids et douceurs à la fleur d’oranger. Plusieurs recettes possèdent leurs propres étapes détaillées via le neuvième champ facultatif de `makeRecipes`.
+
+## 9. Application Budget
+
+Racine : `src/apps/budget/BudgetApp.jsx`. Elle monte `PlatformProvider` et `ShoppingProvider`, car la vue financière lit aussi les achats enregistrés automatiquement par T9dya. Les pages historiques `ChargesPage` et `EnvelopesPage` restent dans `src/pages`, mais elles ne sont routées que dans Budget.
+
+### Routes Budget
+
+- `/budget/overview` : synthèse du mois, budget restant, catégories et derniers mouvements.
+- `/budget/expenses` : journal des dépenses quotidiennes.
+- `/budget/charges` : charges fixes et budget courses.
+- `/budget/envelopes` : enveloppes et mouvements.
+
+### Dépenses
+
+Les documents `households/{householdId}/expenses/{expenseId}` contiennent montant, motif, note, catégorie, date `spentOn`, source et auteur. Une source peut être le budget T9dya, un compte/carte, des espèces ou une enveloppe.
+
+Quand la source est une enveloppe, `createExpense` débite son solde et écrit simultanément la dépense et un `envelopeTransaction` dans une transaction Firestore. Le solde ne peut pas devenir négatif. Supprimer cette dépense recrédite l’enveloppe et écrit un mouvement d’annulation.
+
+La vue globale additionne séparément les achats T9dya automatiques, les charges marquées payées et les dépenses du journal. Les fonds des enveloppes sont affichés comme argent réservé.
 
 ### Charges
 
@@ -219,7 +239,7 @@ Les ingrédients souvent disponibles remontent en priorité grâce aux scores lo
 
 Une enveloppe contient nom, icône, couleur, solde, objectif et statut. Alimenter ou retirer utilise une transaction Firestore, empêche un solde négatif et écrit un mouvement avec `balanceAfter`. Une enveloppe ne peut être archivée que si son solde est nul.
 
-## 9. Application Hwayj
+## 10. Application Hwayj
 
 Racine : `src/apps/hwayj`.
 
@@ -254,6 +274,8 @@ Le sexe provient en priorité du profil de foyer via `getWardrobeGender`. Les no
 
 `users/{uid}/clothesImages/{itemId}` : image principale Data URL uniquement, chargée à la demande.
 
+`users/{uid}/outfitImages/{outfitId}` : aperçu haute définition d’un look IA, séparé du document `outfits` pour rester sous la limite Firestore. La carte conserve aussi un `previewThumb` léger comme fallback.
+
 `users/{uid}/outfits/{outfitId}` : nom, occasion, saison, mode `manual` ou `ai`, références `items`, aperçu IA éventuel et timestamps.
 
 `users/{uid}/outfitPlans/{YYYY-MM-DD}` : ancien support du calendrier, non exposé dans la navigation actuelle.
@@ -282,11 +304,13 @@ Le dressing utilise uniquement les thumbnails afin d’éviter de charger toutes
 
 Mode manuel : un haut et un bas, avec swipe horizontal et flèches. Les vestes/manteaux sont inclus dans les hauts. La hauteur visuelle reste stable pendant les transitions et un petit espace est conservé entre les pièces.
 
-Mode IA : l’utilisateur ajoute de 2 à 4 pièces dans des cases successives. L’action `compose` charge les images complètes, transmet les noms et le genre, puis génère un outfit complet détouré en `1024x1536`, qualité `medium`. Le résultat est affiché en entier avec `object-contain`, pas recadré.
+Mode IA : l’utilisateur ajoute de 2 à 4 pièces dans des cases successives. L’action `compose` charge des références jusqu’à 768 px, transmet les noms et le genre, puis génère un outfit complet détouré en `1024x1536`, qualité `high`. Le prompt impose une marge transparente et interdit de couper manches, ourlets, jambes ou chaussures. Le résultat haute définition est enregistré dans `outfitImages` et toujours affiché avec `object-contain` dans un cadre portrait.
+
+Les compositions manuelles chargent les images principales avec `ClothingImage` au lieu d’agrandir les miniatures. Les nouveaux vêtements utilisent une image principale jusqu’à 900 px et une miniature de 320 px. Les anciens looks IA qui ne possèdent que leur ancienne miniature de 150 px doivent être régénérés une fois pour obtenir une vraie version haute définition.
 
 Enregistrer ouvre la configuration nom/occasion/saison. Les outfits restent au-dessus de la page Outfits. La duplication d’outfit a été retirée. Les favoris sont possibles sur vêtements et outfits.
 
-## 10. Application S7a ya s7a
+## 11. Application S7a ya s7a
 
 Racine : `src/apps/s7a`.
 
@@ -307,12 +331,13 @@ Le profil actif est sélectionné entre les deux membres. Les deux partenaires p
 - `users/{uid}/medicationChecks` : prise quotidienne cochée par date.
 - `users/{uid}/healthAppointments` : médecin, spécialité, lieu, date, heure, récurrence et rappel.
 - `users/{uid}/mealAnalyses` : repas, description, glucides confirmés/plage/confiance, thumbnail et date.
+- `users/{uid}/healthWater/{YYYY-MM-DD}` : quantité d’eau quotidienne en millilitres, plafonnée à l’objectif de 2 000 ml.
 
 Les règles Firestore permettent lecture et écriture au propriétaire ou à son partenaire du même foyer. Les valeurs critiques ont des bornes simples : glycémie positive sous 700, insuline de 0 à 200 unités, glucides de 0 à 1000.
 
 ### Aujourd’hui
 
-La page résume dernière glycémie, unités de NovoRapid prises aujourd’hui, glucides consommés, traitements du jour et alertes de stock. Tresiba n’est pas utilisée comme statistique principale quotidienne si elle n’apporte pas d’information utile.
+La page résume dernière glycémie, unités de NovoRapid prises aujourd’hui, glucides consommés, hydratation sur un objectif de 2 L, traitements du jour et alertes de stock. La jauge d’eau affiche un liquide animé qui monte avec la quantité enregistrée. Tresiba n’est pas utilisée comme statistique principale quotidienne si elle n’apporte pas d’information utile.
 
 Les traitements peuvent être cochés directement. La progression s’anime comme une récompense et repart vide chaque nouveau jour grâce à une clé de date locale.
 
@@ -327,7 +352,7 @@ Le stock estime les unités restantes à partir de 300 unités par stylo, du nom
 
 L’application enregistre uniquement la dose réellement décidée et prise. Elle ne recommande jamais une dose. Cette règle de sécurité ne doit jamais être supprimée.
 
-La glycémie accepte mg/dL ou mmol/L. Le journal réunit glycémies, doses et repas et permet de supprimer une entrée.
+La glycémie accepte mg/dL ou mmol/L. Le journal réunit glycémies, doses et repas et permet de supprimer une entrée. L’action Eau ouvre un curseur de 0 à 2 000 ml par pas de 100 ml, avec raccourcis de 250 ml; un document unique par date est mis à jour pour éviter les doublons.
 
 ### Repas avec IA
 
@@ -337,13 +362,13 @@ L’IA ne doit jamais calculer ou suggérer une dose d’insuline. Le prompt ser
 
 ### Traitements et pharmacie
 
-Un traitement possède un stock et une heure de rappel. Les prises quotidiennes sont cochables/décochables. Si un stock atteint son seuil et qu’il existe exactement une liste de courses active, S7a ajoute automatiquement le médicament à cette liste avec une catégorie pharmacie. Avec zéro ou plusieurs listes, aucune liste n’est choisie arbitrairement.
+Un traitement possède un stock, une heure de rappel et une fréquence en jours (quotidienne, tous les 2, 3, 7, 15 ou 30 jours). La date de création sert de premier jour de prise. Seuls les traitements prévus pour la date courante apparaissent dans la routine du jour et déclenchent les rappels; les anciens traitements sans fréquence restent quotidiens. Les prises prévues sont cochables/décochables. Si un stock atteint son seuil et qu’il existe exactement une liste de courses active, S7a ajoute automatiquement le médicament à cette liste avec une catégorie pharmacie. Avec zéro ou plusieurs listes, aucune liste n’est choisie arbitrairement.
 
 ### Rendez-vous
 
 Les rendez-vous peuvent être ponctuels ou récurrents tous les 1, 3, 6 ou 12 mois. Terminer un rendez-vous récurrent avance sa date; terminer un rendez-vous non récurrent le supprime. Le délai de rappel est configurable.
 
-## 11. API IA et sécurité
+## 12. API IA et sécurité
 
 Fichier unique : `api/ai.js`.
 
@@ -404,7 +429,7 @@ La configuration Web Firebase est publique par conception; la sécurité repose 
 
 Les services Hwayj et S7a récupèrent `auth.currentUser.getIdToken()` puis envoient le Bearer token. `src/services/api.js` utilise `/api/ai` sur le Web et l’origine Vercel configurée dans `.env.android.local` dans l’APK.
 
-## 12. Règles Firestore et confidentialité
+## 13. Règles Firestore et confidentialité
 
 Principes :
 
@@ -421,7 +446,7 @@ Principes :
 
 Après toute modification, ajouter les instructions de déploiement dans `docs/SETUP.md`. Ne jamais assouplir le catch-all `allow read, write: if false`.
 
-## 13. Android/Capacitor
+## 14. Android/Capacitor
 
 Le Web reste la source de vérité. Android emballe exactement le build React du même dépôt.
 
@@ -448,7 +473,7 @@ Firebase Cloud Messaging n’est pas encore installé. Il sera nécessaire pour 
 
 Le dossier `android/` n’est créé qu’après la commande manuelle `npm run android:add`. Toutes les étapes sont dans `docs/ANDROID.md`.
 
-## 14. Design system et UX
+## 15. Design system et UX
 
 Le design est mobile-first et utilise :
 
@@ -471,7 +496,7 @@ Couleurs par application :
 
 Ne pas remplacer les icônes de produits ou les images réelles des stylos par des pictogrammes génériques. Préserver les transitions, `object-contain` pour les vêtements détourés et les proportions mobiles.
 
-## 15. PWA, cache et page blanche
+## 16. PWA, cache et page blanche
 
 `vite-plugin-pwa` utilise `autoUpdate`. `src/main.jsx` :
 
@@ -483,7 +508,7 @@ Ne pas remplacer les icônes de produits ou les images réelles des stylos par d
 
 Ne pas retirer ce mécanisme : il résout les pages blanches dues à un ancien bundle mobile sans forcer l’utilisateur à vider son cache.
 
-## 16. Fichiers à ne jamais committer
+## 17. Fichiers à ne jamais committer
 
 - `.env`
 - `.env.local`
@@ -497,7 +522,7 @@ Ne pas retirer ce mécanisme : il résout les pages blanches dues à un ancien b
 
 Le `.gitignore` contient déjà ces protections. Vérifier malgré tout avant chaque commit.
 
-## 17. Validation demandée au propriétaire
+## 18. Validation demandée au propriétaire
 
 L’IA ne doit pas exécuter ces commandes à sa place. Après un changement, indiquer uniquement celles qui sont pertinentes :
 
@@ -524,7 +549,7 @@ Scénarios de régression minimaux :
 11. La version web se met à jour sans page blanche.
 12. L’APK appelle l’API Vercel, gère le clavier, le retour et les rappels locaux.
 
-## 18. Pièges connus
+## 19. Pièges connus
 
 - PowerShell peut afficher les accents UTF-8 sous forme de caractères incorrects alors que le fichier est valide. Ne jamais lancer une réécriture globale d’encodage sans vérifier dans l’éditeur ou le navigateur.
 - Le build Vite local peut être bloqué par Windows Application Control. Ne pas tenter de contourner la politique de la machine.
@@ -535,7 +560,7 @@ Scénarios de régression minimaux :
 - Les règles Firestore ne sont actives qu’après déploiement explicite.
 - Ne jamais faire confiance à une garde React pour la sécurité : toute autorisation réelle doit être répétée dans Firestore ou l’API serveur.
 
-## 19. Priorités futures déjà identifiées
+## 20. Priorités futures déjà identifiées
 
 À faire seulement sur demande :
 

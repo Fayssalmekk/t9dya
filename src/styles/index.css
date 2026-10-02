@@ -130,6 +130,78 @@ textarea {
   }
 }
 
+.water-liquid {
+  background: linear-gradient(180deg, #67e8f9 0%, #0ea5e9 48%, #2563eb 100%);
+}
+
+.water-wave {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 190%;
+  aspect-ratio: 1;
+  border-radius: 42%;
+  transform: translate(-50%, -78%);
+  transform-origin: 50% 50%;
+}
+
+.water-wave-one {
+  background: rgb(255 255 255 / 0.3);
+  animation: water-wave-spin 7s linear infinite;
+}
+
+.water-wave-two {
+  background: rgb(103 232 249 / 0.42);
+  animation: water-wave-spin 10s linear infinite reverse;
+}
+
+.water-bubble {
+  position: absolute;
+  bottom: -1rem;
+  border: 1px solid rgb(255 255 255 / 0.7);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.2);
+  animation: water-bubble-rise 4s ease-in infinite;
+}
+
+.water-range {
+  height: 0.8rem;
+  cursor: pointer;
+  appearance: none;
+  border-radius: 999px;
+  background: linear-gradient(to right, #fff 0 var(--water-progress), rgb(255 255 255 / 0.22) var(--water-progress) 100%);
+  outline: none;
+}
+
+.water-range::-webkit-slider-thumb {
+  width: 1.65rem;
+  height: 1.65rem;
+  appearance: none;
+  border: 4px solid #fff;
+  border-radius: 999px;
+  background: #0ea5e9;
+  box-shadow: 0 4px 16px rgb(8 47 73 / 0.35);
+}
+
+.water-range::-moz-range-thumb {
+  width: 1.2rem;
+  height: 1.2rem;
+  border: 4px solid #fff;
+  border-radius: 999px;
+  background: #0ea5e9;
+  box-shadow: 0 4px 16px rgb(8 47 73 / 0.35);
+}
+
+@keyframes water-wave-spin {
+  to { transform: translate(-50%, -78%) rotate(360deg); }
+}
+
+@keyframes water-bubble-rise {
+  0% { opacity: 0; transform: translateY(0) scale(0.7); }
+  20% { opacity: 0.8; }
+  100% { opacity: 0; transform: translateY(-8rem) scale(1.15); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -139,12 +139,12 @@ async function compose(images, names = [], gender = 'neutral') {
   form.append('model', process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2.5-flare')
   parsedImages.forEach((image, index) => form.append('image[]', new Blob([image.bytes], { type: image.mime }), `outfit-${index + 1}.${image.mime.split('/')[1]}`))
   const audience = gender === 'female' ? 'women\'s wardrobe; keep the complete outfit clearly feminine' : gender === 'male' ? 'men\'s wardrobe; keep the complete outfit clearly masculine' : 'gender-neutral wardrobe; infer the intended fit only from the supplied garments'
-  form.append('prompt', `Create one clean, realistic ghost-mannequin fashion product image showing all these exact garments worn together as one coherent outfit: ${names.map((name) => String(name).slice(0, 60)).join(', ')}. Wardrobe profile: ${audience}. Preserve the intended gender, fit and silhouette of the supplied clothes. Never convert masculine garments into feminine cuts or feminine garments into masculine cuts. Preserve the exact color, fabric, pattern, cut, logos and details of every reference. Arrange upper layers, bottoms, dresses, shoes and accessories in their anatomically correct positions. Show the complete outfit centered and front-facing on a transparent background. Do not add a person, face, body, or any garment not present in the references.`)
-  form.append('quality', 'medium')
+  form.append('prompt', `Create one clean, high-detail, realistic ghost-mannequin fashion product image showing all these exact garments worn together as one coherent outfit: ${names.map((name) => String(name).slice(0, 60)).join(', ')}. Wardrobe profile: ${audience}. Preserve the intended gender, fit and silhouette of the supplied clothes. Never convert masculine garments into feminine cuts or feminine garments into masculine cuts. Preserve the exact color, fabric, pattern, cut, logos and details of every reference. Arrange upper layers, bottoms, dresses, shoes and accessories in their anatomically correct positions. Show the complete outfit centered and front-facing on a transparent portrait canvas. The full outer contour must remain visible: include the entire collar, shoulders, sleeves, hems, trouser legs, dress length, shoes and accessories. Leave generous transparent space on every side. Never crop, cut off, zoom into, or push any garment outside the canvas. Do not add a person, face, body, or any garment not present in the references.`)
+  form.append('quality', 'high')
   form.append('size', '1024x1536')
   form.append('background', 'transparent')
   form.append('output_format', 'webp')
-  form.append('output_compression', '80')
+  form.append('output_compression', '90')
   const result = await openAI('images/edits', form, true)
   const base64 = result.data?.[0]?.b64_json
   if (!base64) throw new Error('EMPTY_AI_IMAGE')

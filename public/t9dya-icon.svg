@@ -1,9 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
   <title id="title">T9dya</title>
-  <rect width="512" height="512" rx="112" fill="#0f766e"/>
-  <path d="M126 153h42l34 190h184l31-137H189" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/>
-  <circle cx="226" cy="389" r="22" fill="#fff"/>
-  <circle cx="356" cy="389" r="22" fill="#fff"/>
-  <path d="M275 124c39 0 70 31 70 70-39 0-70-31-70-70Z" fill="#fbbf24"/>
-  <path d="M275 194c-36 0-65-29-65-65 36 0 65 29 65 65Z" fill="#99f6e4"/>
+  <defs>
+    <linearGradient id="bg" x1="70" y1="54" x2="446" y2="466" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7C3AED"/>
+      <stop offset="0.52" stop-color="#A855F7"/>
+      <stop offset="1" stop-color="#EC4899"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="176" y1="196" x2="391" y2="346" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.08"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <circle cx="405" cy="104" r="112" fill="#FFFFFF" opacity="0.08"/>
+  <circle cx="96" cy="424" r="128" fill="#4C1D95" opacity="0.12"/>
+  <path d="M112 151h43c12 0 22 8 25 20l10 39" fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-width="30"/>
+  <path d="M184 205h225l-28 119a34 34 0 0 1-33 26H224a34 34 0 0 1-33-27l-24-112a5 5 0 0 1 5-6h12Z" fill="url(#shine)" stroke="#FFFFFF" stroke-linejoin="round" stroke-width="28"/>
+  <path d="M231 255h127" stroke="#FFFFFF" stroke-linecap="round" stroke-width="20" opacity="0.88"/>
+  <circle cx="232" cy="399" r="25" fill="#FFFFFF"/>
+  <circle cx="354" cy="399" r="25" fill="#FFFFFF"/>
+  <circle cx="232" cy="399" r="9" fill="#C026D3"/>
+  <circle cx="354" cy="399" r="9" fill="#C026D3"/>
+  <path d="M369 112v44M347 134h44" stroke="#FFFFFF" stroke-linecap="round" stroke-width="15"/>
+  <path d="M415 160v24M403 172h24" stroke="#FDE68A" stroke-linecap="round" stroke-width="10"/>
 </svg>

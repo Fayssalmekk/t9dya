@@ -27,7 +27,7 @@ Les secrets serveur ne doivent jamais être ajoutés à Git ni préfixés par `V
 6. Créez `.env.local` depuis `.env.example` et remplissez les valeurs locales sans le committer.
 7. Vercel → Project → Settings → Environment Variables : ajoutez `OPENAI_API_KEY`, les trois variables de modèles, `ALLOWED_UIDS` et `FIREBASE_API_KEY` pour Production, Preview et Development.
 8. OpenAI Platform → Settings → Organization → General : terminez la vérification de l’organisation si l’API Images la demande.
-9. PowerShell à la racine du projet : `npx firebase deploy --only firestore:rules`.
+9. PowerShell à la racine du projet : `npx firebase deploy --only firestore:rules`. Cette étape autorise aussi `outfitImages`, où sont stockés les aperçus haute définition des looks générés.
 10. GitHub : committez le code et les règles, puis poussez pour déclencher le redéploiement Vercel.
 11. Vercel → Deployments : ouvrez le dernier déploiement et vérifiez `/`, `/t9dya/list`, `/hwayj/closet` et `/api/ai`.
 
@@ -41,12 +41,19 @@ Hwayj demande une seule image `1024x1024` en qualité `low` par ajout et analyse
 
 ## S7a ya s7a (suivi santé)
 
-1. PowerShell à la racine du projet : `npx firebase deploy --only firestore:rules` pour autoriser les données santé privées par utilisateur.
+1. PowerShell à la racine du projet : `npx firebase deploy --only firestore:rules` pour autoriser les données santé privées par utilisateur, notamment le suivi quotidien de l’eau dans `healthWater`.
 2. Après déploiement Vercel, ouvrez `/s7a/today` avec chacun des deux comptes : chaque profil garde son dossier séparé, mais les deux membres du foyer peuvent le consulter et le modifier.
 3. Hub → Réglages → Notifications : autorisez-les sur chaque appareil. Les rappels locaux apparaissent pendant que la plateforme est ouverte; les notifications en arrière-plan demanderont plus tard un service push dédié.
 4. Les estimations IA de glucides sont indicatives et ne remplacent jamais le calcul validé par le diabétologue; aucune dose d’insuline n’est générée automatiquement.
 5. Dans Hub → Réglages → Mon profil, cochez « Je suis diabétique » uniquement pour le membre concerné. Les deux membres du même foyer peuvent ensuite consulter et gérer ses rendez-vous, traitements et données diabète depuis le sélecteur de profil S7a.
 6. Le nombre d’unités restantes affiché sur un stylo est une estimation de confort (`300 unités × stylos en stock`, moins les doses enregistrées depuis le dernier ajustement du stock). Il ne faut pas l’utiliser pour décider une dose ou remplacer la vérification du stylo réel.
+
+## Budget et journal des dépenses
+
+1. Déployez les règles après cette mise à jour : `npx firebase deploy --only firestore:rules`. La nouvelle collection partagée `households/{id}/expenses` restera inaccessible tant que les règles distantes ne sont pas actualisées.
+2. Ouvrez `/budget/expenses` avec chacun des deux comptes et vérifiez qu’une dépense apparaît en temps réel chez les deux membres.
+3. Pour une dépense payée depuis une enveloppe, vérifiez que le solde diminue. En supprimant la dépense, le solde doit être recrédité et le mouvement d’annulation doit apparaître.
+4. Après le déploiement Web, exécutez `npm run android:update` avant de générer un nouvel APK afin d’inclure la quatrième application.
 
 ## Commandes de vérification
 

@@ -10,6 +10,7 @@ export const subscribeMedications = (uid, onData, onError) => subscribe(uid, 'he
 export const subscribeChecks = (uid, onData, onError) => subscribe(uid, 'medicationChecks', 'createdAt', 'desc', onData, onError)
 export const subscribeAppointments = (uid, onData, onError) => subscribe(uid, 'healthAppointments', 'date', 'asc', onData, onError)
 export const subscribeMeals = (uid, onData, onError) => subscribe(uid, 'mealAnalyses', 'eatenAt', 'desc', onData, onError)
+export const subscribeWater = (uid, onData, onError) => subscribe(uid, 'healthWater', 'date', 'desc', onData, onError)
 
 export async function ensureRequiredInsulins(uid) {
   const now = serverTimestamp()
@@ -34,7 +35,7 @@ export function addInsulinDose(uid, values) {
 
 export function createMedication(uid, values) {
   const reference = doc(userCollection(uid, 'healthMedications'))
-  return setDoc(reference, { name: values.name.trim(), kind: 'supplement', stock: Number(values.stock) || 0, stockInitialized: true, shoppingAdded: false, lowStockThreshold: Number(values.lowStockThreshold) || 1, unit: values.unit || 'boîte', reminderTimes: values.reminderTimes, required: false, color: values.color || 'blue', createdAt: serverTimestamp(), updatedAt: serverTimestamp() })
+  return setDoc(reference, { name: values.name.trim(), kind: 'supplement', stock: Number(values.stock) || 0, stockInitialized: true, shoppingAdded: false, lowStockThreshold: Number(values.lowStockThreshold) || 1, unit: values.unit || 'boîte', reminderTimes: values.reminderTimes, frequencyDays: Math.max(1, Number(values.frequencyDays) || 1), startsOn: values.startsOn, required: false, color: values.color || 'blue', createdAt: serverTimestamp(), updatedAt: serverTimestamp() })
 }
 
 export function updateMedication(uid, medicationId, changes) {
@@ -58,6 +59,11 @@ export function deleteJournalEntry(uid, collectionName, entryId) {
 export function setMedicationCheck(uid, medicationId, date, taken) {
   const reference = doc(db, 'users', uid, 'medicationChecks', `${date}_${medicationId}`)
   return taken ? setDoc(reference, { medicationId, date, taken: true, createdAt: serverTimestamp() }, { merge: true }) : deleteDoc(reference)
+}
+
+export function setWaterIntake(uid, date, amountMl) {
+  const reference = doc(db, 'users', uid, 'healthWater', date)
+  return setDoc(reference, { date, amountMl: Math.min(2000, Math.max(0, Number(amountMl) || 0)), goalMl: 2000, updatedAt: serverTimestamp() }, { merge: true })
 }
 
 export function createAppointment(uid, values) {

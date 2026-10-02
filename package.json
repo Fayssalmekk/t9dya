@@ -12,7 +12,7 @@
     "lint": "eslint .",
     "firebase:emulators": "firebase emulators:start",
     "android:add": "cap add android",
-    "android:assets": "capacitor-assets generate --android --iconBackgroundColor #0f766e --iconBackgroundColorDark #0f766e --splashBackgroundColor #f8fafc --splashBackgroundColorDark #020617",
+    "android:assets": "capacitor-assets generate --android --iconBackgroundColor #7c3aed --iconBackgroundColorDark #581c87 --splashBackgroundColor #faf5ff --splashBackgroundColorDark #1e102f",
     "android:sync": "cap sync android",
     "android:update": "npm run build:android && cap sync android",
     "android:open": "cap open android",

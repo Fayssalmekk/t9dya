@@ -1,5 +1,6 @@
 import { LocalNotifications } from '@capacitor/local-notifications'
 import { isNativeApp } from './capacitor'
+import { medicationFrequencyDays, nextMedicationDueDate } from '../apps/s7a/utils/medicationSchedule'
 
 const REGISTRY_PREFIX = 't9dya-native-health-notifications:'
 
@@ -39,15 +40,23 @@ export async function syncHealthNotifications({ ownerId, ownerName, medications,
     reminderTimes.forEach((time, index) => {
       const [hour, minute] = time.split(':').map(Number)
       if (!Number.isInteger(hour) || !Number.isInteger(minute)) return
-      notifications.push({
-        id: numericId(`${ownerId}:medication:${item.id}:${index}`),
+      const base = {
         title: `S7a ya s7a · ${ownerName}`,
         body: `C’est l’heure de prendre ${item.name}.`,
         channelId: 'health-reminders',
         isExactNotification: false,
-        schedule: { on: { hour, minute }, repeats: true, allowWhileIdle: true },
         extra: { path: `/s7a/medications?profile=${ownerId}` }
-      })
+      }
+      if (medicationFrequencyDays(item) === 1) {
+        notifications.push({ ...base, id: numericId(`${ownerId}:medication:${item.id}:${index}`), schedule: { on: { hour, minute }, repeats: true, allowWhileIdle: true } })
+        return
+      }
+      let due = nextMedicationDueDate(item)
+      for (let occurrence = 0; due && occurrence < 16; occurrence += 1) {
+        due.setHours(hour, minute, 0, 0)
+        if (due.getTime() > Date.now()) notifications.push({ ...base, id: numericId(`${ownerId}:medication:${item.id}:${index}:${due.toISOString().slice(0, 10)}`), schedule: { at: due, allowWhileIdle: true } })
+        due = nextMedicationDueDate(item, due, false)
+      }
     })
   })
 

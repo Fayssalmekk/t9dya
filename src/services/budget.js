@@ -175,3 +175,84 @@ export async function markChargePaid(householdId, charge, month, userId) {
 export async function unmarkChargePaid(householdId, chargeId, month) {
   return deleteDoc(doc(db, 'households', householdId, 'chargePayments', `${chargeId}_${month}`))
 }
+
+export async function createExpense(householdId, userId, values) {
+  const amount = Number(values.amount)
+  if (!Number.isFinite(amount) || amount <= 0) throw new Error('INVALID_AMOUNT')
+
+  const expenseRef = doc(householdCollection(householdId, 'expenses'))
+  const payload = {
+    amount,
+    reason: values.reason.trim(),
+    note: values.note.trim(),
+    category: values.category,
+    sourceType: values.sourceType,
+    sourceId: values.sourceId,
+    sourceName: values.sourceName,
+    sourceIcon: values.sourceIcon || '💳',
+    spentOn: values.spentOn,
+    createdBy: userId,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  }
+
+  if (values.sourceType !== 'envelope') {
+    await setDoc(expenseRef, payload)
+    return expenseRef
+  }
+
+  const envelopeRef = doc(db, 'households', householdId, 'envelopes', values.sourceId)
+  const movementRef = doc(householdCollection(householdId, 'envelopeTransactions'))
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(envelopeRef)
+    if (!snapshot.exists() || snapshot.data().active === false) throw new Error('ENVELOPE_NOT_FOUND')
+    const nextBalance = Number(snapshot.data().balance || 0) - amount
+    if (nextBalance < 0) throw new Error('INSUFFICIENT_BALANCE')
+    transaction.update(envelopeRef, { balance: nextBalance, updatedAt: serverTimestamp() })
+    transaction.set(expenseRef, payload)
+    transaction.set(movementRef, {
+      envelopeId: values.sourceId,
+      envelopeName: values.sourceName,
+      envelopeIcon: values.sourceIcon,
+      expenseId: expenseRef.id,
+      type: 'withdrawal',
+      amount,
+      note: `Dépense · ${values.reason.trim()}`,
+      balanceAfter: nextBalance,
+      createdBy: userId,
+      createdAt: serverTimestamp()
+    })
+  })
+  return expenseRef
+}
+
+export async function deleteExpense(householdId, userId, expense) {
+  const expenseRef = doc(db, 'households', householdId, 'expenses', expense.id)
+  if (expense.sourceType !== 'envelope' || !expense.sourceId) return deleteDoc(expenseRef)
+
+  const movementRef = doc(householdCollection(householdId, 'envelopeTransactions'))
+  return runTransaction(db, async (transaction) => {
+    const expenseSnapshot = await transaction.get(expenseRef)
+    if (!expenseSnapshot.exists()) throw new Error('EXPENSE_NOT_FOUND')
+    const storedExpense = expenseSnapshot.data()
+    if (storedExpense.sourceType !== 'envelope' || !storedExpense.sourceId) throw new Error('INVALID_EXPENSE_SOURCE')
+    const envelopeRef = doc(db, 'households', householdId, 'envelopes', storedExpense.sourceId)
+    const envelopeSnapshot = await transaction.get(envelopeRef)
+    if (!envelopeSnapshot.exists()) throw new Error('ENVELOPE_NOT_FOUND')
+    const nextBalance = Number(envelopeSnapshot.data().balance || 0) + Number(storedExpense.amount || 0)
+    transaction.update(envelopeRef, { balance: nextBalance, updatedAt: serverTimestamp() })
+    transaction.delete(expenseRef)
+    transaction.set(movementRef, {
+      envelopeId: storedExpense.sourceId,
+      envelopeName: storedExpense.sourceName,
+      envelopeIcon: storedExpense.sourceIcon,
+      expenseId: expense.id,
+      type: 'deposit',
+      amount: Number(storedExpense.amount || 0),
+      note: `Annulation · ${storedExpense.reason}`,
+      balanceAfter: nextBalance,
+      createdBy: userId,
+      createdAt: serverTimestamp()
+    })
+  })
+}

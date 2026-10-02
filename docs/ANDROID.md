@@ -30,6 +30,18 @@ node --version
 
 Le résultat doit commencer par `v22` ou une version supérieure.
 
+### Si Android Studio affiche `Unsupported class file major version 69`
+
+Les versions récentes d’Android Studio peuvent embarquer Java 25, alors que le Gradle 8 du projet doit utiliser JDK 21. Installez **Eclipse Temurin JDK 21**, puis ouvrez **File → Settings → Build, Execution, Deployment → Build Tools → Gradle** et choisissez ce JDK dans **Gradle JDK**. Sur Windows, son chemin ressemble à :
+
+```text
+C:\Program Files\Eclipse Adoptium\jdk-21...-hotspot
+```
+
+Cliquez ensuite sur **File → Sync Project with Gradle Files**. Le bouton Run et la configuration `app` apparaissent après une synchronisation réussie.
+
+Si PowerShell refuse `npm` parce que l’exécution des scripts est désactivée, utilisez `npm.cmd` dans les commandes de ce guide, par exemple `npm.cmd run android:update`.
+
 ## 2. Configurer l’adresse de l’API pour l’APK
 
 Le navigateur peut appeler `/api/ai` directement. Une application installée ne connaît pas ce chemin : elle doit appeler l’URL publique Vercel.
@@ -114,7 +126,7 @@ Sur chaque téléphone, vérifiez les cas suivants :
 - depuis le portail ou la connexion, le bouton retour quitte l’application ;
 - les feuilles et fenêtres restent utilisables avec le clavier ouvert ;
 - la caméra demande son autorisation au premier usage ;
-- le thème clair/sombre colore aussi la barre d’état Android ;
+- les barres système Android restent noires avec des icônes blanches pour garder Wi-Fi, batterie et navigation lisibles ;
 - aucune page ne passe sous la barre système ou la navigation du téléphone ;
 - les photos restent nettes et l’envoi d’une grande photo est compressé normalement.
 

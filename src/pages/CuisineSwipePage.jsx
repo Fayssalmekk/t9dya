@@ -14,7 +14,7 @@ import { useAuth } from '../context/AuthContext'
 import { usePlatform } from '../context/PlatformContext'
 import { addShoppingItem } from '../services/shopping'
 
-const STORAGE_KEY = 't9dya-cuisine-session-v1'
+const STORAGE_KEY = 't9dya-cuisine-session-v2'
 const STATS_KEY = 't9dya-cuisine-availability-v1'
 
 function readSession() {

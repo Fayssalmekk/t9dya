@@ -11,6 +11,7 @@ export function useHouseholdBudget(household, userId) {
   const [envelopes, setEnvelopes] = useState([])
   const [payments, setPayments] = useState([])
   const [movements, setMovements] = useState([])
+  const [expenses, setExpenses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const setupStarted = useRef(false)
@@ -25,7 +26,7 @@ export function useHouseholdBudget(household, userId) {
 
   useEffect(() => {
     if (!householdId) return undefined
-    let waiting = 4
+    let waiting = 5
     const loaded = () => {
       waiting -= 1
       if (waiting === 0) setLoading(false)
@@ -52,14 +53,20 @@ export function useHouseholdBudget(household, userId) {
       setMovements(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })))
       loaded()
     }, failed)
+    const expensesQuery = query(collection(db, ...basePath, 'expenses'), orderBy('spentOn', 'desc'), limit(250))
+    const unsubscribeExpenses = onSnapshot(expensesQuery, (snapshot) => {
+      setExpenses(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })))
+      loaded()
+    }, failed)
 
     return () => {
       unsubscribeCharges()
       unsubscribeEnvelopes()
       unsubscribePayments()
       unsubscribeMovements()
+      unsubscribeExpenses()
     }
   }, [householdId])
 
-  return { charges, envelopes, payments, movements, loading, error }
+  return { charges, envelopes, payments, movements, expenses, loading, error }
 }

@@ -36,14 +36,23 @@ export async function prepareUpload(file) {
 
 export async function finalizeImages(dataUrl) {
   const image = await loadImage(dataUrl)
-  let quality = 0.82
-  let main = canvasDataUrl(image, 600, 'image/webp', quality)
-  while (main.length > 800000 && quality > 0.42) { quality -= 0.08; main = canvasDataUrl(image, 600, 'image/webp', quality) }
+  let quality = 0.9
+  let main = canvasDataUrl(image, 900, 'image/webp', quality)
+  while (main.length > 800000 && quality > 0.42) { quality -= 0.08; main = canvasDataUrl(image, 900, 'image/webp', quality) }
   if (main.length > 850000) throw new Error('IMAGE_TOO_LARGE')
-  return { image: main, thumb: canvasDataUrl(image, 150, 'image/webp', 0.76) }
+  return { image: main, thumb: canvasDataUrl(image, 320, 'image/webp', 0.86) }
+}
+
+export async function finalizeOutfitImage(dataUrl) {
+  const image = await loadImage(dataUrl)
+  let quality = 0.9
+  let main = canvasDataUrl(image, 1400, 'image/webp', quality)
+  while (main.length > 800000 && quality > 0.42) { quality -= 0.08; main = canvasDataUrl(image, 1400, 'image/webp', quality) }
+  if (main.length > 850000) throw new Error('IMAGE_TOO_LARGE')
+  return { image: main, thumb: canvasDataUrl(image, 420, 'image/webp', 0.88) }
 }
 
 export async function createVisionImage(dataUrl) {
   const image = await loadImage(dataUrl)
-  return canvasDataUrl(image, 512, 'image/jpeg', 0.72)
+  return canvasDataUrl(image, 768, 'image/jpeg', 0.86)
 }
