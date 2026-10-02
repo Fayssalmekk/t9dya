@@ -1,0 +1,32 @@
+import { makeRecipes } from './recipeFactory.js'
+
+export const juiceRecipes = makeRecipes('juice', [
+  ['jus-orange', 'Jus d’orange frais', 'Aassir limoun', 'moroccan', 'orange', 'citron', 5],
+  ['citron-menthe', 'Citronnade à la menthe', 'Hamed b naanaa', 'moroccan', 'citron menthe sucre eau', '', 8],
+  ['avocat-lait', 'Jus d’avocat au lait', 'Aassir avocat', 'moroccan', 'avocat lait sucre', 'amande datte', 8],
+  ['banane-lait', 'Milkshake banane', 'Banane b l7lib', 'everyday', 'banane lait', 'miel cannelle', 7],
+  ['jus-fraise', 'Jus de fraise', 'Aassir fraise', 'everyday', 'fraise eau sucre', 'citron', 7],
+  ['pomme-carotte', 'Jus pomme carotte', '', 'everyday', 'pomme carotte eau', 'citron gingembre', 10],
+  ['pasteque', 'Jus de pastèque', 'Aassir dellah', 'moroccan', 'pasteque', 'menthe citron', 5],
+  ['cocktail-marocain', 'Cocktail marocain spécial', 'Panaché', 'moroccan', 'avocat banane orange lait', 'fraise amande datte', 12],
+  ['smoothie-mangue', 'Smoothie mangue', '', 'international', 'mangue lait yaourt', 'miel', 7],
+  ['smoothie-fraise-banane', 'Smoothie fraise banane', '', 'international', 'fraise banane lait', 'yaourt miel', 7],
+  ['jus-ananas', 'Jus d’ananas', '', 'international', 'ananas eau', 'citron menthe', 8],
+  ['detox-vert', 'Jus vert frais', '', 'international', 'pomme concombre epinard citron eau', 'gingembre menthe', 10],
+  ['orange-carotte', 'Jus orange carotte', '', 'everyday', 'orange carotte', 'gingembre', 9],
+  ['pomme-kiwi', 'Jus pomme kiwi', '', 'everyday', 'pomme kiwi eau', 'citron', 8],
+  ['melon-menthe', 'Jus melon menthe', '', 'everyday', 'melon menthe eau', 'citron', 7],
+  ['peche-orange', 'Jus pêche orange', '', 'everyday', 'peche orange', 'citron', 8],
+  ['poire-banane', 'Smoothie poire banane', '', 'everyday', 'poire banane lait', 'cannelle', 7],
+  ['datte-lait', 'Lait aux dattes', 'Hlib b tmer', 'moroccan', 'datte lait', 'amande cannelle', 8],
+  ['amande-lait', 'Lait d’amandes express', '', 'moroccan', 'amande lait miel', 'datte', 10],
+  ['mangue-orange', 'Cocktail mangue orange', '', 'international', 'mangue orange', 'citron', 8],
+  ['ananas-menthe', 'Ananas menthe', '', 'international', 'ananas menthe eau', 'citron', 7],
+  ['fraise-orange', 'Cocktail fraise orange', '', 'everyday', 'fraise orange', 'banane', 8],
+  ['avocat-banane', 'Smoothie avocat banane', '', 'moroccan', 'avocat banane lait', 'miel amande', 9],
+  ['citron-gingembre', 'Shot citron gingembre', '', 'international', 'citron gingembre eau', 'miel', 6],
+  ['pomme-citron-menthe', 'Pomme citron menthe', '', 'everyday', 'pomme citron menthe eau', '', 8],
+  ['pastèque-fraise', 'Pastèque fraise', '', 'everyday', 'pasteque fraise', 'citron', 6],
+  ['kiwi-banane', 'Smoothie kiwi banane', '', 'international', 'kiwi banane lait', 'miel', 7],
+  ['cafe-banane', 'Smoothie café banane', '', 'international', 'cafe banane lait', 'cacao', 8]
+])

@@ -12,7 +12,7 @@ const CatalogPage = lazy(() => import('../pages/CatalogPage'))
 const ChargesPage = lazy(() => import('../pages/ChargesPage'))
 const EnvelopesPage = lazy(() => import('../pages/EnvelopesPage'))
 const HistoryPage = lazy(() => import('../pages/HistoryPage'))
-const SettingsPage = lazy(() => import('../pages/SettingsPage'))
+const CuisineSwipePage = lazy(() => import('../pages/CuisineSwipePage'))
 
 function PageFallback() {
   return <main className="mx-auto min-h-dvh w-full max-w-2xl px-4 pb-28 pt-6"><div className="h-9 w-40 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-800" /><div className="mt-7 h-44 animate-pulse rounded-[1.75rem] bg-slate-200 dark:bg-slate-800" /><div className="mt-4 h-28 animate-pulse rounded-[1.75rem] bg-slate-200 dark:bg-slate-800" /></main>
@@ -34,7 +34,8 @@ function PlatformContent() {
           <Route path="envelopes" element={<EnvelopesPage />} />
           <Route path="budget" element={<Navigate to="/t9dya/charges" replace />} />
           <Route path="history" element={<HistoryPage />} />
-          <Route path="settings" element={<SettingsPage />} />
+          <Route path="cuisine" element={<CuisineSwipePage />} />
+          <Route path="settings" element={<Navigate to="/settings" replace />} />
           <Route path="*" element={<Navigate to="/t9dya/list" replace />} />
         </Routes>
       </Suspense>

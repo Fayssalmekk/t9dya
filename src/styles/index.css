@@ -15,6 +15,17 @@
   --color-surface: 255 255 255;
   --color-ink: 15 23 42;
   --color-muted: 100 116 139;
+  --cuisine-positive: 16 185 129;
+  --cuisine-negative: 244 63 94;
+  --cuisine-warm: 249 115 22;
+  --cuisine-card-radius: 2rem;
+  --cuisine-swipe-threshold: 105px;
+}
+
+.cuisine-page {
+  background:
+    radial-gradient(circle at 100% 4%, rgb(var(--cuisine-warm) / 0.08), transparent 18rem),
+    radial-gradient(circle at 0% 42%, rgb(var(--color-accent-500) / 0.06), transparent 22rem);
 }
 
 .dark {

@@ -1,4 +1,4 @@
-import { addDoc, collection, deleteDoc, doc, getDoc, increment, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore'
+import { collection, deleteDoc, doc, getDoc, increment, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore'
 import { db } from '../../../services/firebase'
 
 const userCollection = (uid, name) => collection(db, 'users', uid, name)
@@ -68,6 +68,10 @@ export function deleteOutfit(uid, outfitId) {
   return deleteDoc(doc(db, 'users', uid, 'outfits', outfitId))
 }
 
+export function updateOutfit(uid, outfitId, changes) {
+  return updateDoc(doc(db, 'users', uid, 'outfits', outfitId), { ...changes, updatedAt: serverTimestamp() })
+}
+
 export function assignOutfit(uid, date, outfitId) {
   return setDoc(doc(db, 'users', uid, 'outfitPlans', date), { outfitId, date, updatedAt: serverTimestamp() }, { merge: true })
 }
@@ -81,9 +85,4 @@ export async function markPlannedOutfitWorn(uid, date, outfit) {
 
 export function removeOutfitPlan(uid, date) {
   return deleteDoc(doc(db, 'users', uid, 'outfitPlans', date))
-}
-
-export async function duplicateOutfit(uid, outfit) {
-  const { id: _ID, createdAt: _CREATED, updatedAt: _UPDATED, ...copy } = outfit
-  return addDoc(userCollection(uid, 'outfits'), { ...copy, name: `${outfit.name} · copie`, createdAt: serverTimestamp(), updatedAt: serverTimestamp() })
 }

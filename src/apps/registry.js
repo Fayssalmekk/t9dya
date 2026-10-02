@@ -2,6 +2,7 @@ import { lazy } from 'react'
 import { Heart, Home, Shirt, Sparkles } from 'lucide-react'
 
 export const HubPage = lazy(() => import('./hub/HubPage'))
+export const HubSettingsPage = lazy(() => import('./hub/HubSettingsPage'))
 
 export const appRegistry = [
   { id: 't9dya', name: 'apps.t9dya.name', description: 'apps.t9dya.description', icon: Heart, accent: 'teal', basePath: '/t9dya', enabled: true, comingSoon: false, component: lazy(() => import('./t9dya/T9dyaApp')) },

@@ -57,7 +57,7 @@ async function enhance(image) {
   form.append('model', process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2.5-flare')
   form.append('image', new Blob([parsed.bytes], { type: parsed.mime }), `garment.${parsed.mime.split('/')[1]}`)
   form.append('prompt', 'Isolate this garment and render it as a clean, professional e-commerce product photo on a transparent background, as if worn by an invisible mannequin (ghost mannequin). Preserve exact color, pattern, texture, knit or fabric details and proportions. Do not add or change anything.')
-  form.append('quality', 'low')
+  form.append('quality', 'medium')
   form.append('size', '1024x1024')
   form.append('background', 'transparent')
   form.append('output_format', 'webp')
@@ -76,7 +76,7 @@ async function combine(images, names = []) {
   form.append('model', process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2.5-flare')
   parsedImages.forEach((image, index) => form.append('image[]', new Blob([image.bytes], { type: image.mime }), `layer-${index + 1}.${image.mime.split('/')[1]}`))
   form.append('prompt', `Create one clean ghost-mannequin product image showing these exact garments worn together as realistic layers. The first reference is the inner garment (${String(names[0] || 'top').slice(0, 80)}), the second is the outer garment (${String(names[1] || 'jacket').slice(0, 80)}). Keep every color, pattern, texture, logo and cut faithful to the references. Show only the combined upper-body clothing, centered, front-facing, on a transparent background. Do not add a person, body, accessories, trousers or new design details.`)
-  form.append('quality', 'low')
+  form.append('quality', 'medium')
   form.append('size', '1024x1024')
   form.append('background', 'transparent')
   form.append('output_format', 'webp')
@@ -87,16 +87,17 @@ async function combine(images, names = []) {
   return { image: `data:image/webp;base64,${base64}` }
 }
 
-async function compose(images, names = []) {
+async function compose(images, names = [], gender = 'neutral') {
   if (!Array.isArray(images) || images.length < 2 || images.length > 4) throw new Error('INVALID_IMAGES')
   const parsedImages = images.map(dataUrlParts)
   if (parsedImages.some((image) => !image)) throw new Error('INVALID_IMAGE')
   const form = new FormData()
   form.append('model', process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2.5-flare')
   parsedImages.forEach((image, index) => form.append('image[]', new Blob([image.bytes], { type: image.mime }), `outfit-${index + 1}.${image.mime.split('/')[1]}`))
-  form.append('prompt', `Create one clean, realistic ghost-mannequin fashion product image showing all these exact garments worn together as one coherent outfit: ${names.map((name) => String(name).slice(0, 60)).join(', ')}. Preserve the exact color, fabric, pattern, cut, logos and details of every reference. Arrange upper layers, bottoms, dresses, shoes and accessories in their anatomically correct positions. Show the complete outfit centered and front-facing on a transparent background. Do not add a person, face, body, or any garment not present in the references.`)
-  form.append('quality', 'low')
-  form.append('size', '1024x1024')
+  const audience = gender === 'female' ? 'women\'s wardrobe; keep the complete outfit clearly feminine' : gender === 'male' ? 'men\'s wardrobe; keep the complete outfit clearly masculine' : 'gender-neutral wardrobe; infer the intended fit only from the supplied garments'
+  form.append('prompt', `Create one clean, realistic ghost-mannequin fashion product image showing all these exact garments worn together as one coherent outfit: ${names.map((name) => String(name).slice(0, 60)).join(', ')}. Wardrobe profile: ${audience}. Preserve the intended gender, fit and silhouette of the supplied clothes. Never convert masculine garments into feminine cuts or feminine garments into masculine cuts. Preserve the exact color, fabric, pattern, cut, logos and details of every reference. Arrange upper layers, bottoms, dresses, shoes and accessories in their anatomically correct positions. Show the complete outfit centered and front-facing on a transparent background. Do not add a person, face, body, or any garment not present in the references.`)
+  form.append('quality', 'medium')
+  form.append('size', '1024x1536')
   form.append('background', 'transparent')
   form.append('output_format', 'webp')
   form.append('output_compression', '80')
@@ -133,7 +134,7 @@ export default async function handler(request, response) {
   if (!['enhance', 'combine', 'compose', 'tag', 'suggest'].includes(action)) return json(response, 400, { error: 'INVALID_ACTION' })
   if (!consume(identity.uid, action)) return json(response, 429, { error: 'DAILY_LIMIT_REACHED' })
   try {
-    const result = action === 'enhance' ? await enhance(request.body.image) : action === 'combine' ? await combine(request.body.images, request.body.names) : action === 'compose' ? await compose(request.body.images, request.body.names) : action === 'tag' ? await tag(request.body.image) : await suggest(request.body)
+    const result = action === 'enhance' ? await enhance(request.body.image) : action === 'combine' ? await combine(request.body.images, request.body.names) : action === 'compose' ? await compose(request.body.images, request.body.names, request.body.gender) : action === 'tag' ? await tag(request.body.image) : await suggest(request.body)
     return json(response, 200, result)
   } catch (error) {
     const clientErrors = ['INVALID_IMAGE', 'INVALID_IMAGES', 'INVALID_WARDROBE']

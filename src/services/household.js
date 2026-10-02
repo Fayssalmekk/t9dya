@@ -1,4 +1,4 @@
-import { arrayUnion, doc, serverTimestamp, writeBatch } from 'firebase/firestore'
+import { arrayUnion, doc, serverTimestamp, updateDoc, writeBatch } from 'firebase/firestore'
 import { db } from './firebase'
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -23,7 +23,7 @@ export async function createHousehold(user, householdName) {
     inviteCode,
     members: [user.uid],
     memberProfiles: {
-      [user.uid]: { uid: user.uid, displayName, email: user.email || '' }
+      [user.uid]: { uid: user.uid, displayName, email: user.email || '', birthDate: '', sex: '' }
     },
     budget: { monthly: 0, categories: {} },
     lastUsedStore: 'Marjane',
@@ -35,6 +35,8 @@ export async function createHousehold(user, householdName) {
     uid: user.uid,
     displayName,
     email: user.email || '',
+    birthDate: '',
+    sex: '',
     householdId: inviteCode,
     updatedAt: serverTimestamp()
   }, { merge: true })
@@ -51,16 +53,36 @@ export async function joinHousehold(user, rawCode) {
   const batch = writeBatch(db)
   batch.update(doc(db, 'households', inviteCode), {
     members: arrayUnion(user.uid),
-    [`memberProfiles.${user.uid}`]: { uid: user.uid, displayName, email: user.email || '' },
+    [`memberProfiles.${user.uid}`]: { uid: user.uid, displayName, email: user.email || '', birthDate: '', sex: '' },
     updatedAt: serverTimestamp()
   })
   batch.set(doc(db, 'users', user.uid), {
     uid: user.uid,
     displayName,
     email: user.email || '',
+    birthDate: '',
+    sex: '',
     householdId: inviteCode,
     updatedAt: serverTimestamp()
   }, { merge: true })
   await batch.commit()
   return inviteCode
+}
+
+export function updateHouseholdName(householdId, name) {
+  return updateDoc(doc(db, 'households', householdId), {
+    name: name.trim(),
+    updatedAt: serverTimestamp()
+  })
+}
+
+export async function updateMemberProfile(user, householdId, values) {
+  const displayName = values.displayName.trim()
+  const birthDate = values.birthDate || ''
+  const sex = ['male', 'female'].includes(values.sex) ? values.sex : ''
+  const memberProfile = { uid: user.uid, displayName, email: user.email || '', birthDate, sex }
+  const batch = writeBatch(db)
+  batch.update(doc(db, 'users', user.uid), { displayName, birthDate, sex, updatedAt: serverTimestamp() })
+  batch.update(doc(db, 'households', householdId), { [`memberProfiles.${user.uid}`]: memberProfile, updatedAt: serverTimestamp() })
+  await batch.commit()
 }

@@ -10,14 +10,11 @@ const AddItemPage = lazy(() => import('./pages/AddItemPage'))
 const ItemDetailPage = lazy(() => import('./pages/ItemDetailPage'))
 const OutfitsPage = lazy(() => import('./pages/OutfitsPage'))
 const OutfitBuilderPage = lazy(() => import('./pages/OutfitBuilderPage'))
-const CalendarPage = lazy(() => import('./pages/CalendarPage'))
-const InsightsPage = lazy(() => import('./pages/InsightsPage'))
-const PackingPage = lazy(() => import('./pages/PackingPage'))
 
 function Loading() {
   return <main className="mx-auto min-h-dvh max-w-2xl px-4 py-6"><div className="h-12 w-52 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-800" /><div className="mt-8 grid grid-cols-2 gap-3"><div className="h-64 animate-pulse rounded-3xl bg-slate-200 dark:bg-slate-800" /><div className="h-64 animate-pulse rounded-3xl bg-slate-200 dark:bg-slate-800" /></div></main>
 }
 
 export default function HwayjApp() {
-  return <PlatformProvider><WardrobeProvider><div className="min-h-dvh bg-canvas text-ink"><Suspense fallback={<Loading />}><Routes><Route path="closet" element={<ClosetPage />} /><Route path="add" element={<AddItemPage />} /><Route path="item/:itemId" element={<ItemDetailPage />} /><Route path="outfits" element={<OutfitsPage />} /><Route path="outfits/new" element={<OutfitBuilderPage />} /><Route path="outfits/:outfitId" element={<OutfitBuilderPage />} /><Route path="calendar" element={<CalendarPage />} /><Route path="insights" element={<InsightsPage />} /><Route path="packing" element={<PackingPage />} /><Route path="*" element={<Navigate to="/hwayj/closet" replace />} /></Routes></Suspense><HwayjNavigation /><Toast /></div></WardrobeProvider></PlatformProvider>
+  return <PlatformProvider><WardrobeProvider><div className="min-h-dvh bg-canvas text-ink"><Suspense fallback={<Loading />}><Routes><Route path="closet" element={<ClosetPage />} /><Route path="add" element={<AddItemPage />} /><Route path="item/:itemId" element={<ItemDetailPage />} /><Route path="outfits" element={<OutfitsPage />} /><Route path="outfits/new" element={<OutfitBuilderPage />} /><Route path="outfits/:outfitId" element={<OutfitBuilderPage />} /><Route path="*" element={<Navigate to="/hwayj/closet" replace />} /></Routes></Suspense><HwayjNavigation /><Toast /></div></WardrobeProvider></PlatformProvider>
 }

@@ -1,0 +1,32 @@
+import { makeRecipes } from './recipeFactory.js'
+
+export const dessertRecipes = makeRecipes('dessert', [
+  ['crepes', 'Crêpes légères', 'Crêpes', 'everyday', 'farine oeuf lait sucre beurre', 'vanille', 25],
+  ['gateau-yaourt', 'Gâteau au yaourt', '', 'everyday', 'yaourt farine oeuf sucre levure huile', 'citron vanille', 45],
+  ['riz-lait', 'Riz au lait', 'Roz b l7lib', 'moroccan', 'riz lait sucre', 'cannelle vanille', 40],
+  ['flan', 'Flan maison', '', 'everyday', 'lait oeuf sucre vanille', 'caramel', 55],
+  ['creme-caramel', 'Crème caramel', '', 'international', 'lait oeuf sucre vanille', '', 60],
+  ['mille-feuille', 'Mille-feuille', '', 'international', 'farine beurre lait oeuf sucre vanille', '', 100, 'Difficile'],
+  ['brownies', 'Brownies fondants', '', 'international', 'chocolat beurre oeuf sucre farine', 'noix cacao', 40],
+  ['salade-fruits', 'Salade de fruits', '', 'everyday', 'pomme banane orange fraise kiwi', 'mangue menthe', 15],
+  ['baghrir', 'Baghrir au miel', 'Baghrir', 'moroccan', 'semoule farine levure miel beurre', 'lait', 45],
+  ['msemen-miel', 'Msemen miel', 'Msemen', 'moroccan', 'farine semoule beurre miel', '', 55, 'Moyen'],
+  ['sfenj', 'Sfenj marocain', 'Sfenj', 'moroccan', 'farine levure sucre', 'miel', 70, 'Moyen'],
+  ['chebakia', 'Chebakia', 'Chebakia', 'moroccan', 'farine amande miel cannelle levure', 'citron', 100, 'Difficile'],
+  ['sellou', 'Sellou', 'Sellou', 'moroccan', 'farine amande cacahuete miel cannelle beurre', 'raisin-sec', 80, 'Moyen'],
+  ['briouates-amandes', 'Briouates aux amandes', 'Briwat b louz', 'moroccan', 'farine amande miel cannelle beurre', '', 75, 'Difficile'],
+  ['ghriba-amandes', 'Ghriba aux amandes', 'Ghriba', 'moroccan', 'amande sucre oeuf levure', 'citron', 40],
+  ['harcha-sucree', 'Harcha sucrée', 'Harcha', 'moroccan', 'semoule lait beurre sucre', 'miel', 30],
+  ['cake-citron', 'Cake au citron', '', 'everyday', 'farine oeuf sucre beurre citron levure', 'yaourt', 50],
+  ['cake-orange', 'Cake à l’orange', '', 'everyday', 'farine oeuf sucre huile orange levure', 'vanille', 50],
+  ['gateau-chocolat', 'Gâteau au chocolat', '', 'international', 'farine oeuf sucre chocolat beurre levure', 'cacao', 50],
+  ['mousse-chocolat', 'Mousse au chocolat', '', 'international', 'chocolat oeuf sucre', 'creme', 25],
+  ['tiramisu', 'Tiramisu facile', '', 'international', 'cafe oeuf sucre creme cacao', 'chocolat', 30, 'Moyen'],
+  ['pancakes-banane', 'Pancakes à la banane', '', 'international', 'banane oeuf farine lait levure', 'miel', 20],
+  ['tarte-pommes', 'Tarte aux pommes', '', 'international', 'pomme farine beurre sucre oeuf', 'cannelle', 65, 'Moyen'],
+  ['compote-pommes', 'Compote de pommes', '', 'everyday', 'pomme sucre cannelle', 'citron', 30],
+  ['fraises-yaourt', 'Verrines fraise yaourt', '', 'everyday', 'fraise yaourt miel', 'amande', 10],
+  ['banane-chocolat', 'Banane au chocolat', '', 'everyday', 'banane chocolat', 'amande cacahuete', 10],
+  ['flan-coco', 'Flan coco', '', 'international', 'lait oeuf sucre', 'vanille', 55],
+  ['creme-vanille', 'Crème dessert vanille', '', 'everyday', 'lait sucre vanille farine', 'oeuf', 20]
+])

@@ -1,13 +1,20 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect } from 'react'
 import { translations } from './translations'
 
 const I18nContext = createContext(null)
 
+const translate = (key, values = {}) => Object.entries(values).reduce(
+  (text, [name, replacement]) => text.replace(`{${name}}`, replacement),
+  translations.fr[key] || key
+)
+
 export function I18nProvider({ children }) {
-  const [language, setLanguage] = useState(() => localStorage.getItem('platform-language') || 'fr')
-  useEffect(() => { localStorage.setItem('platform-language', language); document.documentElement.lang = language; document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr' }, [language])
-  const value = useMemo(() => ({ language, setLanguage, t: (key, values = {}) => Object.entries(values).reduce((text, [name, replacement]) => text.replace(`{${name}}`, replacement), translations[language]?.[key] || translations.fr[key] || key) }), [language])
-  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
+  useEffect(() => {
+    document.documentElement.lang = 'fr'
+    document.documentElement.dir = 'ltr'
+    localStorage.setItem('platform-language', 'fr')
+  }, [])
+  return <I18nContext.Provider value={{ language: 'fr', t: translate }}>{children}</I18nContext.Provider>
 }
 
 // eslint-disable-next-line react-refresh/only-export-components

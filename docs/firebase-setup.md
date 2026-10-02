@@ -146,6 +146,30 @@ npx firebase deploy --only firestore:rules,firestore:indexes
 npx firebase logout
 ```
 
+### Activer le switch des dressings mari / femme
+
+Hwayj autorise maintenant chacun des deux membres du foyer à consulter le dressing et les outfits de l’autre. Les modifications et suppressions restent limitées au propriétaire du dressing.
+
+Après avoir récupéré cette version, ouvrez PowerShell dans le dossier `t9dya` et déployez les nouvelles règles :
+
+```powershell
+npx firebase deploy --only firestore:rules
+```
+
+Si le dressing du partenaire affiche `Missing or insufficient permissions`, vérifiez que les deux comptes sont bien membres du même document `households/{code}`, puis relancez exactement cette commande. Aucun UID ne doit être ajouté manuellement dans le code.
+
+### Activer la gestion du foyer depuis le Hub
+
+Le Hub permet maintenant de créer ou rejoindre le foyer, modifier son nom et enregistrer le nom, la date de naissance et le sexe de chaque profil. La création de comptes reste désactivée : seuls les profils privés déjà autorisés peuvent créer un foyer.
+
+Déployez les règles mises à jour depuis PowerShell :
+
+```powershell
+npx firebase deploy --only firestore:rules
+```
+
+Chaque membre modifie uniquement son propre profil. Les informations sont synchronisées dans `users/{uid}` et dans `households/{code}.memberProfiles`, afin que les applications comme Hwayj puissent utiliser le sexe du bon profil.
+
 ### Si Windows bloque le fichier natif Rollup
 
 Sur certains PC administrés, `npm run build` termine l’application puis Windows Application Control bloque la génération du service worker PWA. Le code de l’application peut quand même être vérifié avec :

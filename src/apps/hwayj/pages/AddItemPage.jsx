@@ -1,10 +1,11 @@
 import { Camera, Check, ImagePlus, LoaderCircle, Sparkles, WandSparkles } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { usePlatform } from '../../../context/PlatformContext'
 import ColorPicker from '../components/ColorPicker'
 import HwayjHeader from '../components/HwayjHeader'
+import { useWardrobe } from '../context/WardrobeContext'
 import { callHwayjAI } from '../services/ai'
 import { createClothingItem } from '../services/wardrobe'
 import { SUBCATEGORY_OPTIONS } from '../utils/clothingTypes'
@@ -16,6 +17,7 @@ const seasons = ['Printemps', 'Été', 'Automne', 'Hiver']
 export default function AddItemPage() {
   const { user } = useAuth()
   const { notify } = usePlatform()
+  const { isOwnWardrobe } = useWardrobe()
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [original, setOriginal] = useState('')
@@ -24,6 +26,8 @@ export default function AddItemPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [tags, setTags] = useState({ name: '', category: 'Hauts', subcategory: '', colors: '', pattern: 'Uni', material: '', season: [], style: '', price: '' })
+
+  if (!isOwnWardrobe) return <Navigate to="/hwayj/closet" replace />
 
   const update = (key, value) => setTags((current) => ({ ...current, [key]: value }))
   const applyTags = (result) => {
