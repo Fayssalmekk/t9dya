@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { AnimatePresence, motion as Motion, useReducedMotion } from 'framer-motion'
 import { Check, RotateCcw, X } from 'lucide-react'
 import SwipeCard from './SwipeCard'
-import SmartImage from './SmartImage'
 
 export default function SwipeDeck({ deck, index, decisions, onDecide, onUndo, onDone, onChangeCategory }) {
   const current = deck[index]
@@ -35,8 +34,7 @@ export default function SwipeDeck({ deck, index, decisions, onDecide, onUndo, on
     <div className="mb-2 flex items-end justify-between gap-3"><div><p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-accent-700 sm:text-xs">Étape 2 sur 3</p><div className="flex items-baseline gap-2"><h2 id="swipe-title" className="text-xl font-black sm:text-2xl">Qu’est-ce qu’on a ?</h2><button type="button" onClick={onChangeCategory} className="text-[11px] font-bold text-muted underline">Changer</button></div></div><strong className="rounded-full bg-surface px-3 py-1.5 text-xs shadow-sm sm:text-sm">{Math.min(index + 1, deck.length)} / {deck.length}</strong></div>
     <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800"><Motion.div className="h-full rounded-full bg-gradient-to-r from-accent-500 to-emerald-400" animate={{ width: `${percent}%` }} /></div>
     <div className="relative mx-auto h-[clamp(16rem,calc(100dvh-24rem),29rem)] w-full max-w-md shrink-0 overscroll-contain">
-      {next && <Motion.div key={next.id} initial={false} animate={{ scale: 0.96, y: 12 }} className="absolute inset-0 overflow-hidden rounded-[2rem] border bg-surface opacity-70"><SmartImage src={next.imageUrl} alt="Prochain ingrédient" emoji={next.emoji} className="h-full w-full" /></Motion.div>}
-      <AnimatePresence>{current && <SwipeCard key={current.id} ingredient={current} onDecision={decide} />}</AnimatePresence>
+      <AnimatePresence initial={false}>{[next, current].filter(Boolean).map((ingredient) => <SwipeCard key={ingredient.id} ingredient={ingredient} onDecision={decide} active={ingredient.id === current?.id} behind={ingredient.id !== current?.id} />)}</AnimatePresence>
       <AnimatePresence>{celebrate && <Motion.div initial={reduced ? false : { scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 1.8, opacity: 0 }} className="pointer-events-none absolute inset-0 z-40 grid place-items-center"><span className="grid h-24 w-24 place-items-center rounded-full bg-emerald-500 text-white shadow-2xl"><Check size={52} strokeWidth={3} /></span></Motion.div>}</AnimatePresence>
     </div>
     <p className="mt-2 text-center text-[11px] font-semibold text-muted sm:text-xs">Glisse à gauche ou à droite</p>

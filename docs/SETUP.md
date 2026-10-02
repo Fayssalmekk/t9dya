@@ -24,6 +24,15 @@ Le quota journalier dans `api/ai.js` est une protection simple en mémoire : il 
 
 Hwayj demande une seule image `1024x1024` en qualité `low` par ajout et analyse les tags en détail bas. Le bouton « Relancer la préparation GPT » déclenche un nouvel appel image payant; utilisez-le seulement si le premier résultat ne convient pas.
 
+## S7a ya s7a (suivi santé)
+
+1. PowerShell à la racine du projet : `npx firebase deploy --only firestore:rules` pour autoriser les données santé privées par utilisateur.
+2. Après déploiement Vercel, ouvrez `/s7a/today` avec chacun des deux comptes : chaque profil garde son dossier séparé, mais les deux membres du foyer peuvent le consulter et le modifier.
+3. Hub → Réglages → Notifications : autorisez-les sur chaque appareil. Les rappels locaux apparaissent pendant que la plateforme est ouverte; les notifications en arrière-plan demanderont plus tard un service push dédié.
+4. Les estimations IA de glucides sont indicatives et ne remplacent jamais le calcul validé par le diabétologue; aucune dose d’insuline n’est générée automatiquement.
+5. Dans Hub → Réglages → Mon profil, cochez « Je suis diabétique » uniquement pour le membre concerné. Les deux membres du même foyer peuvent ensuite consulter et gérer ses rendez-vous, traitements et données diabète depuis le sélecteur de profil S7a.
+6. Le nombre d’unités restantes affiché sur un stylo est une estimation de confort (`300 unités × stylos en stock`, moins les doses enregistrées depuis le dernier ajustement du stock). Il ne faut pas l’utiliser pour décider une dose ou remplacer la vérification du stylo réel.
+
 ## Commandes de vérification
 
 1. `npm run lint`

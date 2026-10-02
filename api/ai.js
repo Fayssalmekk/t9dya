@@ -124,6 +124,15 @@ async function suggest(body) {
   return JSON.parse(responseText(result))
 }
 
+async function analyseMeal(image, description = '') {
+  if (!process.env.OPENAI_VISION_MODEL) throw new Error('VISION_MODEL_NOT_CONFIGURED')
+  if (!dataUrlParts(image)) throw new Error('INVALID_IMAGE')
+  const schema = { type: 'object', additionalProperties: false, required: ['dish_name', 'estimated_carbs_g', 'range_min_g', 'range_max_g', 'confidence', 'assumptions', 'safety_note'], properties: { dish_name: { type: 'string' }, estimated_carbs_g: { type: 'number' }, range_min_g: { type: 'number' }, range_max_g: { type: 'number' }, confidence: { type: 'string', enum: ['faible', 'moyenne', 'élevée'] }, assumptions: { type: 'array', maxItems: 5, items: { type: 'string' } }, safety_note: { type: 'string' } } }
+  const prompt = `Estime les glucides visibles dans ce repas à partir de la photo et de cette description utilisateur: ${String(description).slice(0, 600)}. Donne une estimation centrale et une plage réaliste en grammes. Identifie clairement les portions supposées et l'incertitude. Ne calcule et ne recommande jamais une dose d'insuline. Le safety_note doit rappeler de confirmer les portions et d'utiliser uniquement le plan d'insuline prescrit.`
+  const result = await openAI('responses', { model: process.env.OPENAI_VISION_MODEL, store: false, input: [{ role: 'user', content: [{ type: 'input_text', text: prompt }, { type: 'input_image', image_url: image, detail: 'low' }] }], text: { format: { type: 'json_schema', name: 'meal_carbs', strict: true, schema } }, max_output_tokens: 650 })
+  return JSON.parse(responseText(result))
+}
+
 export default async function handler(request, response) {
   if (request.method !== 'POST') return json(response, 405, { error: 'METHOD_NOT_ALLOWED' })
   if (!request.headers['content-type']?.startsWith('application/json')) return json(response, 415, { error: 'JSON_REQUIRED' })
@@ -131,10 +140,10 @@ export default async function handler(request, response) {
   const identity = await authenticate(request)
   if (identity.error) return json(response, identity.error, { error: identity.error === 403 ? 'NOT_ALLOWED' : 'UNAUTHORIZED' })
   const action = request.body?.action
-  if (!['enhance', 'combine', 'compose', 'tag', 'suggest'].includes(action)) return json(response, 400, { error: 'INVALID_ACTION' })
+  if (!['enhance', 'combine', 'compose', 'tag', 'suggest', 'meal'].includes(action)) return json(response, 400, { error: 'INVALID_ACTION' })
   if (!consume(identity.uid, action)) return json(response, 429, { error: 'DAILY_LIMIT_REACHED' })
   try {
-    const result = action === 'enhance' ? await enhance(request.body.image) : action === 'combine' ? await combine(request.body.images, request.body.names) : action === 'compose' ? await compose(request.body.images, request.body.names, request.body.gender) : action === 'tag' ? await tag(request.body.image) : await suggest(request.body)
+    const result = action === 'enhance' ? await enhance(request.body.image) : action === 'combine' ? await combine(request.body.images, request.body.names) : action === 'compose' ? await compose(request.body.images, request.body.names, request.body.gender) : action === 'tag' ? await tag(request.body.image) : action === 'meal' ? await analyseMeal(request.body.image, request.body.description) : await suggest(request.body)
     return json(response, 200, result)
   } catch (error) {
     const clientErrors = ['INVALID_IMAGE', 'INVALID_IMAGES', 'INVALID_WARDROBE']

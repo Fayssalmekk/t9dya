@@ -92,6 +92,63 @@ service cloud.firestore {
           && request.resource.data.date.size() == 10;
       }
 
+      match /healthReadings/{readingId} {
+        allow read, delete: if owns(userId) || sharesHousehold(userId);
+        allow create, update: if (owns(userId) || sharesHousehold(userId))
+          && request.resource.data.value is number
+          && request.resource.data.value > 0
+          && request.resource.data.value < 700
+          && request.resource.data.unit in ['mg/dL', 'mmol/L'];
+      }
+
+      match /insulinDoses/{doseId} {
+        allow read, delete: if owns(userId) || sharesHousehold(userId);
+        allow create, update: if (owns(userId) || sharesHousehold(userId))
+          && request.resource.data.insulin in ['novorapid', 'tresiba']
+          && request.resource.data.units is number
+          && request.resource.data.units > 0
+          && request.resource.data.units <= 200;
+      }
+
+      match /healthMedications/{medicationId} {
+        allow read, delete: if owns(userId) || sharesHousehold(userId);
+        allow create, update: if (owns(userId) || sharesHousehold(userId))
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 100
+          && request.resource.data.stock is number
+          && request.resource.data.stock >= 0;
+      }
+
+      match /medicationChecks/{checkId} {
+        allow read, delete: if owns(userId) || sharesHousehold(userId);
+        allow create, update: if (owns(userId) || sharesHousehold(userId))
+          && request.resource.data.date is string
+          && request.resource.data.date.size() == 10;
+      }
+
+      match /healthAppointments/{appointmentId} {
+        allow read, delete: if owns(userId) || sharesHousehold(userId);
+        allow create, update: if (owns(userId) || sharesHousehold(userId))
+          && request.resource.data.doctor is string
+          && request.resource.data.doctor.size() > 0
+          && request.resource.data.doctor.size() <= 100
+          && request.resource.data.date is string
+          && request.resource.data.date.size() == 10;
+      }
+
+      match /mealAnalyses/{mealId} {
+        allow read, delete: if owns(userId) || sharesHousehold(userId);
+        allow create, update: if (owns(userId) || sharesHousehold(userId))
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.carbs is number
+          && request.resource.data.carbs >= 0
+          && request.resource.data.carbs <= 1000
+          && request.resource.data.thumb is string
+          && request.resource.data.thumb.size() < 300000;
+      }
+
       match /{document=**} {
         allow read, write: if false;
       }

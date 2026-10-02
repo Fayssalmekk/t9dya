@@ -9,7 +9,8 @@ export const categories = [
   { id: 'hygiene-beaute', name: 'Hygiène & Beauté', emoji: '🧴', color: '#ec4899' },
   { id: 'entretien', name: 'Entretien & Ménage', emoji: '🧽', color: '#14b8a6' },
   { id: 'bebe', name: 'Bébé', emoji: '👶', color: '#8b5cf6' },
-  { id: 'snacks', name: 'Snacks & Biscuits', emoji: '🍪', color: '#f97316' }
+  { id: 'snacks', name: 'Snacks & Biscuits', emoji: '🍪', color: '#f97316' },
+  { id: 'pharmacie', name: 'Pharmacie & Santé', emoji: '💊', color: '#f43f5e' }
 ]
 
 const productGroups = {
@@ -122,10 +123,22 @@ const productGroups = {
     ['Chocolat au lait', 'شوكولا بالحليب', 'tablette', 16], ['Chocolat noir', 'شوكولا كحلة', 'tablette', 20], ['Barres céréales', 'بار الحبوب', 'pack', 24],
     ['Bonbons', 'حلوة', 'sachet', 10], ['Chewing-gum', 'علكة', 'pack', 8], ['Pâte à tartiner', 'شوكولا الدهن', 'pot', 36],
     ['Confiture fraise', 'كونfiture فريز', 'pot', 24], ['Miel', 'عسل', 'pot', 45]
+  ],
+  pharmacie: [
+    ['NovoRapid FlexPen', 'أنسولين نوفورابيد', 'boîte', 0], ['Tresiba FlexTouch', 'أنسولين تريسيبا', 'boîte', 0],
+    ['Capteur FreeStyle Libre 2', 'كابتور فريستايل ليبر 2', 'pièce', 0], ['Aiguilles pour stylo', 'إبر الأنسولين', 'boîte', 0],
+    ['Doliprane', 'دوليبران', 'boîte', 18], ['Febrex', 'فيبريكس', 'boîte', 25], ['Ferplex', 'فيربليكس', 'boîte', 65],
+    ['Vitamine D', 'فيتامين د', 'boîte', 55], ['Supradyn', 'سوبرادين', 'boîte', 85], ['Magnésium', 'مغنيزيوم', 'boîte', 60],
+    ['Bandelettes glycémie', 'شرائط قياس السكر', 'boîte', 0], ['Lancettes', 'إبر قياس السكر', 'boîte', 0],
+    ['Alcool médical', 'الكحول الطبي', 'flacon', 15], ['Pansements', 'ضمادات', 'boîte', 20],
+    ['Coupe-ongles', 'مقص الأظافر', 'pièce', 25], ['Lime à ongles', 'مبرد الأظافر', 'pièce', 15],
+    ['Brosse à dents', 'فرشاة الأسنان', 'pièce', 20], ['Thermomètre', 'ميزان الحرارة', 'pièce', 80]
   ]
 }
 
 const emojiRules = [
+  [/novorapid|tresiba|insuline/, '💉'], [/libre|capteur|glycémie|bandelettes/, '🩸'], [/doliprane|febrex|ferplex|vitamine|supradyn|magnésium/, '💊'],
+  [/aiguilles|lancettes/, '🪡'], [/alcool médical|pansements/, '🩹'], [/coupe-ongles|lime à ongles/, '💅'], [/thermomètre/, '🌡️'],
   [/frites/, '🍟'], [/tomate/, '🍅'], [/pommes? de terre|pommes? noisettes/, '🥔'], [/oignon/, '🧅'],
   [/carotte/, '🥕'], [/courgette|concombre/, '🥒'], [/aubergine/, '🍆'], [/poivron|paprika/, '🫑'],
   [/laitue|épinard|persil|coriandre|menthe/, '🥬'], [/ail/, '🧄'], [/citron|limonade/, '🍋'],

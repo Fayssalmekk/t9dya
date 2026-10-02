@@ -23,7 +23,7 @@ export async function createHousehold(user, householdName) {
     inviteCode,
     members: [user.uid],
     memberProfiles: {
-      [user.uid]: { uid: user.uid, displayName, email: user.email || '', birthDate: '', sex: '' }
+      [user.uid]: { uid: user.uid, displayName, email: user.email || '', birthDate: '', sex: '', diabetic: false }
     },
     budget: { monthly: 0, categories: {} },
     lastUsedStore: 'Marjane',
@@ -37,6 +37,7 @@ export async function createHousehold(user, householdName) {
     email: user.email || '',
     birthDate: '',
     sex: '',
+    diabetic: false,
     householdId: inviteCode,
     updatedAt: serverTimestamp()
   }, { merge: true })
@@ -53,7 +54,7 @@ export async function joinHousehold(user, rawCode) {
   const batch = writeBatch(db)
   batch.update(doc(db, 'households', inviteCode), {
     members: arrayUnion(user.uid),
-    [`memberProfiles.${user.uid}`]: { uid: user.uid, displayName, email: user.email || '', birthDate: '', sex: '' },
+    [`memberProfiles.${user.uid}`]: { uid: user.uid, displayName, email: user.email || '', birthDate: '', sex: '', diabetic: false },
     updatedAt: serverTimestamp()
   })
   batch.set(doc(db, 'users', user.uid), {
@@ -62,6 +63,7 @@ export async function joinHousehold(user, rawCode) {
     email: user.email || '',
     birthDate: '',
     sex: '',
+    diabetic: false,
     householdId: inviteCode,
     updatedAt: serverTimestamp()
   }, { merge: true })
@@ -80,9 +82,10 @@ export async function updateMemberProfile(user, householdId, values) {
   const displayName = values.displayName.trim()
   const birthDate = values.birthDate || ''
   const sex = ['male', 'female'].includes(values.sex) ? values.sex : ''
-  const memberProfile = { uid: user.uid, displayName, email: user.email || '', birthDate, sex }
+  const diabetic = values.diabetic === true
+  const memberProfile = { uid: user.uid, displayName, email: user.email || '', birthDate, sex, diabetic }
   const batch = writeBatch(db)
-  batch.update(doc(db, 'users', user.uid), { displayName, birthDate, sex, updatedAt: serverTimestamp() })
+  batch.update(doc(db, 'users', user.uid), { displayName, birthDate, sex, diabetic, updatedAt: serverTimestamp() })
   batch.update(doc(db, 'households', householdId), { [`memberProfiles.${user.uid}`]: memberProfile, updatedAt: serverTimestamp() })
   await batch.commit()
 }

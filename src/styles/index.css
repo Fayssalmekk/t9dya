@@ -15,6 +15,8 @@
   --color-surface: 255 255 255;
   --color-ink: 15 23 42;
   --color-muted: 100 116 139;
+  --scrollbar-thumb: 148 163 184;
+  --scrollbar-thumb-hover: 20 184 166;
   --cuisine-positive: 16 185 129;
   --cuisine-negative: 244 63 94;
   --cuisine-warm: 249 115 22;
@@ -47,6 +49,8 @@
   --color-surface: 15 23 42;
   --color-ink: 241 245 249;
   --color-muted: 148 163 184;
+  --scrollbar-thumb: 71 85 105;
+  --scrollbar-thumb-hover: 45 212 191;
 }
 
 html {
@@ -58,6 +62,44 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+}
+
+/* A single discreet scrollbar language for pages, sheets and small pickers. */
+* {
+  scrollbar-color: rgb(var(--scrollbar-thumb) / 0.62) transparent;
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  min-height: 32px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: rgb(var(--scrollbar-thumb) / 0.58);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--scrollbar-thumb-hover) / 0.82);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 button,
@@ -73,6 +115,7 @@ textarea {
 }
 
 .no-scrollbar {
+  -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
