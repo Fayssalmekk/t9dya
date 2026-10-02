@@ -2,6 +2,8 @@
 
 Application mobile-first de liste de courses partagee et de suivi du budget pour un foyer de deux personnes.
 
+Une IA ou un développeur qui reprend le projet doit commencer par lire [`docs/AI_HANDOFF.md`](docs/AI_HANDOFF.md), puis `prompt.md` et `docs/SETUP.md`.
+
 ## Prerequis
 
 - Node.js 22.12 ou plus recent

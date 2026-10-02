@@ -1,9 +1,43 @@
 const dailyUsage = new Map()
 const MAX_IMAGE_BYTES = 1000000
+const MAX_BODY_BYTES = 1600000
+const MAX_AUTH_TOKEN_CHARS = 8192
 const DAILY_LIMIT = 30
 const ENHANCE_LIMIT = 8
 
 const json = (response, status, body) => response.status(status).json(body)
+
+function applyCors(request, response) {
+  const origin = request.headers.origin
+  const forwardedProtocol = String(request.headers['x-forwarded-proto'] || '').split(',')[0].trim()
+  const protocol = forwardedProtocol || (request.socket?.encrypted ? 'https' : 'http')
+  const host = String(request.headers['x-forwarded-host'] || request.headers.host || '').split(',')[0].trim()
+  const requestOrigin = host ? `${protocol}://${host}` : ''
+  const allowedOrigins = ['https://localhost', requestOrigin, process.env.APP_ORIGIN].filter(Boolean)
+  const allowed = !origin || allowedOrigins.includes(origin)
+  if (origin && allowed) response.setHeader('Access-Control-Allow-Origin', origin)
+  response.setHeader('Vary', 'Origin')
+  response.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
+  response.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+  response.setHeader('Access-Control-Max-Age', '600')
+  return allowed
+}
+
+function applySecurityHeaders(response) {
+  response.setHeader('Cache-Control', 'no-store, private')
+  response.setHeader('X-Content-Type-Options', 'nosniff')
+  response.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'")
+  response.setHeader('Referrer-Policy', 'no-referrer')
+}
+
+function decodedTokenPayload(token) {
+  try {
+    const encoded = token.split('.')[1]
+    return encoded ? JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')) : null
+  } catch {
+    return null
+  }
+}
 
 function dataUrlParts(value) {
   if (typeof value !== 'string') return null
@@ -16,12 +50,22 @@ function dataUrlParts(value) {
 
 async function authenticate(request) {
   const token = request.headers.authorization?.match(/^Bearer (.+)$/)?.[1]
-  if (!token || !process.env.FIREBASE_API_KEY) return { error: 401 }
-  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(process.env.FIREBASE_API_KEY)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token }) })
+  if (!token || token.length > MAX_AUTH_TOKEN_CHARS) return { error: 401 }
+  if (!process.env.FIREBASE_API_KEY) return { error: 503 }
+  let response
+  try {
+    response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(process.env.FIREBASE_API_KEY)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token }), signal: AbortSignal.timeout(8000) })
+  } catch {
+    return { error: 503 }
+  }
   if (!response.ok) return { error: 401 }
-  const uid = (await response.json()).users?.[0]?.localId
-  if (!uid) return { error: 401 }
+  const account = (await response.json()).users?.[0]
+  const uid = account?.localId
+  if (!uid || account.disabled === true) return { error: 401 }
+  const payload = decodedTokenPayload(token)
+  if (!payload || payload.sub !== uid || (Number(account.validSince) && Number(payload.auth_time) < Number(account.validSince))) return { error: 401 }
   const allowed = (process.env.ALLOWED_UIDS || '').split(',').map((value) => value.trim()).filter(Boolean)
+  if (!allowed.length) return { error: 503 }
   return allowed.includes(uid) ? { uid } : { error: 403 }
 }
 
@@ -39,7 +83,7 @@ function consume(uid, action) {
 
 async function openAI(path, body, multipart = false) {
   if (!process.env.OPENAI_API_KEY) throw new Error('AI_NOT_CONFIGURED')
-  const response = await fetch(`https://api.openai.com/v1/${path}`, { method: 'POST', headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, ...(multipart ? {} : { 'Content-Type': 'application/json' }) }, body: multipart ? body : JSON.stringify(body) })
+  const response = await fetch(`https://api.openai.com/v1/${path}`, { method: 'POST', headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, ...(multipart ? {} : { 'Content-Type': 'application/json' }) }, body: multipart ? body : JSON.stringify(body), signal: AbortSignal.timeout(55000) })
   const result = await response.json().catch(() => ({}))
   if (!response.ok) throw new Error(result.error?.code || 'OPENAI_ERROR')
   return result
@@ -134,11 +178,18 @@ async function analyseMeal(image, description = '') {
 }
 
 export default async function handler(request, response) {
+  applySecurityHeaders(response)
+  const corsAllowed = applyCors(request, response)
+  if (!corsAllowed) return json(response, 403, { error: 'ORIGIN_NOT_ALLOWED' })
+  if (request.method === 'OPTIONS') return response.status(204).end()
   if (request.method !== 'POST') return json(response, 405, { error: 'METHOD_NOT_ALLOWED' })
   if (!request.headers['content-type']?.startsWith('application/json')) return json(response, 415, { error: 'JSON_REQUIRED' })
-  if (Number(request.headers['content-length'] || 0) > 1600000) return json(response, 413, { error: 'BODY_TOO_LARGE' })
+  if (!request.body || typeof request.body !== 'object' || Array.isArray(request.body)) return json(response, 400, { error: 'INVALID_JSON' })
+  const declaredSize = Number(request.headers['content-length'] || 0)
+  const actualSize = Buffer.byteLength(JSON.stringify(request.body), 'utf8')
+  if (declaredSize > MAX_BODY_BYTES || actualSize > MAX_BODY_BYTES) return json(response, 413, { error: 'BODY_TOO_LARGE' })
   const identity = await authenticate(request)
-  if (identity.error) return json(response, identity.error, { error: identity.error === 403 ? 'NOT_ALLOWED' : 'UNAUTHORIZED' })
+  if (identity.error) return json(response, identity.error, { error: identity.error === 403 ? 'NOT_ALLOWED' : identity.error === 503 ? 'AUTH_CONFIGURATION_UNAVAILABLE' : 'UNAUTHORIZED' })
   const action = request.body?.action
   if (!['enhance', 'combine', 'compose', 'tag', 'suggest', 'meal'].includes(action)) return json(response, 400, { error: 'INVALID_ACTION' })
   if (!consume(identity.uid, action)) return json(response, 429, { error: 'DAILY_LIMIT_REACHED' })

@@ -6,12 +6,15 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:android": "vite build --mode android",
     "build:check": "vite build --mode app-check",
     "preview": "vite preview",
     "lint": "eslint .",
     "firebase:emulators": "firebase emulators:start",
     "android:add": "cap add android",
+    "android:assets": "capacitor-assets generate --android --iconBackgroundColor #0f766e --iconBackgroundColorDark #0f766e --splashBackgroundColor #f8fafc --splashBackgroundColorDark #020617",
     "android:sync": "cap sync android",
+    "android:update": "npm run build:android && cap sync android",
     "android:open": "cap open android",
     "android:run": "cap run android"
   },
@@ -21,6 +24,7 @@
     "@capacitor/core": "^8.0.0",
     "@capacitor/keyboard": "^8.0.0",
     "@capacitor/local-notifications": "^8.0.0",
+    "@capacitor/splash-screen": "^8.0.0",
     "@capacitor/status-bar": "^8.0.0",
     "firebase": "^12.19.0",
     "framer-motion": "^12.23.24",
@@ -31,6 +35,7 @@
     "recharts": "^3.3.0"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.0.0",
     "@eslint/js": "^9.39.5",
     "@vitejs/plugin-react": "^6.0.1",

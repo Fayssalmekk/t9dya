@@ -1,6 +1,21 @@
 # Configuration de la plateforme
 
+Pour installer la même plateforme comme application privée sur vos téléphones Android, suivez le guide détaillé [ANDROID.md](./ANDROID.md).
+
 Les secrets serveur ne doivent jamais être ajoutés à Git ni préfixés par `VITE_`.
+
+## Sécurité avant chaque déploiement
+
+1. Firebase Console → Authentication → Sign-in method : gardez uniquement Email/Password et désactivez tous les fournisseurs inutilisés.
+2. Firebase Console → Authentication → Users : vérifiez qu’il existe uniquement les deux comptes attendus; l’application ne contient aucun écran d’inscription.
+3. Vercel → Project → Settings → Environment Variables : mettez les deux UID exacts, séparés par une virgule, dans `ALLOWED_UIDS` et ne laissez jamais les valeurs fictives.
+4. Vercel → Project → Settings → Environment Variables : mettez l’origine web exacte dans `APP_ORIGIN`, par exemple `https://t9dya.vercel.app`, sans barre oblique finale.
+5. Vercel → Project → Settings → Environment Variables : gardez `OPENAI_API_KEY` et `FIREBASE_API_KEY` sans préfixe `VITE_`; seule la configuration Web Firebase `VITE_FIREBASE_*` est publique par conception.
+6. OpenAI Platform → API keys : révoquez immédiatement toute clé déjà copiée dans le navigateur, une capture ou Git, puis créez une nouvelle clé de projet.
+7. PowerShell à la racine : `npx firebase deploy --only firestore:rules` après chaque modification de `firestore.rules`.
+8. Après le déploiement, testez sans jeton avec `curl.exe -i -X POST https://VOTRE-PROJET.vercel.app/api/ai -H "Content-Type: application/json" -d "{\"action\":\"tag\"}"`; la réponse attendue est `401 UNAUTHORIZED` et aucun appel OpenAI ne doit être exécuté.
+9. Testez ensuite l’IA avec chacun des deux comptes autorisés, puis avec tout autre compte de test : le troisième compte doit recevoir `403 NOT_ALLOWED` et ne doit lire aucune donnée Firestore.
+10. Vercel → Project → Settings → Deployment Protection : activez la protection des Preview Deployments si ces aperçus ne doivent pas être publics.
 
 ## Hwayj (clothes app)
 

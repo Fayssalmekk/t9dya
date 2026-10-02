@@ -9,5 +9,5 @@ export function apiUrl(path) {
     return `${configuredOrigin}${normalizedPath}`
   }
 
-  return configuredOrigin ? `${configuredOrigin}${normalizedPath}` : normalizedPath
+  return normalizedPath
 }

@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { updateHouseholdName, updateMemberProfile } from '../../services/household'
+import { isNativeApp, syncNativeTheme } from '../../native/capacitor'
+import { nativeNotificationPermission, requestNativeNotificationPermission } from '../../native/notifications'
 
 const sexLabels = { female: 'Femme', male: 'Homme' }
 
@@ -16,13 +18,19 @@ export default function HubSettingsPage() {
   const [copied, setCopied] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
-  const [notificationPermission, setNotificationPermission] = useState(() => typeof Notification === 'undefined' ? 'unsupported' : Notification.permission)
+  const [notificationPermission, setNotificationPermission] = useState(() => isNativeApp ? 'prompt' : typeof Notification === 'undefined' ? 'unsupported' : Notification.permission)
   const members = (household.members || []).map((uid) => household.memberProfiles?.[uid]).filter(Boolean)
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark)
     localStorage.setItem('t9dya-theme', dark ? 'dark' : 'light')
+    syncNativeTheme(dark).catch(() => {})
   }, [dark])
+
+  useEffect(() => {
+    if (!isNativeApp) return
+    nativeNotificationPermission().then(setNotificationPermission).catch(() => {})
+  }, [])
 
   const copyCode = async () => {
     await navigator.clipboard.writeText(household.inviteCode)
@@ -61,6 +69,10 @@ export default function HubSettingsPage() {
   }
 
   const enableNotifications = async () => {
+    if (isNativeApp) {
+      setNotificationPermission(await requestNativeNotificationPermission())
+      return
+    }
     if (typeof Notification === 'undefined') return
     setNotificationPermission(await Notification.requestPermission())
   }

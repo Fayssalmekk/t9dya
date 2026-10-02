@@ -5,6 +5,7 @@ import { collection, onSnapshot } from 'firebase/firestore'
 import { db } from '../../services/firebase'
 import { useAuth } from '../../context/AuthContext'
 import { todayKey } from '../s7a/utils/dates'
+import { syncHealthNotifications } from '../../native/notifications'
 
 const TODAY = todayKey
 const CURRENT_TIME = new Date().toTimeString().slice(0, 5)
@@ -28,6 +29,17 @@ export default function HealthHubAlerts() {
     })
     return () => stops.forEach((stop) => stop())
   }, [household, user?.uid])
+  useEffect(() => {
+    const memberIds = household?.members || []
+    memberIds.forEach((ownerId) => {
+      syncHealthNotifications({
+        ownerId,
+        ownerName: household.memberProfiles?.[ownerId]?.displayName || 'Membre',
+        medications: medications.filter((item) => item.ownerId === ownerId),
+        appointments: appointments.filter((item) => item.ownerId === ownerId)
+      }).catch(() => {})
+    })
+  }, [appointments, household, medications])
   const alerts = useMemo(() => {
     const low = medications.filter((item) => item.stockInitialized && item.stock <= item.lowStockThreshold).map((item) => ({ id: `stock-${item.ownerId}-${item.id}`, icon: PackageSearch, label: `${item.ownerName} · ${item.name} : stock faible`, to: `/s7a/diabetes?profile=${item.ownerId}` }))
     const checkedToday = new Set(checks.filter((item) => item.date === TODAY && item.taken).map((item) => `${item.ownerId}:${item.medicationId}`))

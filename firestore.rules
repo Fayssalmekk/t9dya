@@ -32,6 +32,37 @@ service cloud.firestore {
         && userId in get(/databases/$(database)/documents/households/$(viewer.householdId)).data.members;
     }
 
+    function validUserProfileUpdate(userId) {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      let regularProfileUpdate = changed.hasOnly(['displayName', 'birthDate', 'sex', 'diabetic', 'updatedAt']);
+      let firstHouseholdSetup = (!('householdId' in resource.data)
+          || resource.data.householdId == null
+          || resource.data.householdId == '')
+        && changed.hasOnly(['uid', 'displayName', 'email', 'birthDate', 'sex', 'diabetic', 'householdId', 'updatedAt']);
+      return request.resource.data.uid == userId
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() > 0
+        && request.resource.data.displayName.size() <= 50
+        && request.resource.data.birthDate is string
+        && request.resource.data.birthDate.size() <= 10
+        && request.resource.data.sex in ['', 'male', 'female']
+        && request.resource.data.diabetic is bool
+        && (regularProfileUpdate || firstHouseholdSetup);
+    }
+
+    function validHouseholdMemberUpdate() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return request.resource.data.members == resource.data.members
+        && request.resource.data.inviteCode == resource.data.inviteCode
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 50
+        && request.resource.data.memberProfiles.keys() == resource.data.memberProfiles.keys()
+        && request.resource.data.memberProfiles.diff(resource.data.memberProfiles).affectedKeys().hasOnly([request.auth.uid])
+        && request.resource.data.memberProfiles[request.auth.uid].uid == request.auth.uid
+        && changed.hasOnly(['name', 'memberProfiles', 'budget', 'lastUsedStore', 'activeListId', 'updatedAt']);
+    }
+
     function validClothing() {
       return request.resource.data.name is string
         && request.resource.data.name.size() > 0
@@ -54,7 +85,8 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow create: if false;
-      allow read, update: if owns(userId);
+      allow read: if owns(userId);
+      allow update: if owns(userId) && validUserProfileUpdate(userId);
       allow delete: if false;
 
       match /clothes/{itemId} {
@@ -168,7 +200,7 @@ service cloud.firestore {
       allow get: if signedIn() && request.auth.uid in resource.data.members;
       allow list: if false;
       allow update: if signedIn() && (
-        (request.auth.uid in resource.data.members && request.resource.data.members == resource.data.members)
+        (request.auth.uid in resource.data.members && validHouseholdMemberUpdate())
         ||
         (!(request.auth.uid in resource.data.members)
           && validMembers(resource.data.members)

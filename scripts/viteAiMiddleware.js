@@ -7,7 +7,8 @@ const serverKeys = [
   'OPENAI_VISION_MODEL',
   'OPENAI_TEXT_MODEL',
   'ALLOWED_UIDS',
-  'FIREBASE_API_KEY'
+  'FIREBASE_API_KEY',
+  'APP_ORIGIN'
 ]
 
 function readJsonBody(request) {
@@ -39,8 +40,16 @@ function readJsonBody(request) {
 
 function responseAdapter(response) {
   const adapter = {
+    setHeader(name, value) {
+      response.setHeader(name, value)
+      return adapter
+    },
     status(statusCode) {
       response.statusCode = statusCode
+      return adapter
+    },
+    end(body) {
+      if (!response.writableEnded) response.end(body)
       return adapter
     },
     json(body) {

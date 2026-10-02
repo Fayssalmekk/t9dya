@@ -12,3 +12,11 @@ ui-debug.log
 Thumbs.db
 .idea/
 .vscode/
+
+# Android local builds and private signing material
+android/.gradle/
+android/local.properties
+android/**/build/
+*.jks
+*.keystore
+keystore.properties
