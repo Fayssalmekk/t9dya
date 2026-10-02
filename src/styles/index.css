@@ -28,6 +28,14 @@
     radial-gradient(circle at 0% 42%, rgb(var(--color-accent-500) / 0.06), transparent 22rem);
 }
 
+.cuisine-swipe-mode > header {
+  margin-bottom: 0.75rem;
+}
+
+.cuisine-swipe-mode {
+  overscroll-behavior-y: none;
+}
+
 .dark {
   color-scheme: dark;
   --color-accent-50: 19 78 74;

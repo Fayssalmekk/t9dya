@@ -45,10 +45,12 @@ export default function CuisineSwipePage() {
   }
   const choose = (nextType) => { setType(nextType); setDecisions([]); setStep('swipe'); persist(nextType, []) }
   const decide = (id, hasIt) => {
+    const currentScroll = window.scrollY
     const next = [...decisions, { id, hasIt }]
     setDecisions(next)
     persist(type, next)
     if (next.length >= deck.length) setStep('results')
+    window.requestAnimationFrame(() => window.scrollTo(0, currentScroll))
   }
   const undo = () => { const next = decisions.slice(0, -1); setDecisions(next); persist(type, next) }
   const restart = () => { setDecisions([]); setStep('swipe'); persist(type, []) }
@@ -79,9 +81,9 @@ export default function CuisineSwipePage() {
     } finally { setAdding(false) }
   }
 
-  return <main className="cuisine-page mx-auto min-h-dvh w-full max-w-2xl px-4 pb-28 pt-6 sm:px-6">
-    <AppHeader title="Chnou nṭayab ?" subtitle="Des idées avec ce qu’on a déjà" />
-    <div className="mb-5 flex items-center gap-3 rounded-2xl bg-surface p-3 shadow-sm"><span className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-orange-100 to-amber-100 text-orange-600 dark:from-orange-950 dark:to-amber-950"><ChefHat /></span><p className="text-sm text-muted"><strong className="block text-ink">Cuisine Swipe</strong>Pas de gaspillage, juste de bonnes idées.</p></div>
+  return <main className={`cuisine-page mx-auto min-h-dvh w-full max-w-2xl px-4 pb-28 sm:px-6 ${step === 'swipe' ? 'cuisine-swipe-mode pt-3' : 'pt-6'}`}>
+    <AppHeader title="Chnou nṭayab ?" subtitle={step === 'swipe' ? null : 'Des idées avec ce qu’on a déjà'} />
+    {step !== 'swipe' && <div className="mb-5 flex items-center gap-3 rounded-2xl bg-surface p-3 shadow-sm"><span className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-orange-100 to-amber-100 text-orange-600 dark:from-orange-950 dark:to-amber-950"><ChefHat /></span><p className="text-sm text-muted"><strong className="block text-ink">Cuisine Swipe</strong>Pas de gaspillage, juste de bonnes idées.</p></div>}
     <AnimatePresence mode="wait">
       <Motion.div key={step} initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -14 }} transition={{ duration: 0.2 }}>
         {step === 'category' && <CategoryPicker onChoose={choose} savedSession={savedSession} onResume={resume} />}
