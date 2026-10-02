@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { motion as Motion, useAnimation, useMotionValue, useReducedMotion, useTransform } from 'framer-motion'
 import SmartImage from './SmartImage'
 
@@ -16,13 +16,17 @@ export default function SwipeCard({ ingredient, onDecision, active = true }) {
     window.requestAnimationFrame(() => window.scrollTo(0, scrollPosition.current))
   }, [])
 
+  useEffect(() => {
+    controls.start({ scale: 1, y: 0, opacity: 1, transition: reduced ? { duration: 0 } : { type: 'spring', stiffness: 300, damping: 28 } })
+  }, [controls, reduced])
+
   const decide = useCallback(async (hasIt) => {
     if (!active) return
     if (!reduced) await controls.start({ x: hasIt ? 620 : -620, rotate: hasIt ? 16 : -16, opacity: 0, transition: { duration: 0.25 } })
     onDecision(hasIt)
   }, [active, controls, onDecision, reduced])
 
-  return <Motion.article drag={active ? 'x' : false} dragConstraints={{ left: 0, right: 0 }} dragElastic={0.85} style={{ x, rotate }} animate={controls} onDragStart={() => { scrollPosition.current = window.scrollY }} onDragEnd={async (_, info) => { if (Math.abs(info.offset.x) > 105 || Math.abs(info.velocity.x) > 650) await decide(info.offset.x > 0); else await controls.start({ x: 0, rotate: 0, transition: { type: 'spring', stiffness: 420, damping: 28 } }); preserveScroll() }} className="absolute inset-0 touch-none select-none overflow-hidden overscroll-contain rounded-[2rem] border border-slate-200 bg-surface shadow-[0_28px_70px_-30px_rgba(15,23,42,.5)] dark:border-slate-700" aria-label={`${ingredient.name_fr}. Glissez à droite si vous l’avez, à gauche sinon.`}>
+  return <Motion.article initial={{ scale: 0.96, y: 12, opacity: 0.76 }} drag={active ? 'x' : false} dragConstraints={{ left: 0, right: 0 }} dragElastic={0.85} style={{ x, rotate }} animate={controls} onDragStart={() => { scrollPosition.current = window.scrollY }} onDragEnd={async (_, info) => { if (Math.abs(info.offset.x) > 105 || Math.abs(info.velocity.x) > 650) await decide(info.offset.x > 0); else await controls.start({ x: 0, rotate: 0, transition: { type: 'spring', stiffness: 420, damping: 28 } }); preserveScroll() }} className="absolute inset-0 touch-none select-none overflow-hidden overscroll-contain rounded-[2rem] border border-slate-200 bg-surface shadow-[0_28px_70px_-30px_rgba(15,23,42,.5)] dark:border-slate-700" aria-label={`${ingredient.name_fr}. Glissez à droite si vous l’avez, à gauche sinon.`}>
     <Motion.div className="pointer-events-none absolute inset-0 z-10" style={{ backgroundColor: tint }} />
     <SmartImage src={ingredient.imageUrl} alt={ingredient.name_fr} emoji={ingredient.emoji} className="h-[66%] w-full" />
     <div className="relative z-20 flex h-[34%] items-center justify-between gap-4 p-6"><div><h3 className="text-3xl font-black tracking-tight">{ingredient.name_fr}</h3>{ingredient.name_darija && <p className="mt-1 text-base font-semibold text-muted">{ingredient.name_darija}</p>}</div><span className="text-5xl">{ingredient.emoji}</span></div>
