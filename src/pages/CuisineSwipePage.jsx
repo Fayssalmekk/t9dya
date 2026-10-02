@@ -15,6 +15,7 @@ import { usePlatform } from '../context/PlatformContext'
 import { addShoppingItem } from '../services/shopping'
 
 const STORAGE_KEY = 't9dya-cuisine-session-v1'
+const STATS_KEY = 't9dya-cuisine-availability-v1'
 
 function readSession() {
   try {
@@ -23,43 +24,69 @@ function readSession() {
   } catch { return null }
 }
 
+function readAvailabilityStats() {
+  try { return JSON.parse(localStorage.getItem(STATS_KEY)) || {} } catch { return {} }
+}
+
 export default function CuisineSwipePage() {
   const { user, household } = useAuth()
   const { lists, activeList, allItems } = useShopping()
   const { notify } = usePlatform()
   const [savedSession, setSavedSession] = useState(readSession)
+  const [availabilityStats, setAvailabilityStats] = useState(readAvailabilityStats)
   const [type, setType] = useState(null)
   const [decisions, setDecisions] = useState([])
+  const [sessionCommitted, setSessionCommitted] = useState(false)
   const [step, setStep] = useState('category')
   const [selectedRecipe, setSelectedRecipe] = useState(null)
   const [adding, setAdding] = useState(false)
 
-  const deck = useMemo(() => type ? buildIngredientDeck(type, recipes, ingredients) : [], [type])
+  const deck = useMemo(() => type ? buildIngredientDeck(type, recipes, ingredients, availabilityStats) : [], [availabilityStats, type])
   const ownedIds = useMemo(() => decisions.filter((item) => item.hasIt).map((item) => item.id), [decisions])
   const results = useMemo(() => type ? matchRecipes(type, ownedIds, recipes, ingredientsById) : [], [ownedIds, type])
 
-  const persist = (nextType, nextDecisions) => {
-    const session = { type: nextType, decisions: nextDecisions, index: nextDecisions.length, savedAt: new Date().toISOString() }
+  const persist = (nextType, nextDecisions, committed = false) => {
+    const session = { type: nextType, decisions: nextDecisions, index: nextDecisions.length, committed, savedAt: new Date().toISOString() }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
     setSavedSession(session)
   }
-  const choose = (nextType) => { setType(nextType); setDecisions([]); setStep('swipe'); persist(nextType, []) }
+  const commitAnswers = (answers) => {
+    const nextStats = { ...readAvailabilityStats() }
+    answers.forEach(({ id, hasIt }) => {
+      const previous = nextStats[id] || { yes: 0, no: 0 }
+      nextStats[id] = { yes: previous.yes + (hasIt ? 1 : 0), no: previous.no + (hasIt ? 0 : 1) }
+    })
+    localStorage.setItem(STATS_KEY, JSON.stringify(nextStats))
+    setAvailabilityStats(nextStats)
+  }
+  const choose = (nextType) => { setType(nextType); setDecisions([]); setSessionCommitted(false); setStep('swipe'); persist(nextType, []) }
   const decide = (id, hasIt) => {
     const currentScroll = window.scrollY
     const next = [...decisions, { id, hasIt }]
     setDecisions(next)
-    persist(type, next)
-    if (next.length >= deck.length) setStep('results')
+    if (next.length >= deck.length) {
+      commitAnswers(next)
+      setSessionCommitted(true)
+      persist(type, next, true)
+      setStep('results')
+    } else persist(type, next)
     window.requestAnimationFrame(() => window.scrollTo(0, currentScroll))
   }
   const undo = () => { const next = decisions.slice(0, -1); setDecisions(next); persist(type, next) }
-  const restart = () => { setDecisions([]); setStep('swipe'); persist(type, []) }
-  const changeCategory = () => { setType(null); setDecisions([]); setStep('category') }
+  const finishSession = () => {
+    if (!sessionCommitted) commitAnswers(decisions)
+    setSessionCommitted(true)
+    persist(type, decisions, true)
+    setStep('results')
+  }
+  const restart = () => { setDecisions([]); setSessionCommitted(false); setStep('swipe'); persist(type, []) }
+  const changeCategory = () => { setType(null); setDecisions([]); setSessionCommitted(false); setStep('category') }
   const resume = () => {
-    const restoredDeck = buildIngredientDeck(savedSession.type, recipes, ingredients)
+    const restoredDeck = buildIngredientDeck(savedSession.type, recipes, ingredients, availabilityStats)
     setType(savedSession.type)
     setDecisions(savedSession.decisions)
-    setStep(savedSession.decisions.length >= restoredDeck.length ? 'results' : 'swipe')
+    setSessionCommitted(Boolean(savedSession.committed))
+    setStep(savedSession.committed || savedSession.decisions.length >= restoredDeck.length ? 'results' : 'swipe')
   }
 
   const addMissing = async (recipe, listId) => {
@@ -87,7 +114,7 @@ export default function CuisineSwipePage() {
     <AnimatePresence mode="wait">
       <Motion.div key={step} initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -14 }} transition={{ duration: 0.2 }}>
         {step === 'category' && <CategoryPicker onChoose={choose} savedSession={savedSession} onResume={resume} />}
-        {step === 'swipe' && <SwipeDeck deck={deck} index={decisions.length} decisions={decisions} onDecide={decide} onUndo={undo} onDone={() => setStep('results')} onChangeCategory={changeCategory} />}
+        {step === 'swipe' && <SwipeDeck deck={deck} index={decisions.length} decisions={decisions} onDecide={decide} onUndo={undo} onDone={finishSession} onChangeCategory={changeCategory} />}
         {step === 'results' && <ResultsList results={results} onOpen={setSelectedRecipe} onRestart={restart} onChangeCategory={changeCategory} />}
       </Motion.div>
     </AnimatePresence>
