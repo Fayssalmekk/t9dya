@@ -286,11 +286,13 @@ Les règles autorisent le partenaire à lire vêtements/images/outfits, mais seu
 
 `AddItemPage` suit trois étapes :
 
-1. photo caméra ou galerie ;
-2. comparaison original / préparation GPT ;
+1. consignes facultatives puis photo caméra ou galerie ;
+2. génération et vérification de l’image catalogue GPT ;
 3. vérification et édition de tous les tags.
 
-`prepareUpload` réduit immédiatement la photo. L’action IA `enhance` génère une image détourée, tandis que `tag` analyse une image réduite. Les deux démarrent en parallèle. En cas d’échec GPT, la photo originale reste utilisable.
+`prepareUpload` réduit immédiatement la photo. L’action IA `enhance` reçoit jusqu’à 600 caractères de consignes facultatives et génère en qualité `high` une image détourée `1024x1536`. Le prompt impose un vêtement complet, droit et strictement de face, reconstruit les parties déjà coupées dans la source et préserve motifs, couleurs, coutures, boutons, poches, col et proportions. `tag` analyse ensuite une image réduite. L’écran montre explicitement la génération en cours puis uniquement le résultat GPT; la photo originale reste en mémoire pour une nouvelle tentative mais ne peut pas être enregistrée comme image finale.
+
+Après `enhance`, `hasSafeTransparentMargins` contrôle les quatre bords. Si le vêtement touche le cadre, une seconde génération demande automatiquement de dézoomer et de reconstruire les extrémités manquantes. En cas d’échec, l’utilisateur peut changer de photo ou relancer GPT.
 
 Avant Firestore, `finalizeImages` produit l’image principale et le thumbnail. Le service bloque une image au-dessus de 900 000 caractères et un thumbnail au-dessus de 250 000 caractères.
 
@@ -308,7 +310,7 @@ Mode IA : l’utilisateur ajoute de 2 à 4 pièces dans des cases successives. A
 
 Après chaque génération, `hasSafeTransparentMargins` analyse le canal alpha dans le navigateur. Si la silhouette touche un bord, Hwayj effectue automatiquement une seconde génération avec une instruction de recadrage renforcée. Le résultat haute définition est enregistré dans `outfitImages` et toujours affiché avec `object-contain` dans un cadre portrait. Cette seconde tentative consomme un appel image supplémentaire uniquement quand le contrôle détecte un cadrage insuffisant.
 
-Pour les looks de 2 à 4 pièces, le poids disponible est partagé entre les images avant l’envoi afin qu’une composition de 4 références reste sous la limite JSON de l’API. Les erreurs IA sont traduites en causes lisibles et restent affichées sous le générateur : images trop lourdes ou invalides, limite quotidienne, crédits/quota, modèle ou clé mal configurés, refus de contenu, délai dépassé, réseau et panne temporaire OpenAI. Le code technique inconnu reste visible sans exposer le message brut du fournisseur.
+Pour les looks de 2 à 4 pièces, le poids disponible est partagé entre les images avant l’envoi afin qu’une composition de 4 références reste sous la limite JSON de l’API. Les erreurs IA sont traduites en causes lisibles et restent affichées sous le générateur : images trop lourdes ou invalides, crédits/quota, modèle ou clé mal configurés, refus de contenu, délai dépassé, réseau et panne temporaire OpenAI. Le code technique inconnu reste visible sans exposer le message brut du fournisseur.
 
 Les compositions manuelles chargent les images principales avec `ClothingImage` au lieu d’agrandir les miniatures. Les nouveaux vêtements utilisent une image principale jusqu’à 900 px et une miniature de 320 px. Les anciens looks IA qui ne possèdent que leur ancienne miniature de 150 px doivent être régénérés une fois pour obtenir une vraie version haute définition.
 
@@ -335,6 +337,8 @@ Le profil actif est sélectionné entre les deux membres. Les deux partenaires p
 - `users/{uid}/medicationChecks` : prise quotidienne cochée par date.
 - `users/{uid}/healthAppointments` : médecin, spécialité, lieu, date, heure, récurrence et rappel.
 - `users/{uid}/mealAnalyses` : repas, description, glucides confirmés/plage/confiance, thumbnail et date.
+
+Dans le formulaire repas S7a, la photo et l’estimation GPT sont facultatives. Les champs du nom, des glucides confirmés et de la date restent montés même lorsque la valeur des glucides est temporairement vide, afin de permettre de l’effacer puis de la ressaisir sans fermer la feuille ni perdre la photo. Sans nom, l’enregistrement utilise la description puis « Repas ».
 - `users/{uid}/healthWater/{YYYY-MM-DD}` : quantité d’eau quotidienne en millilitres, plafonnée à l’objectif de 2 000 ml.
 
 Les règles Firestore permettent lecture et écriture au propriétaire ou à son partenaire du même foyer. Les valeurs critiques ont des bornes simples : glycémie positive sous 700, insuline de 0 à 200 unités, glucides de 0 à 1000.
@@ -431,6 +435,8 @@ La configuration Web Firebase est publique par conception; la sécurité repose 
 ### Appel client
 
 Les services Hwayj et S7a récupèrent `auth.currentUser.getIdToken()` puis envoient le Bearer token. `src/services/api.js` utilise `/api/ai` sur le Web et l’origine Vercel configurée dans `.env.android.local` dans l’APK.
+
+Le Hub affiche `APP_VERSION` depuis `src/version.js`. Cette valeur est volontairement manuelle et doit être modifiée avant chaque push de production.
 
 ## 13. Règles Firestore et confidentialité
 

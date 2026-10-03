@@ -46,6 +46,8 @@ Si PowerShell refuse `npm` parce que l’exécution des scripts est désactivée
 
 Le navigateur peut appeler `/api/ai` directement. Une application installée ne connaît pas ce chemin : elle doit appeler l’URL publique Vercel.
 
+Le Hub affiche en bas la version manuelle définie dans `src/version.js`. Modifier `APP_VERSION` avant chaque push de production, puis lancer le build Web ou `npm run android:update`.
+
 1. Créez à la racine un fichier nommé `.env.android.local`.
 2. Mettez-y l’URL du déploiement Vercel, sans `/` final :
 

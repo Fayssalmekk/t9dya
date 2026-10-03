@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext'
 import { appRegistry } from '../registry'
 import AppCard from './AppCard'
 import HealthHubAlerts from './HealthHubAlerts'
+import { APP_VERSION } from '../../version'
 
 export default function HubPage() {
   const { household, profile, signOut } = useAuth()
@@ -31,6 +32,7 @@ export default function HubPage() {
 
         <div className="mt-9"><p className="text-xs font-black uppercase tracking-[0.18em] text-muted">Vos applications</p><h2 className="mt-2 text-2xl font-black">Que voulez-vous ouvrir ?</h2></div>
         <section className="mt-5 grid gap-4 sm:grid-cols-2">{appRegistry.map((app) => <AppCard key={app.id} app={app} />)}</section>
+        <footer className="pb-[max(1rem,env(safe-area-inset-bottom))] pt-8 text-center"><span className="inline-flex rounded-full border border-slate-200 bg-surface px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-muted shadow-sm dark:border-slate-800">Version {APP_VERSION}</span></footer>
       </div>
     </main>
   )

@@ -96,14 +96,28 @@ function responseText(result) {
   return result.output?.flatMap((entry) => entry.content || []).find((entry) => entry.type === 'output_text')?.text || ''
 }
 
-async function enhance(image) {
+async function enhance(image, instructions = '') {
   const parsed = dataUrlParts(image)
   if (!parsed) throw new Error('INVALID_IMAGE')
+  const userDirections = String(instructions || '').trim().slice(0, 600)
   const form = new FormData()
   form.append('model', process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2.5-flare')
   form.append('image', new Blob([parsed.bytes], { type: parsed.mime }), `garment.${parsed.mime.split('/')[1]}`)
-  form.append('prompt', 'Create a clean, high-detail, front-facing e-commerce catalog image of this exact garment on a transparent portrait canvas, presented on an invisible ghost mannequin. The complete garment must be visible from its highest point to its lowest point, with generous transparent margin on all four sides. Never crop, zoom in, cut off or hide the collar, neckline, hood, shoulders, sleeves, cuffs, waist, hem, trouser legs, dress length or any other edge. If the source photo cuts off part of the garment, conservatively reconstruct the missing continuation so the whole item is shown, using the visible cut, symmetry, fabric and pattern as evidence. Preserve the exact colors, motif geometry and scale, print placement, logos, seams, buttons, pockets, collar shape, sleeve shape, texture, material and proportions. Do not simplify, redesign or replace distinctive details. Show one garment only, straight and centered, with no person, face, hands, hanger, props or extra clothing.')
-  form.append('quality', 'medium')
+  form.append('prompt', `Create a clean, high-detail e-commerce catalog image of this exact garment.
+
+NON-NEGOTIABLE RULES:
+- Show one garment only in a strictly straight-on front view, perfectly centered and upright, as if displayed in a real clothing boutique.
+- The complete garment must be visible from its absolute highest point to its absolute lowest point on a transparent 1024x1536 portrait canvas.
+- Leave generous transparent margin on all four sides. Never crop, zoom in, fill the frame, cut off, split, fold away or hide any edge.
+- Keep the entire collar or neckline, hood, shoulders, both sleeves and cuffs, waist, pockets, hem, trouser legs, dress or skirt length and every extremity visible when present.
+- If the source photo is already cropped, conservatively reconstruct every missing continuation. Use the visible cut, symmetry, fabric, seams and repeating pattern as evidence so the generated garment is complete.
+- Preserve the exact product identity: dominant and secondary colors, motif geometry, motif size and spacing, print placement, logos, embroidery, stitching, seams, buttons, zippers, pockets, collar shape, sleeve shape, cut, texture, material and proportions.
+- Do not simplify, blur, redesign, replace, remove or invent distinctive details.
+- Use an invisible ghost mannequin only. Show no person, skin, face, hands, hanger, props, shop fixture or extra clothing.
+
+OPTIONAL USER DIRECTIONS (follow only when compatible with every rule above):
+${userDirections || 'No additional directions.'}`)
+  form.append('quality', 'high')
   form.append('size', '1024x1536')
   form.append('background', 'transparent')
   form.append('output_format', 'webp')
@@ -214,7 +228,7 @@ export default async function handler(request, response) {
   const action = request.body?.action
   if (!['enhance', 'combine', 'compose', 'tag', 'suggest', 'meal'].includes(action)) return json(response, 400, { error: 'INVALID_ACTION' })
   try {
-    const result = action === 'enhance' ? await enhance(request.body.image) : action === 'combine' ? await combine(request.body.images, request.body.names) : action === 'compose' ? await compose(request.body.images, request.body.names, request.body.gender, request.body.instructions, request.body.garments) : action === 'tag' ? await tag(request.body.image) : action === 'meal' ? await analyseMeal(request.body.image, request.body.description) : await suggest(request.body)
+    const result = action === 'enhance' ? await enhance(request.body.image, request.body.instructions) : action === 'combine' ? await combine(request.body.images, request.body.names) : action === 'compose' ? await compose(request.body.images, request.body.names, request.body.gender, request.body.instructions, request.body.garments) : action === 'tag' ? await tag(request.body.image) : action === 'meal' ? await analyseMeal(request.body.image, request.body.description) : await suggest(request.body)
     return json(response, 200, result)
   } catch (error) {
     const clientErrors = ['INVALID_IMAGE', 'INVALID_IMAGES', 'INVALID_WARDROBE']
