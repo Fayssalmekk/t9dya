@@ -6,10 +6,10 @@ import { usePlatform } from '../../../context/PlatformContext'
 import HwayjHeader from '../components/HwayjHeader'
 import ClothingImage from '../components/ClothingImage'
 import { useWardrobe } from '../context/WardrobeContext'
-import { callHwayjAI } from '../services/ai'
+import { callHwayjAI, getHwayjAIErrorMessage } from '../services/ai'
 import { getClothingImage, getOutfitImage, saveOutfit } from '../services/wardrobe'
 import { wardrobeBySlot } from '../utils/clothingTypes'
-import { createVisionImage, finalizeOutfitImage } from '../utils/images'
+import { createVisionImage, finalizeOutfitImage, hasSafeTransparentMargins } from '../utils/images'
 import { getWardrobeGender } from '../utils/profileGender'
 
 const MotionButton = motion.button
@@ -39,8 +39,10 @@ function OutfitComposer({ outfitId, outfit, clothes }) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [saveOpen, setSaveOpen] = useState(false)
   const [details, setDetails] = useState(() => ({ name: outfit?.name || '', occasion: outfit?.occasion || 'Casual', season: outfit?.season || 'Toutes saisons' }))
+  const [generationNotes, setGenerationNotes] = useState(() => outfit?.generationNotes || '')
   const [directions, setDirections] = useState({})
   const [generating, setGenerating] = useState(false)
+  const [generationError, setGenerationError] = useState('')
   const [saving, setSaving] = useState(false)
   const swipeStarts = useRef({})
 
@@ -75,6 +77,7 @@ function OutfitComposer({ outfitId, outfit, clothes }) {
   const resetAiPreview = () => {
     setAiPreview('')
     setAiPreviewThumb('')
+    setGenerationError('')
   }
   const addAiItem = (id) => {
     setAiItems((current) => current.includes(id) || current.length >= 4 ? current : [...current, id])
@@ -97,16 +100,33 @@ function OutfitComposer({ outfitId, outfit, clothes }) {
   const generateAiLook = async () => {
     if (aiItems.length < 2) return
     setGenerating(true)
+    setGenerationError('')
     try {
       const selected = aiItems.map((id) => clothes.find((item) => item.id === id)).filter(Boolean)
-      const images = await Promise.all(selected.map(async (item) => createVisionImage(await getClothingImage(ownerId, item.id) || item.thumb)))
-      const result = await callHwayjAI('compose', { images, names: selected.map((item) => item.name), gender: getWardrobeGender(ownerProfile) })
+      const maxCharsPerImage = Math.floor(1150000 / selected.length)
+      const images = await Promise.all(selected.map(async (item) => createVisionImage(await getClothingImage(ownerId, item.id) || item.thumb, { maxChars: maxCharsPerImage })))
+      const payload = {
+        images,
+        names: selected.map((item) => item.name),
+        garments: selected.map(({ name, category, subcategory, colors, pattern, material }) => ({ name, category, subcategory, colors, pattern, material })),
+        gender: getWardrobeGender(ownerProfile),
+        instructions: generationNotes.trim()
+      }
+      let result = await callHwayjAI('compose', payload)
+      if (!await hasSafeTransparentMargins(result.image)) {
+        result = await callHwayjAI('compose', {
+          ...payload,
+          instructions: `Correction obligatoire : la tentative précédente touchait les bords. Dézoome fortement et laisse une marge transparente nette autour de la tenue complète.\n${payload.instructions}`.trim()
+        })
+      }
       const prepared = await finalizeOutfitImage(result.image)
       setAiPreview(prepared.image)
       setAiPreviewThumb(prepared.thumb)
       notify('Look complexe généré')
     } catch (error) {
-      notify(error.message === 'credit_balance_exhausted' ? 'Crédits OpenAI insuffisants' : 'Génération GPT indisponible')
+      const message = getHwayjAIErrorMessage(error)
+      setGenerationError(message)
+      notify(message)
     } finally {
       setGenerating(false)
     }
@@ -130,7 +150,7 @@ function OutfitComposer({ outfitId, outfit, clothes }) {
         season: details.season,
         mode: type,
         items,
-        ...(type === 'ai' ? { previewImage: aiPreview, previewThumb: aiPreviewThumb || aiPreview } : {}),
+        ...(type === 'ai' ? { previewImage: aiPreview, previewThumb: aiPreviewThumb || aiPreview, generationNotes: generationNotes.trim() } : {}),
       }, outfitId)
       notify('Tenue enregistrée')
       navigate('/hwayj/outfits', { replace: true })
@@ -148,7 +168,9 @@ function OutfitComposer({ outfitId, outfit, clothes }) {
       <HwayjHeader title="Composer" subtitle={type === 'manual' ? 'Un haut + un bas, simplement' : 'Les looks complexes avec GPT'} backTo="/hwayj/outfits" />
       {!isOwnWardrobe && <div className="mb-4 rounded-2xl bg-violet-50 p-4 text-sm font-bold text-violet-800 dark:bg-violet-950 dark:text-violet-200">Vous explorez le dressing de {ownerProfile?.displayName || 'votre partenaire'}. Revenez sur votre profil pour créer et enregistrer une tenue.</div>}
       <div className="mb-4 grid grid-cols-2 rounded-2xl bg-surface p-1 shadow-sm"><button type="button" onClick={() => setType('manual')} className={`min-h-12 rounded-xl text-sm font-black ${type === 'manual' ? 'bg-violet-600 text-white' : 'text-muted'}`}>Manuel · Haut + bas</button><button type="button" onClick={() => setType('ai')} className={`flex min-h-12 items-center justify-center gap-2 rounded-xl text-sm font-black ${type === 'ai' ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white' : 'text-muted'}`}><Sparkles size={17} />Look IA</button></div>
+      {type === 'ai' && <section className="mb-4 rounded-[1.5rem] border border-violet-200 bg-surface p-4 shadow-sm dark:border-violet-900"><label htmlFor="generation-notes" className="flex items-center gap-2 text-sm font-black"><Sparkles size={17} className="text-violet-600" />Consignes pour GPT <span className="font-semibold text-muted">· facultatif</span></label><p className="mt-1 text-xs leading-5 text-muted">Ex. « laisse la veste ouverte », « rentre le haut dans le pantalon » ou « garde exactement les rayures fines ».</p><textarea id="generation-notes" value={generationNotes} maxLength={600} rows="3" onChange={(event) => { setGenerationNotes(event.target.value); if (aiPreview) resetAiPreview() }} placeholder="Ajoutez seulement les détails importants pour ce look…" className="field-input mt-3 min-h-24 resize-y py-3" /><p className="mt-1 text-right text-[10px] font-bold text-muted">{generationNotes.length}/600</p></section>}
       {type === 'manual' ? <ManualLook ownerId={ownerId} manual={manual} selectedItem={selectedItem} cycle={cycle} swipeArea={swipeArea} directions={directions} clear={clear} /> : <AiLook ownerId={ownerId} clothes={clothes} itemIds={aiItems} preview={aiPreview} pickerOpen={pickerOpen} setPickerOpen={setPickerOpen} addItem={addAiItem} removeItem={removeAiItem} clear={clear} generate={generateAiLook} generating={generating} readOnly={!isOwnWardrobe} />}
+      {type === 'ai' && generationError && <div role="alert" className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold leading-6 text-red-800 dark:border-red-900 dark:bg-red-950/60 dark:text-red-200"><span className="block text-[10px] font-black uppercase tracking-widest text-red-500">Pourquoi la génération a échoué</span>{generationError}</div>}
       <button type="button" onClick={openSave} disabled={!canSave || !isOwnWardrobe} className="mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 font-black text-white disabled:opacity-40"><Save size={20} />{isOwnWardrobe ? (type === 'manual' ? 'Enregistrer cette tenue' : 'Enregistrer ce look IA') : 'Lecture seule'}</button>
       {saveOpen && <SaveOutfitModal ownerId={ownerId} type={type} top={selectedItem('top')} bottom={selectedItem('bottom')} aiPreview={aiPreview} details={details} setDetails={setDetails} saving={saving} onClose={() => setSaveOpen(false)} onSave={save} />}
     </main>

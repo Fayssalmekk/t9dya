@@ -1,9 +1,6 @@
-const dailyUsage = new Map()
 const MAX_IMAGE_BYTES = 1000000
 const MAX_BODY_BYTES = 1600000
 const MAX_AUTH_TOKEN_CHARS = 8192
-const DAILY_LIMIT = 30
-const ENHANCE_LIMIT = 8
 
 const json = (response, status, body) => response.status(status).json(body)
 
@@ -69,23 +66,28 @@ async function authenticate(request) {
   return allowed.includes(uid) ? { uid } : { error: 403 }
 }
 
-function consume(uid, action) {
-  // Best-effort only: serverless instances do not share memory and may restart.
-  const day = new Date().toISOString().slice(0, 10)
-  const key = `${uid}:${day}`
-  const current = dailyUsage.get(key) || { total: 0, enhance: 0 }
-  if (current.total >= DAILY_LIMIT || (['enhance', 'combine', 'compose'].includes(action) && current.enhance >= ENHANCE_LIMIT)) return false
-  current.total += 1
-  if (['enhance', 'combine', 'compose'].includes(action)) current.enhance += 1
-  dailyUsage.set(key, current)
-  return true
-}
-
 async function openAI(path, body, multipart = false) {
   if (!process.env.OPENAI_API_KEY) throw new Error('AI_NOT_CONFIGURED')
-  const response = await fetch(`https://api.openai.com/v1/${path}`, { method: 'POST', headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, ...(multipart ? {} : { 'Content-Type': 'application/json' }) }, body: multipart ? body : JSON.stringify(body), signal: AbortSignal.timeout(55000) })
+  let response
+  try {
+    response = await fetch(`https://api.openai.com/v1/${path}`, { method: 'POST', headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, ...(multipart ? {} : { 'Content-Type': 'application/json' }) }, body: multipart ? body : JSON.stringify(body), signal: AbortSignal.timeout(55000) })
+  } catch (error) {
+    if (error?.name === 'TimeoutError' || error?.name === 'AbortError') throw new Error('AI_TIMEOUT')
+    throw new Error('OPENAI_UNREACHABLE')
+  }
   const result = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(result.error?.code || 'OPENAI_ERROR')
+  if (!response.ok) {
+    const upstreamCode = String(result.error?.code || result.error?.type || '').toLowerCase()
+    if (['credit_balance_exhausted', 'insufficient_quota', 'rate_limit_exceeded', 'content_policy_violation'].includes(upstreamCode)) throw new Error(upstreamCode)
+    if (upstreamCode.includes('model') && (upstreamCode.includes('not_found') || upstreamCode.includes('access'))) throw new Error('MODEL_NOT_FOUND')
+    if (upstreamCode.includes('safety') || upstreamCode.includes('moderation') || upstreamCode.includes('content_policy')) throw new Error('CONTENT_BLOCKED')
+    if (response.status === 401 || response.status === 403) throw new Error('OPENAI_AUTH_ERROR')
+    if (response.status === 413) throw new Error('BODY_TOO_LARGE')
+    if (response.status === 429) throw new Error('RATE_LIMIT_REACHED')
+    if (response.status >= 500) throw new Error('OPENAI_TEMPORARY_ERROR')
+    if (response.status === 400 || response.status === 422) throw new Error('OPENAI_INVALID_REQUEST')
+    throw new Error('OPENAI_ERROR')
+  }
   return result
 }
 
@@ -100,9 +102,9 @@ async function enhance(image) {
   const form = new FormData()
   form.append('model', process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2.5-flare')
   form.append('image', new Blob([parsed.bytes], { type: parsed.mime }), `garment.${parsed.mime.split('/')[1]}`)
-  form.append('prompt', 'Isolate this garment and render it as a clean, professional e-commerce product photo on a transparent background, as if worn by an invisible mannequin (ghost mannequin). Preserve exact color, pattern, texture, knit or fabric details and proportions. Do not add or change anything.')
+  form.append('prompt', 'Create a clean, high-detail, front-facing e-commerce catalog image of this exact garment on a transparent portrait canvas, presented on an invisible ghost mannequin. The complete garment must be visible from its highest point to its lowest point, with generous transparent margin on all four sides. Never crop, zoom in, cut off or hide the collar, neckline, hood, shoulders, sleeves, cuffs, waist, hem, trouser legs, dress length or any other edge. If the source photo cuts off part of the garment, conservatively reconstruct the missing continuation so the whole item is shown, using the visible cut, symmetry, fabric and pattern as evidence. Preserve the exact colors, motif geometry and scale, print placement, logos, seams, buttons, pockets, collar shape, sleeve shape, texture, material and proportions. Do not simplify, redesign or replace distinctive details. Show one garment only, straight and centered, with no person, face, hands, hanger, props or extra clothing.')
   form.append('quality', 'medium')
-  form.append('size', '1024x1024')
+  form.append('size', '1024x1536')
   form.append('background', 'transparent')
   form.append('output_format', 'webp')
   form.append('output_compression', '80')
@@ -119,7 +121,7 @@ async function combine(images, names = []) {
   const form = new FormData()
   form.append('model', process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2.5-flare')
   parsedImages.forEach((image, index) => form.append('image[]', new Blob([image.bytes], { type: image.mime }), `layer-${index + 1}.${image.mime.split('/')[1]}`))
-  form.append('prompt', `Create one clean ghost-mannequin product image showing these exact garments worn together as realistic layers. The first reference is the inner garment (${String(names[0] || 'top').slice(0, 80)}), the second is the outer garment (${String(names[1] || 'jacket').slice(0, 80)}). Keep every color, pattern, texture, logo and cut faithful to the references. Show only the combined upper-body clothing, centered, front-facing, on a transparent background. Do not add a person, body, accessories, trousers or new design details.`)
+  form.append('prompt', `Create one clean, high-detail, strictly front-facing ghost-mannequin catalog image showing these exact garments as realistic layers. The first reference is the inner garment (${String(names[0] || 'top').slice(0, 80)}), the second is the outer garment (${String(names[1] || 'jacket').slice(0, 80)}). Show every selected garment completely with generous transparent margin. Never crop any collar, hood, shoulder, sleeve, cuff, waist or hem. If a source edge is missing, conservatively continue its visible cut and pattern to reconstruct the complete garment. Preserve every exact color, motif, texture, logo, seam, button, pocket, collar and proportion. Do not simplify or redesign details. Do not add a person, face, body, accessories, trousers or unselected clothing.`)
   form.append('quality', 'medium')
   form.append('size', '1024x1024')
   form.append('background', 'transparent')
@@ -131,7 +133,7 @@ async function combine(images, names = []) {
   return { image: `data:image/webp;base64,${base64}` }
 }
 
-async function compose(images, names = [], gender = 'neutral') {
+async function compose(images, names = [], gender = 'neutral', instructions = '', garments = []) {
   if (!Array.isArray(images) || images.length < 2 || images.length > 4) throw new Error('INVALID_IMAGES')
   const parsedImages = images.map(dataUrlParts)
   if (parsedImages.some((image) => !image)) throw new Error('INVALID_IMAGE')
@@ -139,7 +141,26 @@ async function compose(images, names = [], gender = 'neutral') {
   form.append('model', process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2.5-flare')
   parsedImages.forEach((image, index) => form.append('image[]', new Blob([image.bytes], { type: image.mime }), `outfit-${index + 1}.${image.mime.split('/')[1]}`))
   const audience = gender === 'female' ? 'women\'s wardrobe; keep the complete outfit clearly feminine' : gender === 'male' ? 'men\'s wardrobe; keep the complete outfit clearly masculine' : 'gender-neutral wardrobe; infer the intended fit only from the supplied garments'
-  form.append('prompt', `Create one clean, high-detail, realistic ghost-mannequin fashion product image showing all these exact garments worn together as one coherent outfit: ${names.map((name) => String(name).slice(0, 60)).join(', ')}. Wardrobe profile: ${audience}. Preserve the intended gender, fit and silhouette of the supplied clothes. Never convert masculine garments into feminine cuts or feminine garments into masculine cuts. Preserve the exact color, fabric, pattern, cut, logos and details of every reference. Arrange upper layers, bottoms, dresses, shoes and accessories in their anatomically correct positions. Show the complete outfit centered and front-facing on a transparent portrait canvas. The full outer contour must remain visible: include the entire collar, shoulders, sleeves, hems, trouser legs, dress length, shoes and accessories. Leave generous transparent space on every side. Never crop, cut off, zoom into, or push any garment outside the canvas. Do not add a person, face, body, or any garment not present in the references.`)
+  const garmentDetails = Array.isArray(garments) ? garments.slice(0, 4).map((garment, index) => `Reference ${index + 1}: name=${String(garment?.name || names[index] || '').slice(0, 80)}; category=${String(garment?.category || '').slice(0, 50)}; precise type=${String(garment?.subcategory || '').slice(0, 60)}; colors=${Array.isArray(garment?.colors) ? garment.colors.slice(0, 5).map((color) => String(color).slice(0, 30)).join(', ') : ''}; pattern=${String(garment?.pattern || '').slice(0, 60)}; material=${String(garment?.material || '').slice(0, 60)}.`).join('\n') : ''
+  const userDirections = String(instructions || '').trim().slice(0, 600)
+  form.append('prompt', `Create one clean, high-detail, photorealistic boutique catalog image showing all these exact garments worn together as one coherent outfit: ${names.map((name) => String(name).slice(0, 60)).join(', ')}.
+
+NON-NEGOTIABLE COMPOSITION RULES:
+- Use a strictly straight-on front view at eye level, never a side, back, three-quarter or perspective view.
+- Show the complete outfit from the absolute highest point to the absolute lowest point on a transparent 1024x1536 portrait canvas.
+- Keep generous transparent margin above, below, left and right. Never crop, zoom in, fill the frame, cut off, split, fold away or hide any garment edge.
+- The full collar or neckline, hood, shoulders, both sleeves and cuffs, waist, hems, full trouser legs, full dress or skirt length, shoes and accessories must remain visible when present.
+- If an original reference is cropped, conservatively reconstruct its missing continuation into a plausible complete garment. Extend the visible cut, symmetry, fabric, seams and repeating motif; do not leave the generated garment cropped merely because the source is cropped.
+- Treat each supplied image and its metadata as the exact product identity. Reproduce the same dominant and secondary colors, motif geometry, motif scale and spacing, print placement, logos, embroidery, texture, fabric, seams, buttons, pockets, collar shape, sleeve shape, cut and proportions. Do not simplify, blur, invent, remove, replace or redesign distinctive details.
+- Arrange upper layers, bottoms, dresses, shoes and accessories in anatomically correct positions. Preserve the intended gender, fit and silhouette. Never turn masculine cuts into feminine cuts or feminine cuts into masculine cuts.
+- Use an invisible ghost mannequin only. Do not show a person, face, skin, hands, hanger, shop fixture or any garment that was not selected.
+
+Wardrobe profile: ${audience}.
+GARMENT METADATA:
+${garmentDetails || 'Use the visual references exactly as supplied.'}
+
+OPTIONAL USER DIRECTIONS (follow only when compatible with all non-negotiable rules above):
+${userDirections || 'No additional directions.'}`)
   form.append('quality', 'high')
   form.append('size', '1024x1536')
   form.append('background', 'transparent')
@@ -192,9 +213,8 @@ export default async function handler(request, response) {
   if (identity.error) return json(response, identity.error, { error: identity.error === 403 ? 'NOT_ALLOWED' : identity.error === 503 ? 'AUTH_CONFIGURATION_UNAVAILABLE' : 'UNAUTHORIZED' })
   const action = request.body?.action
   if (!['enhance', 'combine', 'compose', 'tag', 'suggest', 'meal'].includes(action)) return json(response, 400, { error: 'INVALID_ACTION' })
-  if (!consume(identity.uid, action)) return json(response, 429, { error: 'DAILY_LIMIT_REACHED' })
   try {
-    const result = action === 'enhance' ? await enhance(request.body.image) : action === 'combine' ? await combine(request.body.images, request.body.names) : action === 'compose' ? await compose(request.body.images, request.body.names, request.body.gender) : action === 'tag' ? await tag(request.body.image) : action === 'meal' ? await analyseMeal(request.body.image, request.body.description) : await suggest(request.body)
+    const result = action === 'enhance' ? await enhance(request.body.image) : action === 'combine' ? await combine(request.body.images, request.body.names) : action === 'compose' ? await compose(request.body.images, request.body.names, request.body.gender, request.body.instructions, request.body.garments) : action === 'tag' ? await tag(request.body.image) : action === 'meal' ? await analyseMeal(request.body.image, request.body.description) : await suggest(request.body)
     return json(response, 200, result)
   } catch (error) {
     const clientErrors = ['INVALID_IMAGE', 'INVALID_IMAGES', 'INVALID_WARDROBE']

@@ -52,7 +52,47 @@ export async function finalizeOutfitImage(dataUrl) {
   return { image: main, thumb: canvasDataUrl(image, 420, 'image/webp', 0.88) }
 }
 
-export async function createVisionImage(dataUrl) {
+export async function hasSafeTransparentMargins(dataUrl, minimumRatio = 0.02) {
   const image = await loadImage(dataUrl)
-  return canvasDataUrl(image, 768, 'image/jpeg', 0.86)
+  const canvas = document.createElement('canvas')
+  canvas.width = image.naturalWidth
+  canvas.height = image.naturalHeight
+  const context = canvas.getContext('2d', { willReadFrequently: true })
+  context.drawImage(image, 0, 0)
+  const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data
+  let left = canvas.width
+  let right = -1
+  let top = canvas.height
+  let bottom = -1
+  for (let y = 0; y < canvas.height; y += 1) {
+    for (let x = 0; x < canvas.width; x += 1) {
+      if (pixels[(y * canvas.width + x) * 4 + 3] <= 40) continue
+      left = Math.min(left, x)
+      right = Math.max(right, x)
+      top = Math.min(top, y)
+      bottom = Math.max(bottom, y)
+    }
+  }
+  if (right < 0) return false
+  return left >= canvas.width * minimumRatio
+    && top >= canvas.height * minimumRatio
+    && right <= canvas.width * (1 - minimumRatio)
+    && bottom <= canvas.height * (1 - minimumRatio)
+}
+
+export async function createVisionImage(dataUrl, { maxSize = 768, maxChars = 900000 } = {}) {
+  const image = await loadImage(dataUrl)
+  let size = maxSize
+  let quality = 0.86
+  let result = canvasDataUrl(image, size, 'image/jpeg', quality)
+  while (result.length > maxChars && quality > 0.5) {
+    quality -= 0.08
+    result = canvasDataUrl(image, size, 'image/jpeg', quality)
+  }
+  while (result.length > maxChars && size > 384) {
+    size = Math.max(384, Math.round(size * 0.82))
+    result = canvasDataUrl(image, size, 'image/jpeg', 0.7)
+  }
+  if (result.length > maxChars) throw new Error('IMAGE_TOO_LARGE')
+  return result
 }

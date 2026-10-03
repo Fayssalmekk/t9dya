@@ -6,7 +6,7 @@ import { usePlatform } from '../../../context/PlatformContext'
 import ColorPicker from '../components/ColorPicker'
 import HwayjHeader from '../components/HwayjHeader'
 import { useWardrobe } from '../context/WardrobeContext'
-import { callHwayjAI } from '../services/ai'
+import { callHwayjAI, getHwayjAIErrorMessage } from '../services/ai'
 import { createClothingItem } from '../services/wardrobe'
 import { SUBCATEGORY_OPTIONS } from '../utils/clothingTypes'
 import { createVisionImage, finalizeImages, prepareUpload } from '../utils/images'
@@ -46,9 +46,10 @@ export default function AddItemPage() {
     } else {
       setProcessed(source)
       setSelectedImage('original')
-      setError('GPT n’a pas pu préparer l’image. Vous pouvez garder la photo originale ou réessayer.')
+      setError(`GPT n’a pas pu préparer l’image : ${getHwayjAIErrorMessage(imageResult.reason)} Vous pouvez garder la photo originale.`)
     }
     if (tagResult?.status === 'fulfilled') applyTags(tagResult.value)
+    else if (tagResult?.status === 'rejected' && imageResult.status === 'fulfilled') setError(`L’image est prête, mais GPT n’a pas pu remplir les informations : ${getHwayjAIErrorMessage(tagResult.reason)} Vous pouvez les saisir manuellement.`)
   }
 
   const choosePhoto = async (event) => {

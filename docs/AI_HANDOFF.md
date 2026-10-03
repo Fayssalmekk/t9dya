@@ -304,7 +304,11 @@ Le dressing utilise uniquement les thumbnails afin d’éviter de charger toutes
 
 Mode manuel : un haut et un bas, avec swipe horizontal et flèches. Les vestes/manteaux sont inclus dans les hauts. La hauteur visuelle reste stable pendant les transitions et un petit espace est conservé entre les pièces.
 
-Mode IA : l’utilisateur ajoute de 2 à 4 pièces dans des cases successives. L’action `compose` charge des références jusqu’à 768 px, transmet les noms et le genre, puis génère un outfit complet détouré en `1024x1536`, qualité `high`. Le prompt impose une marge transparente et interdit de couper manches, ourlets, jambes ou chaussures. Le résultat haute définition est enregistré dans `outfitImages` et toujours affiché avec `object-contain` dans un cadre portrait.
+Mode IA : l’utilisateur ajoute de 2 à 4 pièces dans des cases successives. Avant la génération, il peut écrire jusqu’à 600 caractères de consignes facultatives; elles sont enregistrées dans `generationNotes`. L’action `compose` charge des références jusqu’à 768 px et transmet le nom, type précis, couleurs, motif, matière, genre et consignes. Le prompt impose une vue strictement de face, une marge transparente, la reproduction fidèle des détails et la reconstruction prudente des parties déjà coupées dans la photo source. Il interdit de couper col, manches, ourlets, jambes ou chaussures. Le résultat est généré en `1024x1536`, qualité `high`.
+
+Après chaque génération, `hasSafeTransparentMargins` analyse le canal alpha dans le navigateur. Si la silhouette touche un bord, Hwayj effectue automatiquement une seconde génération avec une instruction de recadrage renforcée. Le résultat haute définition est enregistré dans `outfitImages` et toujours affiché avec `object-contain` dans un cadre portrait. Cette seconde tentative consomme un appel image supplémentaire uniquement quand le contrôle détecte un cadrage insuffisant.
+
+Pour les looks de 2 à 4 pièces, le poids disponible est partagé entre les images avant l’envoi afin qu’une composition de 4 références reste sous la limite JSON de l’API. Les erreurs IA sont traduites en causes lisibles et restent affichées sous le générateur : images trop lourdes ou invalides, limite quotidienne, crédits/quota, modèle ou clé mal configurés, refus de contenu, délai dépassé, réseau et panne temporaire OpenAI. Le code technique inconnu reste visible sans exposer le message brut du fournisseur.
 
 Les compositions manuelles chargent les images principales avec `ClothingImage` au lieu d’agrandir les miniatures. Les nouveaux vêtements utilisent une image principale jusqu’à 900 px et une miniature de 320 px. Les anciens looks IA qui ne possèdent que leur ancienne miniature de 150 px doivent être régénérés une fois pour obtenir une vraie version haute définition.
 
@@ -393,12 +397,11 @@ Actions autorisées :
 8. Refus des comptes désactivés et des sessions antérieures à `validSince`.
 9. UID obligatoirement présent dans `ALLOWED_UIDS`.
 10. Action dans la liste blanche.
-11. Limite journalière best-effort par UID avant tout appel OpenAI.
-12. Validation des images et entrées propres à l’action.
+11. Validation des images et entrées propres à l’action.
 
 Le préflight `OPTIONS` reste volontairement accessible sans authentification : c’est nécessaire au navigateur et ne déclenche aucun appel OpenAI. Toutes les actions réelles exigent le token Firebase.
 
-Limites actuelles : 30 actions IA par UID et par jour, dont 8 actions coûteuses `enhance`, `combine` ou `compose`. Le compteur est en mémoire serverless : il peut repartir à zéro lors d’un redémarrage et n’est pas une protection de facturation absolue. La limite de dépense OpenAI reste obligatoire.
+Il n’existe aucun quota interne quotidien ou par UID sur les actions IA. Les appels restent soumis uniquement aux limites techniques de taille, aux protections d’authentification et aux éventuelles limites du compte OpenAI.
 
 Le serveur ne journalise jamais les images, tokens ou clés. La clé OpenAI n’est jamais importée dans React.
 
