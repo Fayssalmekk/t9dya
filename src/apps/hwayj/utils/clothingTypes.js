@@ -25,13 +25,15 @@ export function wardrobeBySlot(clothes) {
   }, { outer: [], top: [], bottom: [], onepiece: [], shoes: [], accessory: [] })
 }
 
+export const CLOTHING_CATEGORIES = ['Hauts', 'Bas', 'Robes', 'Vestes', 'Chaussures', 'Accessoires', 'Sport', 'Autre']
+
 export const SUBCATEGORY_OPTIONS = {
-  Hauts: ['T-shirt', 'Chemise', 'Pull', 'Sweat', 'Top', 'Polo', 'Débardeur', 'Tunique'],
+  Hauts: ['T-shirt', 'Chemise', 'Blouse', 'Pull', 'Sweat', 'Top', 'Polo', 'Débardeur', 'Tunique', 'Body'],
   Bas: ['Pantalon', 'Jean', 'Jupe', 'Short', 'Legging', 'Jogging'],
-  Robes: ['Robe', 'Combinaison', 'Salopette', 'Caftan', 'Djellaba'],
-  Vestes: ['Veste', 'Blazer', 'Gilet', 'Cardigan', 'Manteau', 'Trench', 'Parka', 'Doudoune'],
-  Chaussures: ['Baskets', 'Bottes', 'Sandales', 'Mocassins', 'Talons'],
-  Accessoires: ['Sac', 'Ceinture', 'Écharpe', 'Chapeau', 'Bijou'],
-  Sport: ['Haut de sport', 'Bas de sport', 'Veste de sport', 'Chaussures de sport'],
-  Autre: [],
+  Robes: ['Robe', 'Combinaison', 'Salopette', 'Caftan', 'Takchita', 'Djellaba'],
+  Vestes: ['Veste', 'Blazer', 'Gilet', 'Cardigan', 'Manteau', 'Trench', 'Parka', 'Doudoune', 'Cape', 'Kimono'],
+  Chaussures: ['Baskets', 'Bottes', 'Bottines', 'Sandales', 'Mocassins', 'Talons', 'Escarpins', 'Babouches'],
+  Accessoires: ['Sac', 'Ceinture', 'Écharpe', 'Foulard', 'Chapeau', 'Casquette', 'Bijou', 'Lunettes'],
+  Sport: ['Haut de sport', 'Bas de sport', 'Veste de sport', 'Chaussures de sport', 'Ensemble de sport'],
+  Autre: ['Autre'],
 }

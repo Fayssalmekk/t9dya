@@ -294,6 +294,8 @@ Les règles autorisent le partenaire à lire vêtements/images/outfits, mais seu
 
 Après `enhance`, `hasSafeTransparentMargins` contrôle les quatre bords. Si le vêtement touche le cadre, une seconde génération demande automatiquement de dézoomer et de reconstruire les extrémités manquantes. En cas d’échec, l’utilisateur peut changer de photo ou relancer GPT.
 
+Le tagging utilise des enums partagés conceptuellement avec les formulaires : 8 catégories fixes, types précis cohérents et palette réelle étendue. GPT retourne 1 à 3 couleurs maximum : exactement une pour une pièce unie, exactement deux quand deux couleurs importantes sont visibles, et trois seulement quand elles sont réellement nécessaires. Les ombres, reflets et petits détails ne comptent pas comme couleurs. `ColorPicker` n’accepte plus de texte libre, limite la sélection à trois couleurs et propose notamment blanc cassé, écru, ivoire, beige clair, taupe, rose poudré, vert sauge, bleu ciel, lilas et terracotta. Catégorie et type précis sont des listes dans l’ajout comme dans la modification.
+
 Avant Firestore, `finalizeImages` produit l’image principale et le thumbnail. Le service bloque une image au-dessus de 900 000 caractères et un thumbnail au-dessus de 250 000 caractères.
 
 Les types précis dans `utils/clothingTypes.js` déterminent le placement top, outer, bottom, dress, shoes ou accessory. Cette classification est essentielle pour la composition.

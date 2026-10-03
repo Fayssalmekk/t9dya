@@ -2,9 +2,11 @@ import { Heart, LoaderCircle, Shirt, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { usePlatform } from '../../../context/PlatformContext'
+import ColorPicker from '../components/ColorPicker'
 import HwayjHeader from '../components/HwayjHeader'
 import { useWardrobe } from '../context/WardrobeContext'
 import { getClothingImage, markClothingWorn, removeClothingItem, restoreClothingItem, updateClothingItem } from '../services/wardrobe'
+import { CLOTHING_CATEGORIES, SUBCATEGORY_OPTIONS } from '../utils/clothingTypes'
 
 export default function ItemDetailPage() {
   const { itemId } = useParams()
@@ -28,7 +30,7 @@ export default function ItemDetailPage() {
   if (loading) return <main className="grid min-h-dvh place-items-center"><LoaderCircle className="animate-spin text-violet-600" /></main>
   if (!item) return <Navigate to="/hwayj/closet" replace />
 
-  const save = async (form) => { await updateClothingItem(ownerId, item.id, { ...form, colors: form.colors.split(',').map((value) => value.trim()).filter(Boolean), style: form.style.split(',').map((value) => value.trim()).filter(Boolean), price: form.price === '' ? null : Number(form.price) }); setEditing(false); notify('Informations mises à jour') }
+  const save = async (form) => { await updateClothingItem(ownerId, item.id, { ...form, colors: form.colors.split(',').map((value) => value.trim()).filter(Boolean).slice(0, 3), style: form.style.split(',').map((value) => value.trim()).filter(Boolean), price: form.price === '' ? null : Number(form.price) }); setEditing(false); notify('Informations mises à jour') }
   const remove = async () => { if (!window.confirm(`Supprimer « ${item.name} » ?`)) return; const backup = await removeClothingItem(ownerId, item.id); navigate('/hwayj/closet'); notify('Vêtement supprimé', { label: 'Annuler', onClick: () => restoreClothingItem(ownerId, item.id, backup) }) }
   const statusOptions = [{ value: 'clean', label: 'Propre' }, { value: 'dirty', label: 'À laver' }, { value: 'laundry', label: 'En machine' }]
 
@@ -36,18 +38,25 @@ export default function ItemDetailPage() {
 }
 
 function ItemEditForm({ item, onSave }) {
+  const initialCategory = CLOTHING_CATEGORIES.includes(item.category) ? item.category : 'Autre'
   const [form, setForm] = useState(() => ({
     name: item.name,
-    category: item.category,
-    subcategory: item.subcategory || '',
-    colors: (item.colors || []).join(', '),
+    category: initialCategory,
+    subcategory: SUBCATEGORY_OPTIONS[initialCategory]?.includes(item.subcategory) ? item.subcategory : SUBCATEGORY_OPTIONS[initialCategory]?.[0] || 'Autre',
+    colors: (item.colors || []).slice(0, 3).join(', '),
     material: item.material || '',
     pattern: item.pattern || '',
     style: (item.style || []).join(', '),
     price: item.price ?? '',
   }))
+  const update = (key, value) => setForm((current) => ({ ...current, [key]: value }))
+  const updateCategory = (category) => setForm((current) => ({ ...current, category, subcategory: SUBCATEGORY_OPTIONS[category]?.[0] || 'Autre' }))
 
-  return <section className="mt-4 rounded-[1.75rem] bg-surface p-5 shadow-card"><div className="grid gap-4 sm:grid-cols-2">{Object.entries({ name: 'Nom', category: 'Catégorie', subcategory: 'Sous-catégorie', colors: 'Couleurs', material: 'Matière', pattern: 'Motif', style: 'Styles', price: 'Prix' }).map(([key, label]) => <label key={key}><span className="mb-2 block text-sm font-bold">{label}</span><input type={key === 'price' ? 'number' : 'text'} value={form[key]} onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value }))} className="field-input" /></label>)}</div><button type="button" onClick={() => onSave(form)} className="mt-5 min-h-12 w-full rounded-xl bg-violet-600 font-black text-white">Enregistrer</button></section>
+  return <section className="mt-4 rounded-[1.75rem] bg-surface p-5 shadow-card"><div className="grid gap-4 sm:grid-cols-2"><EditField label="Nom" value={form.name} onChange={(value) => update('name', value)} /><label><span className="mb-2 block text-sm font-bold">Catégorie</span><select value={form.category} onChange={(event) => updateCategory(event.target.value)} className="field-input">{CLOTHING_CATEGORIES.map((category) => <option key={category}>{category}</option>)}</select></label><label><span className="mb-2 block text-sm font-bold">Type précis</span><select value={form.subcategory} onChange={(event) => update('subcategory', event.target.value)} className="field-input">{SUBCATEGORY_OPTIONS[form.category].map((subcategory) => <option key={subcategory}>{subcategory}</option>)}</select></label><ColorPicker value={form.colors} onChange={(value) => update('colors', value)} /><EditField label="Matière" value={form.material} onChange={(value) => update('material', value)} /><EditField label="Motif" value={form.pattern} onChange={(value) => update('pattern', value)} /><EditField label="Styles" value={form.style} onChange={(value) => update('style', value)} /><EditField label="Prix" type="number" value={form.price} onChange={(value) => update('price', value)} /></div><button type="button" onClick={() => onSave(form)} className="mt-5 min-h-12 w-full rounded-xl bg-violet-600 font-black text-white">Enregistrer</button></section>
+}
+
+function EditField({ label, value, onChange, type = 'text' }) {
+  return <label><span className="mb-2 block text-sm font-bold">{label}</span><input type={type} value={value} onChange={(event) => onChange(event.target.value)} className="field-input" /></label>
 }
 
 function Stat({ label, value }) {

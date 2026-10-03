@@ -1,6 +1,17 @@
 const MAX_IMAGE_BYTES = 1000000
 const MAX_BODY_BYTES = 1600000
 const MAX_AUTH_TOKEN_CHARS = 8192
+const GARMENT_TYPES = {
+  Hauts: ['T-shirt', 'Chemise', 'Blouse', 'Pull', 'Sweat', 'Top', 'Polo', 'Débardeur', 'Tunique', 'Body'],
+  Bas: ['Pantalon', 'Jean', 'Jupe', 'Short', 'Legging', 'Jogging'],
+  Robes: ['Robe', 'Combinaison', 'Salopette', 'Caftan', 'Takchita', 'Djellaba'],
+  Vestes: ['Veste', 'Blazer', 'Gilet', 'Cardigan', 'Manteau', 'Trench', 'Parka', 'Doudoune', 'Cape', 'Kimono'],
+  Chaussures: ['Baskets', 'Bottes', 'Bottines', 'Sandales', 'Mocassins', 'Talons', 'Escarpins', 'Babouches'],
+  Accessoires: ['Sac', 'Ceinture', 'Écharpe', 'Foulard', 'Chapeau', 'Casquette', 'Bijou', 'Lunettes'],
+  Sport: ['Haut de sport', 'Bas de sport', 'Veste de sport', 'Chaussures de sport', 'Ensemble de sport'],
+  Autre: ['Autre'],
+}
+const GARMENT_COLORS = ['Noir', 'Blanc', 'Blanc cassé', 'Écru', 'Ivoire', 'Crème', 'Beige clair', 'Beige', 'Taupe', 'Gris clair', 'Gris', 'Anthracite', 'Argent', 'Marron', 'Chocolat', 'Camel', 'Terracotta', 'Rouge', 'Bordeaux', 'Rose poudré', 'Rose', 'Fuchsia', 'Orange', 'Jaune moutarde', 'Jaune', 'Vert sauge', 'Vert', 'Kaki', 'Olive', 'Émeraude', 'Turquoise', 'Bleu ciel', 'Bleu', 'Bleu roi', 'Bleu marine', 'Lavande', 'Lilas', 'Mauve', 'Violet', 'Doré', 'Multicolore']
 
 const json = (response, status, body) => response.status(status).json(body)
 
@@ -189,8 +200,19 @@ ${userDirections || 'No additional directions.'}`)
 async function tag(image) {
   if (!process.env.OPENAI_VISION_MODEL) throw new Error('VISION_MODEL_NOT_CONFIGURED')
   if (!dataUrlParts(image)) throw new Error('INVALID_IMAGE')
-  const schema = { type: 'object', additionalProperties: false, required: ['category', 'subcategory', 'colors', 'pattern', 'material', 'season', 'style', 'name_suggestion'], properties: { category: { type: 'string' }, subcategory: { type: 'string' }, colors: { type: 'array', maxItems: 4, items: { type: 'string' } }, pattern: { type: 'string' }, material: { type: 'string' }, season: { type: 'array', items: { type: 'string' } }, style: { type: 'array', items: { type: 'string' } }, name_suggestion: { type: 'string' } } }
-  const result = await openAI('responses', { model: process.env.OPENAI_VISION_MODEL, store: false, input: [{ role: 'user', content: [{ type: 'input_text', text: 'Analyse uniquement le vêtement visible sur cette image préparée. Réponds en français avec des tags courts et factuels. Dans colors, place obligatoirement la couleur dominante en premier, puis les couleurs secondaires réellement visibles. Utilise des noms simples comme Noir, Blanc, Rouge, Rose, Bleu marine ou Beige. Retourne Multicolore si plus de trois couleurs importantes sont visibles.' }, { type: 'input_image', image_url: image, detail: 'low' }] }], text: { format: { type: 'json_schema', name: 'garment_tags', strict: true, schema } }, max_output_tokens: 450 })
+  const schema = { type: 'object', additionalProperties: false, required: ['category', 'subcategory', 'colors', 'pattern', 'material', 'season', 'style', 'name_suggestion'], properties: { category: { type: 'string', enum: Object.keys(GARMENT_TYPES) }, subcategory: { type: 'string', enum: Object.values(GARMENT_TYPES).flat() }, colors: { type: 'array', minItems: 1, maxItems: 3, items: { type: 'string', enum: GARMENT_COLORS } }, pattern: { type: 'string' }, material: { type: 'string' }, season: { type: 'array', items: { type: 'string' } }, style: { type: 'array', items: { type: 'string' } }, name_suggestion: { type: 'string' } } }
+  const tagPrompt = `Analyse uniquement le vêtement visible sur cette image préparée. Réponds en français avec des tags courts et factuels.
+
+RÈGLES COULEURS OBLIGATOIRES:
+- Retourne entre 1 et 3 couleurs maximum, uniquement parmi les noms autorisés par le schéma.
+- Si le vêtement paraît réellement d'une seule couleur, retourne exactement 1 couleur. Ne cherche jamais une deuxième couleur pour remplir la liste.
+- S'il comporte exactement 2 couleurs visuellement importantes, retourne exactement 2 couleurs.
+- Retourne 3 couleurs seulement si au moins 3 couleurs importantes sont clairement visibles; ignore les minuscules détails, ombres, reflets, coutures et variations d'éclairage.
+- Place la couleur dominante en premier. N'invente aucune couleur et ne répète jamais la même couleur.
+- Utilise Multicolore uniquement pour un imprimé réellement multicolore dont trois noms ne suffisent pas; dans ce cas retourne uniquement ["Multicolore"].
+
+Choisis category et subcategory uniquement dans ces couples cohérents: ${JSON.stringify(GARMENT_TYPES)}.`
+  const result = await openAI('responses', { model: process.env.OPENAI_VISION_MODEL, store: false, input: [{ role: 'user', content: [{ type: 'input_text', text: tagPrompt }, { type: 'input_image', image_url: image, detail: 'high' }] }], text: { format: { type: 'json_schema', name: 'garment_tags', strict: true, schema } }, max_output_tokens: 450 })
   return { tags: JSON.parse(responseText(result)) }
 }
 
