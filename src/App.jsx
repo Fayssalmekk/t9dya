@@ -8,6 +8,7 @@ import AuthPage from './pages/AuthPage'
 import Brand from './components/Brand'
 import LoadingScreen from './components/LoadingScreen'
 import { I18nProvider } from './i18n/I18nContext'
+import NotificationCoordinator from './native/NotificationCoordinator'
 
 const legacyRoutes = ['list', 'catalog', 'history']
 
@@ -25,5 +26,5 @@ function ClosedAccountPage({ onSignOut }) {
 }
 
 export default function App() {
-  return <AppErrorBoundary><I18nProvider><AuthProvider><AppRoutes /></AuthProvider></I18nProvider></AppErrorBoundary>
+  return <AppErrorBoundary><I18nProvider><AuthProvider><NotificationCoordinator /><AppRoutes /></AuthProvider></I18nProvider></AppErrorBoundary>
 }

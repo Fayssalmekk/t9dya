@@ -1,10 +1,10 @@
-import { BellRing, Cake, Check, ChevronLeft, Clipboard, Home, LoaderCircle, LogOut, Moon, Save, ShieldCheck, Sun, UserRound, Users } from 'lucide-react'
+import { BellRing, Cake, Check, ChevronLeft, Clipboard, Clock3, Home, LoaderCircle, LogOut, Moon, Save, ShieldCheck, Sparkles, Sun, UserRound, Users } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { updateHouseholdName, updateMemberProfile } from '../../services/household'
 import { isNativeApp, syncNativeTheme } from '../../native/capacitor'
-import { nativeNotificationPermission, requestNativeNotificationPermission } from '../../native/notifications'
+import { getNotificationPreferences, nativeNotificationPermission, notificationOptions, requestNativeNotificationPermission, saveNotificationPreferences } from '../../native/notifications'
 
 const sexLabels = { female: 'Femme', male: 'Homme' }
 
@@ -19,6 +19,7 @@ export default function HubSettingsPage() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [notificationPermission, setNotificationPermission] = useState(() => isNativeApp ? 'prompt' : typeof Notification === 'undefined' ? 'unsupported' : Notification.permission)
+  const [notificationPreferences, setNotificationPreferences] = useState(getNotificationPreferences)
   const members = (household.members || []).map((uid) => household.memberProfiles?.[uid]).filter(Boolean)
 
   useEffect(() => {
@@ -70,11 +71,31 @@ export default function HubSettingsPage() {
 
   const enableNotifications = async () => {
     if (isNativeApp) {
-      setNotificationPermission(await requestNativeNotificationPermission())
+      const permission = await requestNativeNotificationPermission()
+      setNotificationPermission(permission)
+      if (permission === 'granted') saveNotificationPreferences(notificationPreferences)
       return
     }
     if (typeof Notification === 'undefined') return
     setNotificationPermission(await Notification.requestPermission())
+  }
+
+  const toggleNotification = async (key) => {
+    const enabled = !notificationPreferences[key]
+    if (enabled && isNativeApp && notificationPermission !== 'granted') {
+      const permission = await requestNativeNotificationPermission()
+      setNotificationPermission(permission)
+      if (permission !== 'granted') {
+        setError('Autorisez les notifications dans les réglages Android pour activer cette alerte.')
+        return
+      }
+    }
+    setError('')
+    setNotificationPreferences(saveNotificationPreferences({ ...notificationPreferences, [key]: enabled }))
+  }
+
+  const changeNotificationTime = (key, value) => {
+    setNotificationPreferences(saveNotificationPreferences({ ...notificationPreferences, [key]: value }))
   }
 
   return (
@@ -107,8 +128,26 @@ export default function HubSettingsPage() {
         <section className="mt-4 overflow-hidden rounded-[1.75rem] bg-surface shadow-card">
           <button type="button" onClick={() => setDark((value) => !value)} className="flex min-h-16 w-full items-center gap-3 border-b border-slate-100 px-5 text-left dark:border-slate-800"><span className="grid h-10 w-10 place-items-center rounded-xl bg-canvas">{dark ? <Moon size={20} /> : <Sun size={20} />}</span><span className="flex-1 font-bold">Mode sombre</span><span className={`relative h-7 w-12 rounded-full transition ${dark ? 'bg-teal-600' : 'bg-slate-200'}`}><span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${dark ? 'left-6' : 'left-1'}`} /></span></button>
           <div className="flex min-h-16 items-center gap-3 px-5"><span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><ShieldCheck size={20} /></span><span className="flex-1"><strong className="block">Foyer privé</strong><small className="text-muted">Accessible uniquement à vos deux comptes</small></span></div>
-          <button type="button" onClick={enableNotifications} disabled={notificationPermission === 'granted' || notificationPermission === 'unsupported'} className="flex min-h-16 w-full items-center gap-3 border-t border-slate-100 px-5 text-left disabled:opacity-70 dark:border-slate-800"><span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-50 text-amber-700"><BellRing size={20} /></span><span className="flex-1"><strong className="block">Notifications</strong><small className="text-muted">{notificationPermission === 'granted' ? 'Activées sur cet appareil' : notificationPermission === 'denied' ? 'Bloquées dans le navigateur' : 'Activer les alertes de la plateforme'}</small></span>{notificationPermission === 'granted' && <Check size={19} className="text-emerald-600" />}</button>
+          <button type="button" onClick={enableNotifications} disabled={notificationPermission === 'granted' || notificationPermission === 'unsupported'} className="flex min-h-16 w-full items-center gap-3 border-t border-slate-100 px-5 text-left disabled:opacity-70 dark:border-slate-800"><span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-50 text-amber-700"><BellRing size={20} /></span><span className="flex-1"><strong className="block">Notifications</strong><small className="text-muted">{notificationPermission === 'granted' ? 'Activées sur cet appareil' : notificationPermission === 'denied' ? (isNativeApp ? 'Bloquées dans les réglages Android' : 'Bloquées dans le navigateur') : 'Activer les alertes de la plateforme'}</small></span>{notificationPermission === 'granted' && <Check size={19} className="text-emerald-600" />}</button>
         </section>
+
+        {isNativeApp && <section className="mt-4 rounded-[1.75rem] bg-surface p-5 shadow-card">
+          <div className="flex items-center gap-3"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-violet-100 text-violet-700"><Sparkles size={22} /></span><div><h2 className="font-black">Mes notifications Android</h2><p className="text-xs text-muted">Chaque choix est enregistré uniquement sur ce téléphone</p></div></div>
+          <div className="mt-5 space-y-3">
+            {notificationOptions.map((option) => {
+              const enabled = Boolean(notificationPreferences[option.key])
+              return <article key={option.key} className={`rounded-2xl border p-4 transition ${enabled ? 'border-violet-200 bg-violet-50/70 dark:border-violet-900 dark:bg-violet-950/20' : 'border-slate-200 bg-canvas dark:border-slate-700'}`}>
+                <button type="button" role="switch" aria-checked={enabled} onClick={() => toggleNotification(option.key)} className="flex w-full items-center gap-3 text-left">
+                  <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${enabled ? 'bg-violet-600 text-white' : 'bg-surface text-muted'}`}><BellRing size={19} /></span>
+                  <span className="min-w-0 flex-1"><strong className="block text-sm">{option.title}</strong><small className="mt-0.5 block leading-4 text-muted">{option.description}</small></span>
+                  <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${enabled ? 'bg-violet-600' : 'bg-slate-300 dark:bg-slate-700'}`}><span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${enabled ? 'left-6' : 'left-1'}`} /></span>
+                </button>
+                {enabled && option.timeKey && <label className="mt-3 flex items-center gap-3 border-t border-violet-100 pt-3 text-sm font-bold dark:border-violet-900"><Clock3 size={17} className="text-violet-600" /><span className="flex-1">Heure du rappel</span><input type="time" value={notificationPreferences[option.timeKey]} onChange={(event) => changeNotificationTime(option.timeKey, event.target.value)} className="rounded-xl border border-violet-200 bg-surface px-3 py-2 font-black text-ink outline-none focus:ring-2 focus:ring-violet-400 dark:border-violet-800" /></label>}
+              </article>
+            })}
+          </div>
+          <p className="mt-4 rounded-2xl bg-canvas px-4 py-3 text-xs leading-5 text-muted">Les traitements, rendez-vous et rappels quotidiens sont programmés sur Android et sonnent même après la fermeture de l’application.</p>
+        </section>}
 
         <button type="button" onClick={signOut} className="mt-6 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 font-extrabold text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200"><LogOut size={20} />Se déconnecter</button>
       </div>

@@ -52,6 +52,7 @@ Les photos Hwayj et repas sont compressées dans le navigateur puis enregistrée
 ## 4. Entrées principales
 
 - `src/main.jsx` : thème initial, initialisation Capacitor, PWA et montage React.
+- `src/native/NotificationCoordinator.jsx` : écoute globale Firestore et synchronisation des notifications Android, quel que soit l’écran ouvert.
 - `src/App.jsx` : garde globale Auth/Profil/Foyer et routes des applications.
 - `src/apps/registry.js` : registre des quatre applications du Hub.
 - `src/context/AuthContext.jsx` : session Firebase, profil `users/{uid}` et foyer.
@@ -96,6 +97,7 @@ Les réglages du Hub gèrent :
 - indicateur diabétique ;
 - thème sombre ;
 - autorisation des notifications ;
+- choix détaillé, appareil par appareil, des alertes Android, avec heure configurable pour les rappels quotidiens ;
 - déconnexion.
 
 Chaque membre modifie uniquement son propre profil. Les informations du foyer restent visibles aux deux partenaires.
@@ -468,6 +470,7 @@ Fichiers :
 - `capacitor.config.json`
 - `src/native/capacitor.js`
 - `src/native/notifications.js`
+- `src/native/NotificationCoordinator.jsx`
 - `assets/logo.svg`
 - `docs/ANDROID.md`
 
@@ -477,12 +480,13 @@ Fonctions natives déjà branchées :
 - redimensionnement natif du clavier ;
 - bouton retour ;
 - ouverture de la bonne route après toucher une notification ;
-- rappels locaux traitements/rendez-vous ;
+- rappels locaux traitements/rendez-vous, stocks faibles, courses et résumé quotidien ;
+- alertes de demandes de courses et de nouveaux produits reçues depuis Firestore ;
 - désactivation de l’enregistrement PWA dans le conteneur natif.
 
-Les rappels Android sont non exacts afin de ne pas demander la permission sensible d’alarmes exactes. Ils peuvent être légèrement décalés par le système. Le Hub synchronise les rappels des deux profils lorsqu’il reçoit les données Firestore.
+Les rappels Android sont non exacts afin de ne pas demander la permission sensible d’alarmes exactes. Ils peuvent être légèrement décalés par le système. Le coordinateur global synchronise les rappels des deux profils dès qu’il reçoit les données Firestore, même si l’utilisateur n’ouvre pas le Hub.
 
-Firebase Cloud Messaging n’est pas encore installé. Il sera nécessaire pour les notifications instantanées entre partenaires lorsque l’application est fermée.
+Firebase Cloud Messaging n’est pas encore installé. Les événements du partenaire produisent une notification dès que l’APK reçoit la mise à jour Firestore, ou à sa prochaine ouverture. FCM restera nécessaire pour réveiller instantanément une application complètement arrêtée.
 
 Le dossier `android/` n’est créé qu’après la commande manuelle `npm run android:add`. Toutes les étapes sont dans `docs/ANDROID.md`.
 

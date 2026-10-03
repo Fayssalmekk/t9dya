@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore'
 import { useAuth } from './AuthContext'
 import { db } from '../services/firebase'
+import { isNativeApp } from '../native/capacitor'
 
 const ShoppingContext = createContext(null)
 
@@ -76,7 +77,7 @@ export function ShoppingProvider({ children }) {
   const incomingRequest = lists.find((list) => list.assignedTo === user?.uid && list.status === 'requested') || null
 
   useEffect(() => {
-    if (!incomingRequest?.shoppingRequestedAt || typeof Notification === 'undefined' || Notification.permission !== 'granted') return
+    if (isNativeApp || !incomingRequest?.shoppingRequestedAt || typeof Notification === 'undefined' || Notification.permission !== 'granted') return
     const requestKey = `${incomingRequest.id}-${incomingRequest.shoppingRequestedAt.toMillis?.() || ''}`
     if (localStorage.getItem('t9dya-last-shopping-request') === requestKey) return
     localStorage.setItem('t9dya-last-shopping-request', requestKey)

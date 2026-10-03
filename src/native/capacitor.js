@@ -31,6 +31,22 @@ export async function initializeNativeShell() {
       importance: 4,
       visibility: 1,
       vibration: true
+    }),
+    LocalNotifications.createChannel({
+      id: 'shopping-alerts',
+      name: 'Courses et partenaire',
+      description: 'Demandes de courses et nouveaux produits du foyer',
+      importance: 4,
+      visibility: 1,
+      vibration: true
+    }),
+    LocalNotifications.createChannel({
+      id: 'daily-reminders',
+      name: 'Rappels quotidiens',
+      description: 'Rappels quotidiens choisis dans le Hub',
+      importance: 3,
+      visibility: 1,
+      vibration: true
     })
   ])
 

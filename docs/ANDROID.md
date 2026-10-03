@@ -10,11 +10,11 @@ Ce guide transforme le projet web existant en application Android sans dupliquer
 - `/api/ai` utilise l’adresse Vercel dans l’APK et reste relatif sur le Web.
 - CORS autorise l’origine native sécurisée `https://localhost`.
 - Bouton retour Android, clavier natif, barre d’état et thème sombre.
-- Notifications locales pour les traitements et les rendez-vous S7a ya s7a.
+- Centre de notifications Android configurable dans le Hub : demandes de courses, nouveaux produits, rappels de listes, traitements, rendez-vous, stock faible et résumé quotidien.
 - Icône et écran de lancement générés à partir de `assets/logo.svg`.
 - Firebase conserve son cache hors ligne existant.
 
-Les notifications locales fonctionnent même si l’application est fermée, car elles sont programmées sur le téléphone. Elles ne permettent toutefois pas encore à un partenaire d’envoyer une notification à l’autre : cela demandera Firebase Cloud Messaging plus tard.
+Les traitements, rendez-vous et rappels quotidiens fonctionnent même si l’application est fermée, car ils sont programmés sur le téléphone. Les événements en direct du partenaire apparaissent dès que l’application reçoit la modification Firestore, y compris au retour dans l’application. Pour réveiller instantanément une application complètement arrêtée, Firebase Cloud Messaging reste nécessaire.
 
 ## 1. Installer les outils une seule fois
 
@@ -134,13 +134,12 @@ Sur chaque téléphone, vérifiez les cas suivants :
 
 ## 8. Tester les notifications locales
 
-1. Ouvrez l’APK puis **Portail → Réglages → Notifications**.
-2. Autorisez les notifications Android.
-3. Ajoutez un traitement avec une heure située quelques minutes dans le futur.
-4. Revenez au portail au moins une fois : les rappels du foyer y sont synchronisés avec le téléphone.
-5. Fermez complètement l’application et attendez le rappel.
-6. Touchez la notification : elle doit ouvrir le bon profil S7a.
-7. Testez également un rendez-vous avec son délai de rappel.
+1. Ouvrez l’APK puis **Portail → Réglages → Mes notifications Android**.
+2. Touchez d’abord **Notifications** pour donner l’autorisation Android, puis activez ou désactivez séparément chaque alerte.
+3. Réglez l’heure du rappel courses et du résumé quotidien si ces options sont actives.
+4. Ajoutez un traitement avec une heure située quelques minutes dans le futur, puis fermez l’application : le rappel doit sonner et ouvrir le bon profil S7a.
+5. Depuis le second compte, demandez au partenaire de faire une liste ou ajoutez un produit. Le téléphone destinataire reçoit l’alerte lorsque l’application est active ou dès sa prochaine synchronisation.
+6. Testez aussi un rendez-vous et un traitement dont le stock atteint son seuil minimum.
 
 Les rappels sont volontairement programmés comme alarmes Android non exactes. Android peut les décaler légèrement pour économiser la batterie, mais l’application n’a pas besoin de l’autorisation sensible « Alarmes et rappels ».
 
@@ -172,13 +171,13 @@ Conservez le fichier `.jks`, son alias et ses mots de passe dans un emplacement 
 
 Pour mettre à jour les deux téléphones, générez toujours le nouvel APK avec la même clé et installez-le par-dessus l’application existante. Les données principales restent dans Firebase.
 
-## 10. Limite actuelle : notifications entre partenaires
+## 10. Limite actuelle : réception instantanée quand l’application est arrêtée
 
-Cette première version inclut les notifications locales de ce téléphone. Pour recevoir instantanément « Salma a demandé cette liste » lorsque T9DYA est complètement fermée, il faudra ensuite ajouter :
+La demande du partenaire et les nouveaux produits génèrent maintenant une vraie notification Android dès que l’application reçoit le changement Firestore. Pour recevoir instantanément « Salma a demandé cette liste » quand l’application est complètement arrêtée par Android, il faudra ajouter :
 
 - Firebase Cloud Messaging ;
 - l’enregistrement sécurisé d’un jeton par téléphone ;
 - une fonction serveur Firebase ou Vercel qui envoie le push ;
 - la suppression et le renouvellement automatiques des anciens jetons.
 
-Cette étape est volontairement reportée : elle ne bloque ni l’APK privé, ni Firebase, ni les rappels locaux S7a.
+Cette limite ne concerne pas les rappels déjà programmés sur le téléphone : traitements, rendez-vous, courses quotidiennes et résumé quotidien continuent de fonctionner après fermeture.
