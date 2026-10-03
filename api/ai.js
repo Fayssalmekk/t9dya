@@ -200,7 +200,7 @@ ${userDirections || 'No additional directions.'}`)
 async function tag(image) {
   if (!process.env.OPENAI_VISION_MODEL) throw new Error('VISION_MODEL_NOT_CONFIGURED')
   if (!dataUrlParts(image)) throw new Error('INVALID_IMAGE')
-  const schema = { type: 'object', additionalProperties: false, required: ['category', 'subcategory', 'colors', 'pattern', 'material', 'season', 'style', 'name_suggestion'], properties: { category: { type: 'string', enum: Object.keys(GARMENT_TYPES) }, subcategory: { type: 'string', enum: Object.values(GARMENT_TYPES).flat() }, colors: { type: 'array', minItems: 1, maxItems: 3, items: { type: 'string', enum: GARMENT_COLORS } }, pattern: { type: 'string' }, material: { type: 'string' }, season: { type: 'array', items: { type: 'string' } }, style: { type: 'array', items: { type: 'string' } }, name_suggestion: { type: 'string' } } }
+  const schema = { type: 'object', additionalProperties: false, required: ['category', 'subcategory', 'colors', 'pattern', 'material', 'season', 'style', 'name_suggestion'], properties: { category: { type: 'string', enum: Object.keys(GARMENT_TYPES) }, subcategory: { type: 'string', enum: Object.values(GARMENT_TYPES).flat() }, colors: { type: 'array', minItems: 1, maxItems: 3, items: { type: 'string', enum: GARMENT_COLORS } }, pattern: { type: 'string' }, material: { type: 'string' }, season: { type: 'array', maxItems: 4, items: { type: 'string', enum: ['Printemps', 'Été', 'Automne', 'Hiver'] } }, style: { type: 'array', maxItems: 6, items: { type: 'string' } }, name_suggestion: { type: 'string' } } }
   const tagPrompt = `Analyse uniquement le vêtement visible sur cette image préparée. Réponds en français avec des tags courts et factuels.
 
 RÈGLES COULEURS OBLIGATOIRES:

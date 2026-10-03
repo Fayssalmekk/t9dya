@@ -2,6 +2,7 @@ import { collection, deleteDoc, doc, getDoc, increment, onSnapshot, orderBy, que
 import { db } from '../../../services/firebase'
 
 const userCollection = (uid, name) => collection(db, 'users', uid, name)
+const ALLOWED_SEASONS = ['Printemps', 'Été', 'Automne', 'Hiver']
 
 export function subscribeToWardrobe(uid, onData, onError) {
   return onSnapshot(query(userCollection(uid, 'clothes'), orderBy('createdAt', 'desc')), (snapshot) => onData(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))), onError)
@@ -20,7 +21,10 @@ export async function createClothingItem(uid, item, image, thumb) {
   if (!thumb?.startsWith('data:image/') || thumb.length > 250000) throw new Error('THUMB_TOO_LARGE')
   const itemRef = doc(userCollection(uid, 'clothes'))
   const batch = writeBatch(db)
-  batch.set(itemRef, { ...item, thumb, wearCount: 0, lastWornAt: null, status: 'clean', favorite: false, createdAt: serverTimestamp(), updatedAt: serverTimestamp() })
+  const season = [...new Set(Array.isArray(item.season) ? item.season : [])].filter((value) => ALLOWED_SEASONS.includes(value)).slice(0, 4)
+  const colors = [...new Set(Array.isArray(item.colors) ? item.colors : [])].slice(0, 3)
+  const style = [...new Set(Array.isArray(item.style) ? item.style : [])].slice(0, 12)
+  batch.set(itemRef, { ...item, colors, season, style, thumb, wearCount: 0, lastWornAt: null, status: 'clean', favorite: false, createdAt: serverTimestamp(), updatedAt: serverTimestamp() })
   batch.set(doc(db, 'users', uid, 'clothesImages', itemRef.id), { image, updatedAt: serverTimestamp() })
   await batch.commit()
   return itemRef.id

@@ -12,6 +12,8 @@ import { CLOTHING_CATEGORIES, SUBCATEGORY_OPTIONS } from '../utils/clothingTypes
 import { createVisionImage, finalizeImages, hasSafeTransparentMargins, prepareUpload } from '../utils/images'
 
 const seasons = ['Printemps', 'Été', 'Automne', 'Hiver']
+const normalizedText = (value) => String(value || '').trim().toLocaleLowerCase('fr-FR').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+const validSeasons = (values) => seasons.filter((season) => (Array.isArray(values) ? values : []).some((value) => normalizedText(value) === normalizedText(season)))
 
 export default function AddItemPage() {
   const { user } = useAuth()
@@ -35,7 +37,7 @@ export default function AddItemPage() {
     const category = CLOTHING_CATEGORIES.includes(ai.category) ? ai.category : 'Autre'
     const subcategories = SUBCATEGORY_OPTIONS[category]
     const subcategory = subcategories.includes(ai.subcategory) ? ai.subcategory : subcategories[0]
-    setTags((current) => ({ ...current, name: ai.name_suggestion || current.name, category, subcategory, colors: (ai.colors || []).slice(0, 3).join(', '), pattern: ai.pattern || 'Uni', material: ai.material || '', season: ai.season || [], style: (ai.style || []).join(', ') }))
+    setTags((current) => ({ ...current, name: ai.name_suggestion || current.name, category, subcategory, colors: (ai.colors || []).slice(0, 3).join(', '), pattern: ai.pattern || 'Uni', material: ai.material || '', season: validSeasons(ai.season), style: (ai.style || []).slice(0, 6).join(', ') }))
   }
 
   const processWithGPT = async (source, includeTags = false) => {
@@ -97,7 +99,7 @@ export default function AddItemPage() {
       const id = await createClothingItem(user.uid, {
         name: tags.name.trim(), category: tags.category, subcategory: tags.subcategory.trim(),
         colors: tags.colors.split(',').map((value) => value.trim()).filter(Boolean).slice(0, 3),
-        pattern: tags.pattern.trim(), material: tags.material.trim(), season: tags.season,
+        pattern: tags.pattern.trim(), material: tags.material.trim(), season: validSeasons(tags.season),
         style: tags.style.split(',').map((value) => value.trim()).filter(Boolean),
         price: tags.price === '' ? null : Number(tags.price)
       }, images.image, images.thumb)
@@ -105,7 +107,7 @@ export default function AddItemPage() {
       navigate(`/hwayj/item/${id}`, { replace: true })
     } catch (caught) {
       console.error('Échec de l’enregistrement du vêtement', caught)
-      if (caught.code === 'permission-denied') setError('Firebase refuse l’enregistrement. Déployez les règles Firestore Hwayj sur le projet t9dya-5e85a.')
+      if (caught.code === 'permission-denied') setError('Firebase a refusé les données du vêtement. Vérifiez les champs puis réessayez; si le problème persiste, déployez les dernières règles Firestore.')
       else if (['unavailable', 'deadline-exceeded'].includes(caught.code)) setError('Firebase est momentanément inaccessible. Vérifiez la connexion puis réessayez.')
       else if (caught.code === 'resource-exhausted' || ['IMAGE_TOO_LARGE', 'THUMB_TOO_LARGE'].includes(caught.message)) setError('L’image reste trop lourde pour Firebase. Choisissez une photo moins grande.')
       else setError(`Impossible d’enregistrer${caught.code ? ` (${caught.code})` : ''}. Réessayez ou consultez la console.`)
