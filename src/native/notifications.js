@@ -75,6 +75,21 @@ export async function nativeNotificationPermission() {
   return (await LocalNotifications.checkPermissions()).display
 }
 
+export async function sendTestNotification() {
+  if (!isNativeApp) throw new Error('NOT_NATIVE')
+  const permission = await requestNativeNotificationPermission()
+  if (permission !== 'granted') throw new Error('NOTIFICATION_PERMISSION_DENIED')
+  await LocalNotifications.schedule({ notifications: [{
+    id: numericId(`notification-test:${Date.now()}`),
+    title: 'T9DYA · Test réussi 🔔',
+    body: 'Les notifications Android fonctionnent sur ce téléphone.',
+    channelId: 'daily-reminders',
+    isExactNotification: false,
+    schedule: { at: new Date(Date.now() + 1500), allowWhileIdle: true },
+    extra: { path: '/settings' }
+  }] })
+}
+
 export async function notifyNativeOnce({ preferenceKey, eventKey, title, body, path, channelId }) {
   if (!isNativeApp || !getNotificationPreferences()[preferenceKey]) return false
   if (await nativeNotificationPermission() !== 'granted') return false

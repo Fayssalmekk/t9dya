@@ -11,6 +11,7 @@ Ce guide transforme le projet web existant en application Android sans dupliquer
 - CORS autorise l’origine native sécurisée `https://localhost`.
 - Bouton retour Android, clavier natif, barre d’état et thème sombre.
 - Centre de notifications Android configurable dans le Hub : demandes de courses, nouveaux produits, rappels de listes, traitements, rendez-vous, stock faible et résumé quotidien.
+- Application Carte avec autorisation GPS, partage volontaire, position du partenaire et arrêt avec effacement immédiat.
 - Icône et écran de lancement générés à partir de `assets/logo.svg`.
 - Firebase conserve son cache hors ligne existant.
 
@@ -135,15 +136,27 @@ Sur chaque téléphone, vérifiez les cas suivants :
 ## 8. Tester les notifications locales
 
 1. Ouvrez l’APK puis **Portail → Réglages → Mes notifications Android**.
-2. Touchez d’abord **Notifications** pour donner l’autorisation Android, puis activez ou désactivez séparément chaque alerte.
-3. Réglez l’heure du rappel courses et du résumé quotidien si ces options sont actives.
-4. Ajoutez un traitement avec une heure située quelques minutes dans le futur, puis fermez l’application : le rappel doit sonner et ouvrir le bon profil S7a.
-5. Depuis le second compte, demandez au partenaire de faire une liste ou ajoutez un produit. Le téléphone destinataire reçoit l’alerte lorsque l’application est active ou dès sa prochaine synchronisation.
-6. Testez aussi un rendez-vous et un traitement dont le stock atteint son seuil minimum.
+2. Touchez d’abord **Notifications** pour donner l’autorisation Android, puis utilisez **Envoyer une notification de test**. Elle doit apparaître après environ une seconde.
+3. Si le test échoue, ouvrez les informations Android de T9DYA → Notifications et vérifiez que les notifications et les trois catégories sont autorisées.
+4. Activez ou désactivez séparément chaque alerte, puis réglez l’heure du rappel courses et du résumé quotidien si ces options sont actives.
+5. Ajoutez un traitement avec une heure située quelques minutes dans le futur, puis fermez l’application : le rappel doit sonner et ouvrir le bon profil S7a.
+6. Depuis le second compte, demandez au partenaire de faire une liste ou ajoutez un produit. Le téléphone destinataire reçoit l’alerte lorsque l’application est active ou dès sa prochaine synchronisation.
+7. Testez aussi un rendez-vous et un traitement dont le stock atteint son seuil minimum.
 
 Les rappels sont volontairement programmés comme alarmes Android non exactes. Android peut les décaler légèrement pour économiser la batterie, mais l’application n’a pas besoin de l’autorisation sensible « Alarmes et rappels ».
 
 Sur certains téléphones Xiaomi, Samsung, Oppo ou Realme, désactivez l’optimisation agressive de batterie pour T9DYA si les rappels arrivent très en retard.
+
+### Tester la Carte et le GPS
+
+1. Déployez d’abord les règles Firestore indiquées dans `docs/SETUP.md`, puis installez le nouvel APK sur les deux téléphones.
+2. Sur chaque téléphone, ouvrez **Hub → Réglages → Localisation GPS** et acceptez l’autorisation Android.
+3. Ouvrez **Carte**, puis activez **Partager ma position en direct** sur les deux comptes.
+4. Vérifiez que les deux marqueurs, la distance, la précision et l’heure de mise à jour apparaissent.
+5. Déplacez un téléphone de quelques mètres et vérifiez la nouvelle position après une quinzaine de secondes.
+6. Arrêtez le partage : le marqueur correspondant doit disparaître chez le partenaire après la synchronisation Firestore.
+
+La localisation continue pendant la navigation dans T9DYA tant que l’application reste active. Cette version ne demande pas la localisation Android permanente en arrière-plan; Android peut suspendre le GPS lorsque l’application est placée longtemps en arrière-plan ou complètement arrêtée.
 
 ## 9. Générer l’APK privé
 

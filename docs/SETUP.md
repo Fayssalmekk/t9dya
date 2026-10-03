@@ -53,7 +53,7 @@ Hwayj demande une seule image `1024x1024` en qualité `low` par ajout et analyse
 1. Déployez les règles après cette mise à jour : `npx firebase deploy --only firestore:rules`. La nouvelle collection partagée `households/{id}/expenses` restera inaccessible tant que les règles distantes ne sont pas actualisées.
 2. Ouvrez `/budget/expenses` avec chacun des deux comptes et vérifiez qu’une dépense apparaît en temps réel chez les deux membres.
 3. Pour une dépense payée depuis une enveloppe, vérifiez que le solde diminue. En supprimant la dépense, le solde doit être recrédité et le mouvement d’annulation doit apparaître.
-4. Après le déploiement Web, exécutez `npm run android:update` avant de générer un nouvel APK afin d’inclure la quatrième application.
+4. Après le déploiement Web, exécutez `npm run android:update` avant de générer un nouvel APK afin d’inclure toutes les applications.
 
 ## Commandes de vérification
 
@@ -61,3 +61,10 @@ Hwayj demande une seule image `1024x1024` en qualité `low` par ajout et analyse
 2. `npm run build:check`
 3. `npm run dev`
 4. Pour livrer les notifications dans l’APK, exécutez `npm run android:update`, relancez Android Studio puis régénérez l’APK signé avec la clé habituelle. Aucun déploiement Firestore ou Vercel supplémentaire n’est requis pour ce changement.
+
+## Carte et partage GPS
+
+1. Déployez obligatoirement les nouvelles règles : `npx firebase deploy --only firestore:rules`. Sans cette étape, l’application affichera « Impossible d’envoyer votre position ».
+2. Redéployez le site Vercel afin d’appliquer `Permissions-Policy: geolocation=(self)` à la version Web.
+3. Exécutez `npm run android:update`, puis reconstruisez l’APK signé. Le manifeste Android contient désormais `ACCESS_COARSE_LOCATION` et `ACCESS_FINE_LOCATION`.
+4. Installez l’APK sur les deux téléphones, autorisez le GPS séparément et testez l’arrêt du partage. L’arrêt doit supprimer le document `households/{householdId}/locations/{uid}`.

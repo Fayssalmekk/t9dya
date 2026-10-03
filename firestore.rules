@@ -239,6 +239,25 @@ service cloud.firestore {
       );
       allow delete: if false;
 
+      match /locations/{userId} {
+        allow read: if isMember(householdId);
+        allow create, update: if isMember(householdId)
+          && request.auth.uid == userId
+          && request.resource.data.keys().hasOnly(['uid', 'latitude', 'longitude', 'accuracy', 'heading', 'speed', 'sharing', 'updatedAt'])
+          && request.resource.data.uid == userId
+          && request.resource.data.latitude is number
+          && request.resource.data.latitude >= -90
+          && request.resource.data.latitude <= 90
+          && request.resource.data.longitude is number
+          && request.resource.data.longitude >= -180
+          && request.resource.data.longitude <= 180
+          && request.resource.data.accuracy is number
+          && request.resource.data.accuracy >= 0
+          && request.resource.data.sharing == true
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if isMember(householdId) && request.auth.uid == userId;
+      }
+
       match /{collectionName}/{documentId} {
         allow read, write: if collectionName in ['items', 'lists', 'customProducts', 'charges', 'chargePayments', 'envelopes', 'envelopeTransactions', 'expenses', 'purchases', 'priceHistory', 'templates', 'pantry', 'trips'] && isMember(householdId);
       }

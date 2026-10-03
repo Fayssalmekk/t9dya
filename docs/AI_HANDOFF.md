@@ -2,7 +2,7 @@
 
 Dernière mise à jour : 2 octobre 2026.
 
-Ce document est le point d’entrée pour toute IA ou tout développeur qui reprend le projet. Il décrit l’état réel du dépôt, ses quatre applications, les règles métier, les données, la sécurité, Android et les décisions déjà prises.
+Ce document est le point d’entrée pour toute IA ou tout développeur qui reprend le projet. Il décrit l’état réel du dépôt, ses cinq applications, les règles métier, les données, la sécurité, Android et les décisions déjà prises.
 
 ## 1. Ordre de lecture obligatoire
 
@@ -18,12 +18,13 @@ Règles importantes héritées de `prompt.md` : ne pas recréer le projet, ne pa
 
 ## 2. Vision du produit
 
-T9DYA est un portail privé pour un foyer de deux personnes. Après connexion et sélection/création du foyer, le Hub présente quatre applications :
+T9DYA est un portail privé pour un foyer de deux personnes. Après connexion et sélection/création du foyer, le Hub présente cinq applications :
 
 1. **T9dya** : listes de courses, catalogue, cuisine et historique d’achats.
 2. **Budget** : vue financière, dépenses quotidiennes, charges fixes et enveloppes.
 3. **Hwayj** : dressing, vêtements et composition de tenues.
 4. **S7a ya s7a** : suivi santé, diabète, traitements, stocks et rendez-vous.
+5. **Carte** : partage GPS volontaire et position du partenaire sur une carte privée.
 
 Il n’y a plus d’application “Dar/Maison” ni de carte “bientôt disponible” dans le Hub. Ne réintroduire aucun placeholder sans demande explicite.
 
@@ -54,7 +55,7 @@ Les photos Hwayj et repas sont compressées dans le navigateur puis enregistrée
 - `src/main.jsx` : thème initial, initialisation Capacitor, PWA et montage React.
 - `src/native/NotificationCoordinator.jsx` : écoute globale Firestore et synchronisation des notifications Android, quel que soit l’écran ouvert.
 - `src/App.jsx` : garde globale Auth/Profil/Foyer et routes des applications.
-- `src/apps/registry.js` : registre des quatre applications du Hub.
+- `src/apps/registry.js` : registre des cinq applications du Hub.
 - `src/context/AuthContext.jsx` : session Firebase, profil `users/{uid}` et foyer.
 - `src/services/firebase.js` : initialisation Firebase et cache Firestore persistant.
 - `firestore.rules` : véritable barrière d’autorisation des données.
@@ -86,7 +87,7 @@ Fichiers :
 - `src/apps/hub/HealthHubAlerts.jsx`
 - `src/services/household.js`
 
-Le Hub affiche le foyer, ses deux membres, les alertes santé et les quatre cartes du registre. Pour ajouter un jour une vraie application, créer son dossier, son composant racine et une entrée activée dans `src/apps/registry.js`.
+Le Hub affiche le foyer, ses deux membres, les alertes santé et les cinq cartes du registre. Pour ajouter un jour une vraie application, créer son dossier, son composant racine et une entrée activée dans `src/apps/registry.js`.
 
 Les réglages du Hub gèrent :
 
@@ -97,6 +98,7 @@ Les réglages du Hub gèrent :
 - indicateur diabétique ;
 - thème sombre ;
 - autorisation des notifications ;
+- autorisation GPS, distincte de l’activation du partage ;
 - choix détaillé, appareil par appareil, des alertes Android, avec heure configurable pour les rappels quotidiens ;
 - déconnexion.
 
@@ -161,6 +163,8 @@ Toutes sont accessibles uniquement aux deux membres du foyer :
 - `trips`
 
 Les noms `templates`, `pantry` et `trips` sont réservés dans les règles mais peuvent ne pas avoir d’interface active.
+
+`households/{householdId}/locations/{uid}` contient uniquement la dernière position volontairement partagée par chaque membre : latitude, longitude, précision, cap, vitesse et date de mise à jour. Seul le propriétaire de l’UID écrit ou supprime sa position; les deux membres peuvent la lire.
 
 ## 8. Application T9dya
 
@@ -288,8 +292,8 @@ Les règles autorisent le partenaire à lire vêtements/images/outfits, mais seu
 
 `AddItemPage` suit trois étapes :
 
-1. consignes facultatives puis photo caméra ou galerie ;
-2. génération et vérification de l’image catalogue GPT ;
+1. photo caméra ou galerie, sans lancer automatiquement GPT ;
+2. aperçu de la photo, consignes facultatives, génération puis corrections successives sans perdre la photo ni le résultat précédent ;
 3. vérification et édition de tous les tags.
 
 `prepareUpload` réduit immédiatement la photo. L’action IA `enhance` reçoit jusqu’à 600 caractères de consignes facultatives et génère en qualité `high` une image détourée `1024x1536`. Le prompt impose un vêtement complet, droit et strictement de face, reconstruit les parties déjà coupées dans la source et préserve motifs, couleurs, coutures, boutons, poches, col et proportions. `tag` analyse ensuite une image réduite. L’écran montre explicitement la génération en cours puis uniquement le résultat GPT; la photo originale reste en mémoire pour une nouvelle tentative mais ne peut pas être enregistrée comme image finale.
@@ -310,9 +314,9 @@ Le dressing utilise uniquement les thumbnails afin d’éviter de charger toutes
 
 ### Composition des tenues
 
-Mode manuel : un haut et un bas, avec swipe horizontal et flèches. Les vestes/manteaux sont inclus dans les hauts. La hauteur visuelle reste stable pendant les transitions et un petit espace est conservé entre les pièces.
+Mode manuel : un haut et un bas, avec swipe horizontal et flèches. Les vestes/manteaux sont inclus dans les hauts. Avant affichage, le navigateur détecte les limites opaques du vêtement, retire visuellement les marges transparentes variables puis le replace dans un canevas fixe propre à son slot. Tous les hauts utilisent ainsi la même échelle et le même point d’ancrage inférieur; tous les bas utilisent la même largeur de référence et le même point d’ancrage supérieur. La jonction et l’espace restent constants pendant les transitions et dans l’aperçu d’enregistrement.
 
-Mode IA : l’utilisateur ajoute de 2 à 4 pièces dans des cases successives. Avant la génération, il peut écrire jusqu’à 600 caractères de consignes facultatives; elles sont enregistrées dans `generationNotes`. L’action `compose` charge des références jusqu’à 768 px et transmet le nom, type précis, couleurs, motif, matière, genre et consignes. Le prompt impose une vue strictement de face, une marge transparente, la reproduction fidèle des détails et la reconstruction prudente des parties déjà coupées dans la photo source. Il interdit de couper col, manches, ourlets, jambes ou chaussures. Le résultat est généré en `1024x1536`, qualité `high`.
+Mode IA : l’utilisateur ajoute de 2 à 4 pièces dans des cases successives. Avant la génération, il peut écrire jusqu’à 600 caractères de consignes facultatives; elles sont enregistrées dans `generationNotes`. Après un résultat, modifier ces consignes conserve l’image et toutes les pièces sélectionnées; le bouton devient « Corriger / régénérer ce look » afin d’itérer sans recommencer. L’action `compose` charge des références jusqu’à 768 px et transmet le nom, type précis, couleurs, motif, matière, genre et consignes. Le prompt impose une vue strictement de face, une marge transparente, la reproduction fidèle des détails et la reconstruction prudente des parties déjà coupées dans la photo source. Il interdit de couper col, manches, ourlets, jambes ou chaussures. Le résultat est généré en `1024x1536`, qualité `high`.
 
 Après chaque génération, `hasSafeTransparentMargins` analyse le canal alpha dans le navigateur. Si la silhouette touche un bord, Hwayj effectue automatiquement une seconde génération avec une instruction de recadrage renforcée. Le résultat haute définition est enregistré dans `outfitImages` et toujours affiché avec `object-contain` dans un cadre portrait. Cette seconde tentative consomme un appel image supplémentaire uniquement quand le contrôle détecte un cadrage insuffisant.
 
@@ -381,6 +385,16 @@ Un traitement possède un stock, une heure de rappel et une fréquence en jours 
 ### Rendez-vous
 
 Les rendez-vous peuvent être ponctuels ou récurrents tous les 1, 3, 6 ou 12 mois. Terminer un rendez-vous récurrent avance sa date; terminer un rendez-vous non récurrent le supprime. Le délai de rappel est configurable.
+
+## 11 bis. Application Carte
+
+Racine : `src/apps/map`. Route : `/map`.
+
+Chaque téléphone demande l’autorisation GPS séparément. L’autorisation seule ne publie rien : le membre doit activer explicitement « Partager ma position en direct ». `LocationCoordinator` conserve ensuite le suivi pendant la navigation dans les autres applications tant que le processus WebView reste actif. Il limite les écritures Firestore à une mise à jour toutes les douze secondes.
+
+La carte utilise les tuiles OpenStreetMap et affiche les deux marqueurs, la précision, la distance et la date de dernière mise à jour. Une position de plus de 90 secondes est marquée comme ancienne. Arrêter le partage supprime immédiatement `households/{householdId}/locations/{uid}` et le partenaire ne peut ni écrire ni supprimer la position de l’autre.
+
+Cette version ne demande volontairement pas l’autorisation Android de localisation permanente en arrière-plan et ne lance pas de service natif continu. Android peut donc suspendre les mises à jour quand l’application reste en arrière-plan ou est arrêtée; la carte le signale grâce à l’âge de la position.
 
 ## 12. API IA et sécurité
 
@@ -565,6 +579,7 @@ Scénarios de régression minimaux :
 10. Images Hwayj et repas restent sous les limites Firestore.
 11. La version web se met à jour sans page blanche.
 12. L’APK appelle l’API Vercel, gère le clavier, le retour et les rappels locaux.
+13. La Carte refuse toute écriture sur la position du partenaire, distingue une position ancienne du direct et supprime le document du membre quand il arrête le partage.
 
 ## 19. Pièges connus
 

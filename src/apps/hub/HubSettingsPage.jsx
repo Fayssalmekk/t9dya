@@ -1,10 +1,11 @@
-import { BellRing, Cake, Check, ChevronLeft, Clipboard, Clock3, Home, LoaderCircle, LogOut, Moon, Save, ShieldCheck, Sparkles, Sun, UserRound, Users } from 'lucide-react'
+import { BellRing, Cake, Check, ChevronLeft, Clipboard, Clock3, Home, LoaderCircle, LocateFixed, LogOut, Moon, Save, ShieldCheck, Sparkles, Sun, UserRound, Users } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { updateHouseholdName, updateMemberProfile } from '../../services/household'
 import { isNativeApp, syncNativeTheme } from '../../native/capacitor'
-import { getNotificationPreferences, nativeNotificationPermission, notificationOptions, requestNativeNotificationPermission, saveNotificationPreferences } from '../../native/notifications'
+import { getNotificationPreferences, nativeNotificationPermission, notificationOptions, requestNativeNotificationPermission, saveNotificationPreferences, sendTestNotification } from '../../native/notifications'
+import { locationPermissionState, requestLocationPermission } from '../../native/locationSharing'
 
 const sexLabels = { female: 'Femme', male: 'Homme' }
 
@@ -20,6 +21,8 @@ export default function HubSettingsPage() {
   const [error, setError] = useState('')
   const [notificationPermission, setNotificationPermission] = useState(() => isNativeApp ? 'prompt' : typeof Notification === 'undefined' ? 'unsupported' : Notification.permission)
   const [notificationPreferences, setNotificationPreferences] = useState(getNotificationPreferences)
+  const [testingNotification, setTestingNotification] = useState(false)
+  const [locationPermission, setLocationPermission] = useState('prompt')
   const members = (household.members || []).map((uid) => household.memberProfiles?.[uid]).filter(Boolean)
 
   useEffect(() => {
@@ -31,6 +34,10 @@ export default function HubSettingsPage() {
   useEffect(() => {
     if (!isNativeApp) return
     nativeNotificationPermission().then(setNotificationPermission).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    locationPermissionState().then(setLocationPermission).catch(() => {})
   }, [])
 
   const copyCode = async () => {
@@ -98,6 +105,33 @@ export default function HubSettingsPage() {
     setNotificationPreferences(saveNotificationPreferences({ ...notificationPreferences, [key]: value }))
   }
 
+  const testNotification = async () => {
+    setTestingNotification(true)
+    setError('')
+    try {
+      await sendTestNotification()
+      setNotificationPermission('granted')
+      setMessage('Notification de test programmée. Elle doit apparaître dans une seconde.')
+      saveNotificationPreferences(notificationPreferences)
+    } catch (reason) {
+      setError(reason?.message === 'NOTIFICATION_PERMISSION_DENIED' ? 'Android bloque les notifications. Réactivez-les dans les réglages de l’application.' : `Test impossible${reason?.message ? ` : ${reason.message}` : '.'}`)
+    } finally {
+      setTestingNotification(false)
+    }
+  }
+
+  const enableLocation = async () => {
+    setError('')
+    try {
+      await requestLocationPermission()
+      setLocationPermission('granted')
+      setMessage('GPS autorisé. Vous décidez quand partager depuis l’application Carte.')
+    } catch (reason) {
+      setLocationPermission(reason?.code === 1 ? 'denied' : locationPermission)
+      setError(reason?.code === 1 ? 'Localisation refusée. Autorisez-la dans les réglages Android.' : 'Le téléphone n’arrive pas à obtenir votre position GPS.')
+    }
+  }
+
   return (
     <main className="min-h-dvh bg-canvas px-4 py-6 text-ink sm:px-6 sm:py-10">
       <div className="mx-auto max-w-2xl">
@@ -129,10 +163,12 @@ export default function HubSettingsPage() {
           <button type="button" onClick={() => setDark((value) => !value)} className="flex min-h-16 w-full items-center gap-3 border-b border-slate-100 px-5 text-left dark:border-slate-800"><span className="grid h-10 w-10 place-items-center rounded-xl bg-canvas">{dark ? <Moon size={20} /> : <Sun size={20} />}</span><span className="flex-1 font-bold">Mode sombre</span><span className={`relative h-7 w-12 rounded-full transition ${dark ? 'bg-teal-600' : 'bg-slate-200'}`}><span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${dark ? 'left-6' : 'left-1'}`} /></span></button>
           <div className="flex min-h-16 items-center gap-3 px-5"><span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><ShieldCheck size={20} /></span><span className="flex-1"><strong className="block">Foyer privé</strong><small className="text-muted">Accessible uniquement à vos deux comptes</small></span></div>
           <button type="button" onClick={enableNotifications} disabled={notificationPermission === 'granted' || notificationPermission === 'unsupported'} className="flex min-h-16 w-full items-center gap-3 border-t border-slate-100 px-5 text-left disabled:opacity-70 dark:border-slate-800"><span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-50 text-amber-700"><BellRing size={20} /></span><span className="flex-1"><strong className="block">Notifications</strong><small className="text-muted">{notificationPermission === 'granted' ? 'Activées sur cet appareil' : notificationPermission === 'denied' ? (isNativeApp ? 'Bloquées dans les réglages Android' : 'Bloquées dans le navigateur') : 'Activer les alertes de la plateforme'}</small></span>{notificationPermission === 'granted' && <Check size={19} className="text-emerald-600" />}</button>
+          <button type="button" onClick={enableLocation} disabled={locationPermission === 'granted' || locationPermission === 'unsupported'} className="flex min-h-16 w-full items-center gap-3 border-t border-slate-100 px-5 text-left disabled:opacity-70 dark:border-slate-800"><span className="grid h-10 w-10 place-items-center rounded-xl bg-sky-50 text-sky-700 dark:bg-sky-950"><LocateFixed size={20} /></span><span className="flex-1"><strong className="block">Localisation GPS</strong><small className="text-muted">{locationPermission === 'granted' ? 'Autorisée · partage contrôlé dans Carte' : locationPermission === 'denied' ? 'Bloquée dans les réglages Android' : locationPermission === 'unsupported' ? 'Indisponible sur cet appareil' : 'Autoriser sans commencer le partage'}</small></span>{locationPermission === 'granted' && <Check size={19} className="text-emerald-600" />}</button>
         </section>
 
         {isNativeApp && <section className="mt-4 rounded-[1.75rem] bg-surface p-5 shadow-card">
           <div className="flex items-center gap-3"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-violet-100 text-violet-700"><Sparkles size={22} /></span><div><h2 className="font-black">Mes notifications Android</h2><p className="text-xs text-muted">Chaque choix est enregistré uniquement sur ce téléphone</p></div></div>
+          <button type="button" onClick={testNotification} disabled={testingNotification} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 font-black text-white disabled:opacity-60 dark:bg-white dark:text-slate-950">{testingNotification ? <LoaderCircle className="animate-spin" size={18} /> : <BellRing size={18} />}{testingNotification ? 'Programmation…' : 'Envoyer une notification de test'}</button>
           <div className="mt-5 space-y-3">
             {notificationOptions.map((option) => {
               const enabled = Boolean(notificationPreferences[option.key])

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { useI18n } from '../../i18n/I18nContext'
 
 const MotionArticle = motion.article
-const accents = { teal: 'bg-teal-50 text-teal-700 dark:bg-teal-950/50 dark:text-teal-200', violet: 'bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-200', amber: 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-200', rose: 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-200' }
+const accents = { teal: 'bg-teal-50 text-teal-700 dark:bg-teal-950/50 dark:text-teal-200', violet: 'bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-200', amber: 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-200', rose: 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-200', sky: 'bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-200' }
 
 export default function AppCard({ app }) {
   const { t } = useI18n()
