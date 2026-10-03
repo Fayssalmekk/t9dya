@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { usePlatform } from '../../../context/PlatformContext'
 import HwayjHeader from '../components/HwayjHeader'
-import ClothingImage from '../components/ClothingImage'
+import ClothingImage, { preloadNormalizedClothingImage } from '../components/ClothingImage'
 import { useWardrobe } from '../context/WardrobeContext'
 import { callHwayjAI, getHwayjAIErrorMessage } from '../services/ai'
 import { getClothingImage, getOutfitImage, saveOutfit } from '../services/wardrobe'
@@ -45,6 +45,7 @@ function OutfitComposer({ outfitId, outfit, clothes }) {
   const [generationError, setGenerationError] = useState('')
   const [saving, setSaving] = useState(false)
   const swipeStarts = useRef({})
+  const pendingCycles = useRef({})
 
   useEffect(() => {
     if (!outfit?.id || outfit.mode !== 'ai') return undefined
@@ -58,13 +59,18 @@ function OutfitComposer({ outfitId, outfit, clothes }) {
 
   const selectedItem = (slot) => clothes.find((item) => item.id === manual[slot])
   const choices = (slot) => slot === 'top' ? tops : slots.bottom
-  const cycle = (slot, direction) => {
+  const cycle = async (slot, direction) => {
     const available = choices(slot)
     if (!available.length) return
     const index = available.findIndex((item) => item.id === manual[slot])
     const nextIndex = (Math.max(index, direction > 0 ? -1 : 0) + direction + available.length) % available.length
+    const nextItem = available[nextIndex]
+    const requestId = (pendingCycles.current[slot] || 0) + 1
+    pendingCycles.current[slot] = requestId
+    await preloadNormalizedClothingImage(ownerId, nextItem, slot)
+    if (pendingCycles.current[slot] !== requestId) return
     setDirections((current) => ({ ...current, [slot]: direction }))
-    setManual((current) => ({ ...current, [slot]: available[nextIndex].id }))
+    setManual((current) => ({ ...current, [slot]: nextItem.id }))
   }
   const swipeArea = (slot) => ({
     onTouchStart: (event) => { swipeStarts.current[slot] = event.touches[0].clientX },

@@ -13,7 +13,7 @@ export function WardrobeProvider({ children }) {
   const [error, setError] = useState('')
 
   const ownerId = household?.members?.includes(selectedOwnerId) ? selectedOwnerId : user?.uid
-  const ownerProfile = household?.memberProfiles?.[ownerId] || (ownerId && ownerId === user?.uid ? { uid: user.uid, displayName: user.displayName || user.email?.split('@')[0] || 'Moi' } : null)
+  const ownerProfile = useMemo(() => household?.memberProfiles?.[ownerId] || (ownerId && ownerId === user?.uid ? { uid: user.uid, displayName: user.displayName || user.email?.split('@')[0] || 'Moi' } : null), [household?.memberProfiles, ownerId, user])
   const isOwnWardrobe = ownerId === user?.uid
 
   useEffect(() => {
