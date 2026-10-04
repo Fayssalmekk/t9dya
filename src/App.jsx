@@ -11,6 +11,7 @@ import { I18nProvider } from './i18n/I18nContext'
 import NotificationCoordinator from './native/NotificationCoordinator'
 import LocationCoordinator from './native/LocationCoordinator'
 import PortalTopBar from './components/PortalTopBar'
+import FormKeyboardCoordinator from './components/FormKeyboardCoordinator'
 
 const legacyRoutes = ['list', 'catalog', 'history']
 
@@ -28,5 +29,5 @@ function ClosedAccountPage({ onSignOut }) {
 }
 
 export default function App() {
-  return <AppErrorBoundary><I18nProvider><AuthProvider><NotificationCoordinator /><LocationCoordinator /><AppRoutes /></AuthProvider></I18nProvider></AppErrorBoundary>
+  return <AppErrorBoundary><I18nProvider><AuthProvider><FormKeyboardCoordinator /><NotificationCoordinator /><LocationCoordinator /><AppRoutes /></AuthProvider></I18nProvider></AppErrorBoundary>
 }

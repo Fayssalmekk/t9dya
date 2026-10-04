@@ -93,6 +93,11 @@ body {
   min-height: 100dvh;
 }
 
+body.dialog-open {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 /* A single discreet scrollbar language for pages, sheets and small pickers. */
 * {
   scrollbar-color: rgb(var(--scrollbar-thumb) / 0.62) transparent;
@@ -233,12 +238,26 @@ textarea {
 /* Mobile sheets shrink when the Android keyboard appears. Keep the focused
    control and the form actions inside the sheet instead of scrolling the page
    behind it. Forms still open with no field focused. */
-[role='dialog'] .overflow-y-auto {
+[role='dialog'] .overflow-y-auto,
+.fixed.inset-0 .overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
   scroll-padding-block: 1.5rem calc(9rem + env(safe-area-inset-bottom));
 }
 
-[role='dialog'] :is(input, textarea, select) {
+[role='dialog'],
+.fixed.inset-0:has(form) {
+  overscroll-behavior: none;
+}
+
+.fixed.inset-0 > form {
+  max-height: 94dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+[role='dialog'] :is(input, textarea, select),
+.fixed.inset-0 :is(input, textarea, select) {
   scroll-margin-block: 5rem calc(9rem + env(safe-area-inset-bottom));
 }
 
