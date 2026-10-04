@@ -3,10 +3,14 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
+  query,
   runTransaction,
   serverTimestamp,
   setDoc,
-  updateDoc
+  updateDoc,
+  where,
+  writeBatch
 } from 'firebase/firestore'
 import { db } from './firebase'
 
@@ -197,6 +201,15 @@ export function setGrocerySalaryOwner(householdId, memberId) {
 
 export async function unmarkChargePaid(householdId, chargeId, month) {
   return deleteDoc(doc(db, 'households', householdId, 'chargePayments', `${chargeId}_${month}`))
+}
+
+export async function resetChargePaymentsForMonth(householdId, month) {
+  const payments = await getDocs(query(householdCollection(householdId, 'chargePayments'), where('month', '==', month)))
+  if (payments.empty) return 0
+  const batch = writeBatch(db)
+  payments.docs.forEach((payment) => batch.delete(payment.ref))
+  await batch.commit()
+  return payments.size
 }
 
 export async function createExpense(householdId, userId, values) {

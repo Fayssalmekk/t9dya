@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react'
-import { CalendarCheck, Check, ChevronLeft, ChevronRight, Pencil, Plus, ReceiptText, ShoppingBasket } from 'lucide-react'
+import { CalendarCheck, Check, ChevronLeft, ChevronRight, Pencil, Plus, ReceiptText, RotateCcw, ShoppingBasket, X } from 'lucide-react'
 import AppHeader from '../components/AppHeader'
 import ChargeSheet from '../components/ChargeSheet'
 import { useAuth } from '../context/AuthContext'
 import { usePlatform } from '../context/PlatformContext'
 import { useShopping } from '../context/ShoppingContext'
 import { useHouseholdBudget } from '../hooks/useHouseholdBudget'
-import { markChargePaid, setGrocerySalaryOwner, unmarkChargePaid } from '../services/budget'
+import { markChargePaid, resetChargePaymentsForMonth, setGrocerySalaryOwner, unmarkChargePaid } from '../services/budget'
 import { setMonthlyBudget } from '../services/shopping'
 
 const money = (value) => `${Number(value || 0).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} DH`
@@ -24,6 +24,8 @@ export default function ChargesPage() {
   const [groceryInput, setGroceryInput] = useState(household.budget?.monthly || '')
   const [busy, setBusy] = useState('')
   const [saving, setSaving] = useState(false)
+  const [resetOpen, setResetOpen] = useState(false)
+  const [resetting, setResetting] = useState(false)
   const members = (household.members || []).map((uid) => household.memberProfiles?.[uid]).filter(Boolean)
   const key = monthKey(month)
   const monthPayments = useMemo(() => payments.filter((payment) => payment.month === key), [key, payments])
@@ -82,6 +84,19 @@ export default function ChargesPage() {
     }
   }
 
+  const resetMonthPayments = async () => {
+    setResetting(true)
+    try {
+      const count = await resetChargePaymentsForMonth(household.id, key)
+      setResetOpen(false)
+      notify(`${count} paiement${count > 1 ? 's' : ''} remis à payer`)
+    } catch {
+      notify('Impossible de réinitialiser les paiements du mois')
+    } finally {
+      setResetting(false)
+    }
+  }
+
   return (
     <main className="mx-auto min-h-dvh w-full max-w-2xl px-4 pb-28 pt-6 sm:px-6">
       <AppHeader title="Charges" subtitle="Vos paiements qui reviennent chaque mois" />
@@ -96,6 +111,8 @@ export default function ChargesPage() {
 
         <div className="mt-6 flex items-center justify-between"><div><h2 className="text-xl font-black">Charges fixes</h2><p className="mt-1 text-xs font-semibold text-muted">{paidCount} sur {charges.length} payées ce mois</p></div><button type="button" onClick={() => setShowNew(true)} className="flex min-h-11 items-center gap-2 rounded-xl bg-amber-500 px-4 text-sm font-extrabold text-white"><Plus size={18} />Ajouter</button></div>
 
+        {monthPayments.length > 0 && <button type="button" onClick={() => setResetOpen(true)} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 text-sm font-black text-rose-700 transition active:scale-[.98] dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200"><RotateCcw size={17} />Tout remettre à payer pour ce mois</button>}
+
         <div className="mt-3 space-y-3">{charges.map((charge) => {
           const paid = paidByCharge.has(charge.id)
           const salaryName = household.memberProfiles?.[charge.salaryOwnerId]?.displayName
@@ -106,6 +123,7 @@ export default function ChargesPage() {
       </>}
 
       {(showNew || editing) && <ChargeSheet charge={editing} onClose={() => { setShowNew(false); setEditing(null) }} />}
+      {resetOpen && <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-5" role="dialog" aria-modal="true" aria-labelledby="reset-payments-title"><button type="button" onClick={() => setResetOpen(false)} className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" aria-label="Annuler" /><section className="relative w-full max-w-md rounded-t-[2rem] bg-surface p-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-center shadow-2xl sm:rounded-[2rem]"><button type="button" onClick={() => setResetOpen(false)} className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-xl bg-canvas" aria-label="Fermer"><X size={18} /></button><span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-300"><RotateCcw size={28} /></span><h2 id="reset-payments-title" className="mt-4 text-xl font-black">Recommencer les paiements de {month.toLocaleDateString('fr-FR', { month: 'long' })} ?</h2><p className="mt-2 text-sm leading-6 text-muted">Les {monthPayments.length} charges marquées payées seront remises à payer. Les salaires, enveloppes, dépenses du journal et achats T9dya restent intacts.</p><div className="mt-5 grid grid-cols-2 gap-2"><button type="button" onClick={() => setResetOpen(false)} className="min-h-12 rounded-xl bg-canvas font-extrabold">Annuler</button><button type="button" onClick={resetMonthPayments} disabled={resetting} className="min-h-12 rounded-xl bg-rose-600 font-extrabold text-white disabled:opacity-50">{resetting ? 'Réinitialisation…' : 'Tout remettre à payer'}</button></div></section></div>}
     </main>
   )
 }
