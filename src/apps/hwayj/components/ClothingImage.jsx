@@ -65,7 +65,7 @@ function normalizeTransparentGarment(source, slot) {
         if (right < left || bottom < top) { resolve(source); return }
         const sourceWidth = right - left + 1
         const sourceHeight = bottom - top + 1
-        const padding = Math.max(2, Math.round(Math.max(sourceWidth, sourceHeight) * 0.018))
+        const padding = Math.max(2, Math.round(Math.max(sourceWidth, sourceHeight) * 0.01))
         left = Math.max(0, left - padding)
         top = Math.max(0, top - padding)
         right = Math.min(scan.width - 1, right + padding)
@@ -78,7 +78,7 @@ function normalizeTransparentGarment(source, slot) {
         const logicalHeight = isBottom ? 280 : 220
         output.width = Math.round(logicalWidth * pixelRatio)
         output.height = Math.round(logicalHeight * pixelRatio)
-        const maxWidth = isBottom ? 182 : 232
+        const maxWidth = isBottom ? 190 : 210
         const maxHeight = isBottom ? 274 : 212
         const scale = Math.min(maxWidth / cropWidth, maxHeight / cropHeight)
         const width = cropWidth * scale * pixelRatio

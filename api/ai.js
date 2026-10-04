@@ -129,6 +129,7 @@ async function enhance(image, instructions = '', category = '', subcategory = ''
 IDENTITY: ${presentation}
 FRAMING: One item only, centered, upright and fully visible with generous transparent space on every side. Never crop any collar, hood, sleeve, cuff, hem, leg, toe, heel or sole. If the phone photo cuts off a part, conservatively complete it from symmetry, seams, fabric and the repeating pattern.
 FIDELITY: Copy every real detail exactly: all colors, contrast trims and piping (especially collar, cuffs, sleeves and bottom hem), motif geometry and spacing, logos, embroidery, stitching, seams, buttons, zips, pockets, texture, material, cut and proportions. Do not simplify, redesign, remove, recolor or invent distinctive details.
+STYLING: Preserve deliberate styling visible in the phone photo. If long sleeves are rolled, folded or pushed halfway toward the elbows, keep them at that exact height instead of extending them. Preserve open or closed buttons and zips, raised or folded collars, turned cuffs, cinched waists, knots, tucks, drape and intentional asymmetry.
 SCENE: Invisible ghost mannequin only when needed for shape. No person, skin, face, hands, hanger, props, store furniture or extra product.
 USER NOTE: ${userDirections || 'None.'}`)
   form.append('quality', 'medium')
@@ -179,7 +180,7 @@ NON-NEGOTIABLE COMPOSITION RULES:
 - Keep generous transparent margin above, below, left and right. Never crop, zoom in, fill the frame, cut off, split, fold away or hide any garment edge.
 - The full collar or neckline, hood, shoulders, both sleeves and cuffs, waist, hems, full trouser legs, full dress or skirt length, shoes and accessories must remain visible when present.
 - If an original reference is cropped, conservatively reconstruct its missing continuation into a plausible complete garment. Extend the visible cut, symmetry, fabric, seams and repeating motif; do not leave the generated garment cropped merely because the source is cropped.
-- Treat each supplied image and its metadata as the exact product identity. Reproduce the same dominant and secondary colors, motif geometry, motif scale and spacing, print placement, logos, embroidery, texture, fabric, seams, buttons, pockets, collar shape, sleeve shape, cut and proportions. Do not simplify, blur, invent, remove, replace or redesign distinctive details.
+- Treat each supplied image and its metadata as the exact product identity. Reproduce the same dominant and secondary colors, motif geometry, motif scale and spacing, print placement, logos, embroidery, texture, fabric, seams, buttons, pockets, collar shape, sleeve shape, cut and proportions. Preserve deliberate styling such as rolled or pushed-up sleeves, open or closed fastenings, folded collars, turned cuffs, tucks, knots and drape. Do not simplify, blur, invent, remove, replace or redesign distinctive details.
 - Arrange upper layers, bottoms, dresses, shoes and accessories in anatomically correct positions. Preserve the intended gender, fit and silhouette. Never turn masculine cuts into feminine cuts or feminine cuts into masculine cuts.
 - Use an invisible ghost mannequin only. Do not show a person, face, skin, hands, hanger, shop fixture or any garment that was not selected.
 
