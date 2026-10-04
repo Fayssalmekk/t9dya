@@ -22,6 +22,34 @@
   --cuisine-warm: 249 115 22;
   --cuisine-card-radius: 2rem;
   --cuisine-swipe-threshold: 105px;
+  --app-safe-top: 0px;
+}
+
+/* Android 15+ always renders WebViews edge-to-edge. Capacitor injects the
+   reliable --safe-area-inset-* values; reserve that area for the phone's
+   clock, network and battery instead of letting app content enter it. */
+html.native-app {
+  --app-safe-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+}
+
+html.native-app body {
+  padding-top: var(--app-safe-top);
+}
+
+html.native-app::before {
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: var(--app-safe-top);
+  background: rgb(var(--color-canvas));
+  content: '';
+  pointer-events: none;
+}
+
+.portal-top-bar {
+  top: var(--app-safe-top);
 }
 
 .cuisine-page {

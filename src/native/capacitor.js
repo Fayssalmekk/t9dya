@@ -1,4 +1,4 @@
-import { Capacitor } from '@capacitor/core'
+import { Capacitor, SystemBars, SystemBarsStyle } from '@capacitor/core'
 import { App as CapacitorApp } from '@capacitor/app'
 import { Keyboard, KeyboardResize } from '@capacitor/keyboard'
 import { LocalNotifications } from '@capacitor/local-notifications'
@@ -9,6 +9,7 @@ export const isNativeApp = Capacitor.isNativePlatform()
 export async function syncNativeTheme(dark = document.documentElement.classList.contains('dark')) {
   if (!isNativeApp) return
   await Promise.allSettled([
+    SystemBars.setStyle({ style: dark ? SystemBarsStyle.Dark : SystemBarsStyle.Light }),
     StatusBar.setBackgroundColor({ color: dark ? '#020617' : '#f8fafc' }),
     StatusBar.setStyle({ style: dark ? Style.Light : Style.Dark })
   ])

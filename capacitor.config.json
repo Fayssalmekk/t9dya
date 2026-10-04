@@ -17,8 +17,13 @@
       "showSpinner": false
     },
     "Keyboard": {
-      "resize": "native",
-      "resizeOnFullScreen": true
+      "resize": "native"
+    },
+    "SystemBars": {
+      "insetsHandling": "css",
+      "initialViewportFitValueHint": "cover",
+      "style": "LIGHT",
+      "hidden": false
     },
     "StatusBar": {
       "overlaysWebView": false,

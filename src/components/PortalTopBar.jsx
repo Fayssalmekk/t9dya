@@ -18,7 +18,7 @@ export default function PortalTopBar() {
   const AppIcon = app.icon
   const initial = profile?.displayName?.charAt(0)?.toUpperCase() || '?'
 
-  return <nav className="sticky top-0 z-40 border-b border-slate-200/70 bg-surface/90 px-3 py-2 text-ink shadow-[0_8px_30px_-22px_rgba(15,23,42,.65)] backdrop-blur-xl dark:border-slate-800/80" aria-label="Navigation rapide">
+  return <nav className="portal-top-bar sticky z-40 border-b border-slate-200/70 bg-surface/90 px-3 py-2 text-ink shadow-[0_8px_30px_-22px_rgba(15,23,42,.65)] backdrop-blur-xl dark:border-slate-800/80" aria-label="Navigation rapide">
     <div className="mx-auto flex min-h-12 w-full max-w-2xl items-center gap-2">
       <Link to="/" className="flex min-h-11 items-center gap-2 rounded-2xl bg-canvas px-3 font-black text-muted transition active:scale-95" aria-label="Retour au Hub"><Home size={19} /><span className="hidden text-xs sm:inline">Hub</span></Link>
       <div className={`mx-auto flex min-h-10 items-center gap-2 rounded-full px-3 text-xs font-black ${app.soft}`}><span className={`grid h-7 w-7 place-items-center rounded-full text-white ${app.tone}`}><AppIcon size={15} /></span>{app.label}</div>
