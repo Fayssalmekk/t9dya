@@ -48,6 +48,8 @@ Le produit est en français. Des traductions historiques existent encore dans `s
 - Node.js minimum : 22.12.
 - Firebase Spark : pas de Cloud Functions et pas de Cloud Storage.
 
+Les formulaires en fenêtre mobile ne doivent jamais utiliser `autoFocus` : la feuille doit être visible avant que l’utilisateur touche un champ. Toute feuille contenant un formulaire utilise une hauteur en `dvh` avec `overflow-y-auto`; les règles communes de `src/styles/index.css` gardent le contrôle focalisé visible au-dessus du clavier Android.
+
 Les photos Hwayj et repas sont compressées dans le navigateur puis enregistrées comme Data URLs dans Firestore. Respecter strictement la limite Firestore de 1 MiB par document.
 
 ## 4. Entrées principales

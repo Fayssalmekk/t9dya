@@ -33,7 +33,7 @@ export default function NewListSheet({ onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true" aria-labelledby="new-list-title">
       <button type="button" className="absolute inset-0 bg-slate-950/50 backdrop-blur-[2px]" onClick={onClose} aria-label="Fermer" />
-      <form onSubmit={submit} className="relative w-full max-w-lg rounded-t-[2rem] bg-surface px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3 shadow-2xl">
+      <form onSubmit={submit} className="relative max-h-[94dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-[2rem] bg-surface px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3 shadow-2xl">
         <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-200 dark:bg-slate-700" />
         <div className="flex items-center gap-3"><span className="grid h-12 w-12 place-items-center rounded-xl bg-accent-100 text-accent-700"><Plus size={23} /></span><div className="flex-1"><h2 id="new-list-title" className="text-xl font-extrabold">Nouvelle course</h2><p className="text-sm text-muted">Une liste séparée avec son propre résumé</p></div><button type="button" onClick={onClose} className="grid min-h-11 min-w-11 place-items-center rounded-xl bg-canvas" aria-label="Fermer"><X size={19} /></button></div>
         <label className="mt-6 block"><span className="mb-2 block text-sm font-bold">Nom de la liste</span><input value={title} onChange={(event) => setTitle(event.target.value)} required maxLength={50} placeholder="Courses du weekend" className="min-h-12 w-full rounded-xl border border-slate-200 bg-surface px-4 dark:border-slate-700" /></label>

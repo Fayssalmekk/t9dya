@@ -89,7 +89,7 @@ export default function CreateCustomProductSheet({ initialName = '', existingPro
         <div className="flex items-center gap-3"><span className="grid h-12 w-12 place-items-center rounded-xl bg-accent-100 text-accent-700"><PackagePlus size={23} /></span><div className="min-w-0 flex-1"><h2 id="custom-product-title" className="text-xl font-extrabold">Créer un produit</h2><p className="text-sm text-muted">Enregistré pour toujours dans votre foyer</p></div><button type="button" onClick={onClose} className="grid min-h-11 min-w-11 place-items-center rounded-xl bg-canvas" aria-label="Fermer"><X size={19} /></button></div>
 
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Nom du produit *"><input autoFocus value={form.name} onChange={(event) => update('name', event.target.value)} required maxLength={80} placeholder="Ex. Sauce samouraï" className="field-input" /></Field>
+          <Field label="Nom du produit *"><input value={form.name} onChange={(event) => update('name', event.target.value)} required maxLength={80} placeholder="Ex. Sauce samouraï" className="field-input" /></Field>
           <Field label="Nom Darija / arabe"><input value={form.altName} onChange={(event) => update('altName', event.target.value)} maxLength={80} dir="auto" placeholder="الاسم بالعربية" className="field-input" /></Field>
           <Field label="Marque"><input value={form.brand} onChange={(event) => update('brand', event.target.value)} maxLength={50} placeholder="Ex. Aïcha" className="field-input" /></Field>
           <Field label="Format"><input value={form.format} onChange={(event) => update('format', event.target.value)} maxLength={40} placeholder="Ex. 500 g, pack x6" className="field-input" /></Field>

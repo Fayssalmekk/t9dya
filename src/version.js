@@ -1,2 +1,2 @@
 // Update this value manually before each production push.
-export const APP_VERSION = '1.1.2'
+export const APP_VERSION = '1.1.3'

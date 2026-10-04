@@ -129,6 +129,7 @@ Sur chaque téléphone, vérifiez les cas suivants :
 - le bouton retour ferme d’abord une page ou revient à la page précédente ;
 - depuis le portail ou la connexion, le bouton retour quitte l’application ;
 - les feuilles et fenêtres restent utilisables avec le clavier ouvert ;
+- les formulaires s’ouvrent entièrement sans lancer le clavier; celui-ci apparaît seulement après avoir touché un champ, puis la feuille défile pour garder la saisie visible ;
 - la caméra demande son autorisation au premier usage ;
 - les barres système Android restent noires avec des icônes blanches pour garder Wi-Fi, batterie et navigation lisibles ;
 - aucune page ne passe sous la barre système ou la navigation du téléphone ;

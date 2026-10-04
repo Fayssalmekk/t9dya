@@ -202,6 +202,18 @@ textarea {
   100% { opacity: 0; transform: translateY(-8rem) scale(1.15); }
 }
 
+/* Mobile sheets shrink when the Android keyboard appears. Keep the focused
+   control and the form actions inside the sheet instead of scrolling the page
+   behind it. Forms still open with no field focused. */
+[role='dialog'] .overflow-y-auto {
+  overscroll-behavior-y: contain;
+  scroll-padding-block: 1.5rem calc(9rem + env(safe-area-inset-bottom));
+}
+
+[role='dialog'] :is(input, textarea, select) {
+  scroll-margin-block: 5rem calc(9rem + env(safe-area-inset-bottom));
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
