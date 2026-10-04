@@ -5,9 +5,11 @@ import { registerSW } from 'virtual:pwa-register'
 import App from './App'
 import './styles/index.css'
 import { initializeNativeShell, isNativeApp } from './native/capacitor'
+import { initializeInstallPrompt } from './pwa/installPrompt'
 
 document.documentElement.classList.toggle('dark', localStorage.getItem('t9dya-theme') === 'dark')
 initializeNativeShell().catch(() => {})
+if (!isNativeApp) initializeInstallPrompt()
 
 const repairApplication = () => window.__t9dyaRepairApp?.()
 const dynamicImportError = /dynamically imported module|loading chunk|chunkloaderror|importing a module script failed/i

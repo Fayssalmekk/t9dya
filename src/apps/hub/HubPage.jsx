@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext'
 import { appRegistry } from '../registry'
 import AppCard from './AppCard'
 import HealthHubAlerts from './HealthHubAlerts'
+import InstallAppCard from './InstallAppCard'
 import { APP_VERSION } from '../../version'
 
 export default function HubPage() {
@@ -28,6 +29,7 @@ export default function HubPage() {
 
         {profileIncomplete && <Link to="/settings" className="mt-4 flex items-center gap-3 rounded-2xl border border-violet-200 bg-violet-50 p-4 text-violet-900 dark:border-violet-900 dark:bg-violet-950 dark:text-violet-100"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-200"><UserRound size={20} /></span><span className="min-w-0 flex-1"><strong className="block text-sm">Complétez votre profil</strong><small className="text-violet-700 dark:text-violet-300">Date de naissance et sexe amélioreront les futures suggestions.</small></span><ArrowRight size={18} /></Link>}
 
+        <InstallAppCard />
         <HealthHubAlerts />
 
         <div className="mt-9"><p className="text-xs font-black uppercase tracking-[0.18em] text-muted">Vos applications</p><h2 className="mt-2 text-2xl font-black">Que voulez-vous ouvrir ?</h2></div>

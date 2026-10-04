@@ -18,6 +18,7 @@ export default defineConfig(({ mode }) => {
         name: 'Notre espace - T9dya et Hwayj',
         short_name: 'Notre espace',
         description: 'Courses, budget du foyer et dressing personnel.',
+        id: '/',
         theme_color: '#0f766e',
         background_color: '#f8fafc',
         display: 'standalone',
