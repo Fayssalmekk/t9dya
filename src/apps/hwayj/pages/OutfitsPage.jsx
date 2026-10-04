@@ -49,5 +49,5 @@ function OutfitPreview({ outfit, clothes, ownerId }) {
   const bottomEntry = outfit.items?.find((entry) => entry.slot === 'bottom') || outfit.items?.[1]
   const top = clothes.find((item) => item.id === topEntry?.itemId)
   const bottom = clothes.find((item) => item.id === bottomEntry?.itemId)
-  return <div className="grid aspect-[2/3] max-h-[30rem] w-full place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-slate-50 to-violet-50 p-3 dark:from-slate-900 dark:to-violet-950/40"><ManualOutfitPreview ownerId={ownerId} top={top} bottom={bottom} className="h-full w-full" /></div>
+  return <div className="grid aspect-[2/3] max-h-[30rem] w-full place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-slate-50 to-violet-50 p-3 dark:from-slate-900 dark:to-violet-950/40"><ManualOutfitPreview ownerId={ownerId} top={top} bottom={bottom} layout={outfit.manualLayout || undefined} className="aspect-[2/3] w-full max-h-full" /></div>
 }

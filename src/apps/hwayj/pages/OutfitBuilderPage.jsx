@@ -6,12 +6,14 @@ import { usePlatform } from '../../../context/PlatformContext'
 import HwayjHeader from '../components/HwayjHeader'
 import ClothingImage, { preloadNormalizedClothingImage } from '../components/ClothingImage'
 import ManualOutfitPreview from '../components/ManualOutfitPreview'
+import ManualOutfitSaveModal from '../components/ManualOutfitSaveModal'
 import { useWardrobe } from '../context/WardrobeContext'
 import { callHwayjAI, getHwayjAIErrorMessage } from '../services/ai'
 import { getClothingImage, getOutfitImage, saveOutfit } from '../services/wardrobe'
 import { wardrobeBySlot } from '../utils/clothingTypes'
 import { createVisionImage, finalizeOutfitImage, hasSafeTransparentMargins } from '../utils/images'
 import { getWardrobeGender } from '../utils/profileGender'
+import { normalizeManualOutfitLayout } from '../utils/manualOutfitLayout'
 
 const MotionButton = motion.button
 
@@ -34,6 +36,7 @@ function OutfitComposer({ outfitId, outfit, clothes }) {
   const savedBottom = outfit?.items?.find((entry) => entry.slot === 'bottom')?.itemId || savedIds.find((id) => slots.bottom.some((item) => item.id === id))
   const [type, setType] = useState(() => outfit?.mode === 'ai' ? 'ai' : 'manual')
   const [manual, setManual] = useState(() => ({ top: savedTop || tops[0]?.id, bottom: savedBottom || slots.bottom[0]?.id }))
+  const [manualLayout, setManualLayout] = useState(() => normalizeManualOutfitLayout(outfit?.manualLayout))
   const [aiItems, setAiItems] = useState(() => outfit?.mode === 'ai' ? savedIds : [])
   const [aiPreview, setAiPreview] = useState(() => outfit?.previewThumb || '')
   const [aiPreviewThumb, setAiPreviewThumb] = useState(() => outfit?.previewThumb || '')
@@ -163,14 +166,20 @@ function OutfitComposer({ outfitId, outfit, clothes }) {
     if ((type === 'manual' && itemIds.length < 2) || (type === 'ai' && (!aiPreview || itemIds.length < 2))) return
     setSaving(true)
     try {
-      const items = itemIds.map((itemId, index) => ({ itemId, slot: type === 'manual' ? (index === 0 ? 'top' : 'bottom') : 'complex', x: 50, y: type === 'manual' ? (index === 0 ? 100 : 240) : 150, scale: 1, rotation: 0, z: index + 1 }))
+      const fittedLayout = normalizeManualOutfitLayout(manualLayout)
+      const items = itemIds.map((itemId, index) => {
+        const slot = type === 'manual' ? (index === 0 ? 'top' : 'bottom') : 'complex'
+        const fittedPart = type === 'manual' ? fittedLayout[slot] : null
+        return { itemId, slot, x: fittedPart?.x ?? 50, y: fittedPart?.y ?? 150, scale: fittedPart?.scale ?? 1, rotation: 0, z: type === 'manual' ? (fittedLayout.front === slot ? 2 : 1) : index + 1 }
+      })
       await saveOutfit(ownerId, {
         name: details.name.trim() || (type === 'manual' ? 'Haut + bas' : 'Look IA'),
         occasion: details.occasion,
         season: details.season,
         mode: type,
         items,
-        ...(type === 'ai' ? { previewImage: aiPreview, previewThumb: aiPreviewThumb || aiPreview, generationNotes: generationNotes.trim() } : {}),
+        manualLayout: type === 'manual' ? fittedLayout : null,
+        ...(type === 'ai' ? { previewImage: aiPreview, previewThumb: aiPreviewThumb || aiPreview, generationNotes: generationNotes.trim() } : { previewThumb: null, generationNotes: '' }),
       }, outfitId)
       notify('Tenue enregistrée')
       navigate('/hwayj/outfits', { replace: true })
@@ -192,7 +201,7 @@ function OutfitComposer({ outfitId, outfit, clothes }) {
       {type === 'manual' ? <ManualLook ownerId={ownerId} manual={manual} selectedItem={selectedItem} cycle={cycle} swipeArea={swipeArea} directions={directions} clear={clear} /> : <AiLook ownerId={ownerId} clothes={clothes} itemIds={aiItems} preview={aiPreview} pickerOpen={pickerOpen} setPickerOpen={setPickerOpen} addItem={addAiItem} removeItem={removeAiItem} clear={clear} generate={generateAiLook} generating={generating} readOnly={!isOwnWardrobe} />}
       {type === 'ai' && generationError && <div role="alert" className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold leading-6 text-red-800 dark:border-red-900 dark:bg-red-950/60 dark:text-red-200"><span className="block text-[10px] font-black uppercase tracking-widest text-red-500">Pourquoi la génération a échoué</span>{generationError}</div>}
       <button type="button" onClick={openSave} disabled={!canSave || !isOwnWardrobe} className="mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 font-black text-white disabled:opacity-40"><Save size={20} />{isOwnWardrobe ? (type === 'manual' ? 'Enregistrer cette tenue' : 'Enregistrer ce look IA') : 'Lecture seule'}</button>
-      {saveOpen && <SaveOutfitModal ownerId={ownerId} type={type} top={selectedItem('top')} bottom={selectedItem('bottom')} aiPreview={aiPreview} details={details} setDetails={setDetails} saving={saving} onClose={() => setSaveOpen(false)} onSave={save} />}
+      {saveOpen && (type === 'manual' ? <ManualOutfitSaveModal ownerId={ownerId} top={selectedItem('top')} bottom={selectedItem('bottom')} layout={manualLayout} setLayout={setManualLayout} details={details} setDetails={setDetails} saving={saving} onClose={() => setSaveOpen(false)} onSave={save} /> : <SaveOutfitModal ownerId={ownerId} type={type} aiPreview={aiPreview} details={details} setDetails={setDetails} saving={saving} onClose={() => setSaveOpen(false)} onSave={save} />)}
     </main>
   )
 }

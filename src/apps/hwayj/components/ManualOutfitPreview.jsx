@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getClothingImage } from '../services/wardrobe'
 import ClothingImage from './ClothingImage'
+import { normalizeManualOutfitLayout } from '../utils/manualOutfitLayout'
 
 const composedCache = new Map()
 const composedPromises = new Map()
@@ -152,7 +153,7 @@ async function composeManualOutfit(ownerId, topItem, bottomItem) {
   return promise
 }
 
-export default function ManualOutfitPreview({ ownerId, top, bottom, className = '', alt = '' }) {
+export default function ManualOutfitPreview({ ownerId, top, bottom, className = '', alt = '', layout, selectedSlot = '' }) {
   const cacheKey = useMemo(() => top && bottom ? compositionKey(ownerId, top, bottom) : '', [bottom, ownerId, top])
   const [result, setResult] = useState(() => ({ key: cacheKey, source: composedCache.get(cacheKey) || '', failed: false }))
 
@@ -167,8 +168,27 @@ export default function ManualOutfitPreview({ ownerId, top, bottom, className = 
 
   const source = result.key === cacheKey ? result.source : composedCache.get(cacheKey) || ''
   const failed = result.key === cacheKey && result.failed
+  if (layout && top && bottom) return <LayeredManualOutfit ownerId={ownerId} top={top} bottom={bottom} layout={layout} selectedSlot={selectedSlot} className={className} />
   if (!top || !bottom) return <div className={`${className} grid place-items-center text-xs font-bold text-muted`}>Tenue incomplète</div>
   if (failed) return <div className={`${className} flex flex-col items-center justify-center gap-0`}><ClothingImage ownerId={ownerId} item={top} normalizedSlot="top" className="h-[43%] w-full object-contain" /><ClothingImage ownerId={ownerId} item={bottom} normalizedSlot="bottom" className="h-[51%] w-full object-contain" /></div>
   if (!source) return <div className={`${className} animate-pulse rounded-2xl bg-violet-100/50 dark:bg-violet-950/30`} />
   return <div className={className}><img src={source} alt={alt || `${top.name} avec ${bottom.name}`} loading="lazy" decoding="async" className="h-full w-full object-contain" /></div>
+}
+
+function LayeredManualOutfit({ ownerId, top, bottom, layout, selectedSlot, className }) {
+  const normalized = normalizeManualOutfitLayout(layout)
+  const items = { top, bottom }
+  const bases = {
+    top: { top: 2.96, height: 40.74, origin: '50% 100%' },
+    bottom: { top: 43.52, height: 51.85, origin: '50% 0%' },
+  }
+  const order = normalized.front === 'top' ? ['bottom', 'top'] : ['top', 'bottom']
+
+  return <div className={`${className} relative overflow-hidden`}>
+    {order.map((slot) => {
+      const part = normalized[slot]
+      const base = bases[slot]
+      return <div key={slot} className={`pointer-events-none absolute w-full select-none ${selectedSlot === slot ? 'outline outline-2 outline-dashed outline-violet-500/70 -outline-offset-4' : ''}`} style={{ left: `${part.x}%`, top: `${base.top + part.y}%`, height: `${base.height}%`, transform: `scale(${part.scale})`, transformOrigin: base.origin }}><ClothingImage ownerId={ownerId} item={items[slot]} normalizedSlot={slot} className="h-full w-full object-contain" /></div>
+    })}
+  </div>
 }
