@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { Navigation } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Maximize2, Minus, Navigation, Plus } from 'lucide-react'
 
 const TILE_SIZE = 256
 
@@ -27,17 +27,20 @@ function suitableZoom(points) {
 }
 
 export default function LiveMap({ points }) {
+  const [zoom, setZoom] = useState(null)
+  const suggestedZoom = useMemo(() => suitableZoom(points), [points])
+
   const map = useMemo(() => {
     if (!points.length) return null
-    const zoom = suitableZoom(points)
+    const activeZoom = zoom ?? suggestedZoom
     const center = {
       latitude: points.reduce((sum, point) => sum + point.latitude, 0) / points.length,
       longitude: points.reduce((sum, point) => sum + point.longitude, 0) / points.length
     }
-    const centerPixel = project(center.latitude, center.longitude, zoom)
+    const centerPixel = project(center.latitude, center.longitude, activeZoom)
     const centerTileX = Math.floor(centerPixel.x / TILE_SIZE)
     const centerTileY = Math.floor(centerPixel.y / TILE_SIZE)
-    const tileLimit = 2 ** zoom
+    const tileLimit = 2 ** activeZoom
     const tiles = []
     for (let y = -2; y <= 2; y += 1) {
       for (let x = -2; x <= 2; x += 1) {
@@ -45,7 +48,7 @@ export default function LiveMap({ points }) {
         const tileY = Math.max(0, Math.min(tileLimit - 1, centerTileY + y))
         tiles.push({
           key: `${tileX}-${tileY}`,
-          src: `https://tile.openstreetmap.org/${zoom}/${tileX}/${tileY}.png`,
+          src: `https://tile.openstreetmap.org/${activeZoom}/${tileX}/${tileY}.png`,
           left: (centerTileX + x) * TILE_SIZE - centerPixel.x,
           top: (centerTileY + y) * TILE_SIZE - centerPixel.y
         })
@@ -54,11 +57,11 @@ export default function LiveMap({ points }) {
     return {
       tiles,
       markers: points.map((point) => {
-        const pixel = project(point.latitude, point.longitude, zoom)
+        const pixel = project(point.latitude, point.longitude, activeZoom)
         return { ...point, left: pixel.x - centerPixel.x, top: pixel.y - centerPixel.y }
       })
     }
-  }, [points])
+  }, [points, suggestedZoom, zoom])
 
   if (!map) return <div className="grid h-[25rem] place-items-center bg-gradient-to-br from-sky-100 via-cyan-50 to-emerald-100 p-8 text-center dark:from-sky-950 dark:via-slate-950 dark:to-emerald-950"><div><Navigation className="mx-auto text-sky-500" size={38} /><strong className="mt-3 block text-lg">La carte vous attend</strong><p className="mt-1 max-w-xs text-sm text-muted">Activez votre position ou attendez que votre partenaire partage la sienne.</p></div></div>
 
@@ -72,6 +75,12 @@ export default function LiveMap({ points }) {
       <span className={`absolute left-1/2 top-[2.7rem] h-3 w-3 -translate-x-1/2 rotate-45 border-b-2 border-r-2 border-white ${marker.isMe ? 'bg-sky-600' : 'bg-violet-600'}`} />
       <span className="absolute left-1/2 top-[3.75rem] -translate-x-1/2 whitespace-nowrap rounded-full bg-slate-950/85 px-2.5 py-1 text-[10px] font-black text-white shadow">{marker.label}</span>
     </div>)}
+    <div className="absolute right-3 top-3 z-20 overflow-hidden rounded-2xl border border-white/70 bg-white/95 shadow-xl backdrop-blur dark:border-slate-700 dark:bg-slate-900/95">
+      <button type="button" onClick={() => setZoom((value) => Math.min(19, (value ?? suggestedZoom) + 1))} disabled={(zoom ?? suggestedZoom) >= 19} className="grid h-12 w-12 place-items-center border-b border-slate-200 text-slate-800 disabled:opacity-35 dark:border-slate-700 dark:text-white" aria-label="Zoomer"><Plus size={21} /></button>
+      <button type="button" onClick={() => setZoom((value) => Math.max(3, (value ?? suggestedZoom) - 1))} disabled={(zoom ?? suggestedZoom) <= 3} className="grid h-12 w-12 place-items-center border-b border-slate-200 text-slate-800 disabled:opacity-35 dark:border-slate-700 dark:text-white" aria-label="Dézoomer"><Minus size={21} /></button>
+      <button type="button" onClick={() => setZoom(suggestedZoom)} className="grid h-12 w-12 place-items-center text-sky-700 dark:text-sky-300" aria-label="Voir toutes les positions"><Maximize2 size={19} /></button>
+    </div>
+    <span className="absolute left-3 top-3 z-20 rounded-full bg-slate-950/75 px-3 py-1.5 text-[10px] font-black text-white shadow">Zoom {zoom ?? suggestedZoom}</span>
     <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="absolute bottom-2 right-2 rounded-md bg-white/90 px-2 py-1 text-[9px] font-bold text-slate-700 shadow">© OpenStreetMap</a>
   </div>
 }

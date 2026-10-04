@@ -4,4 +4,6 @@
     <string name="title_activity_main">T9DYA</string>
     <string name="package_name">com.t9dya.app</string>
     <string name="custom_url_scheme">com.t9dya.app</string>
+    <string name="capacitor_background_geolocation_notification_channel_name">Partage de position du foyer</string>
+    <string name="capacitor_background_geolocation_notification_color">#0284c7</string>
 </resources>

@@ -11,7 +11,8 @@ Ce guide transforme le projet web existant en application Android sans dupliquer
 - CORS autorise l’origine native sécurisée `https://localhost`.
 - Bouton retour Android, clavier natif, barre d’état et thème sombre.
 - Centre de notifications Android configurable dans le Hub : demandes de courses, nouveaux produits, rappels de listes, traitements, rendez-vous, stock faible et résumé quotidien.
-- Application Carte avec autorisation GPS, partage volontaire, position du partenaire et arrêt avec effacement immédiat.
+- Application Carte avec zoom manuel, autorisation GPS, partage volontaire, position du partenaire et arrêt avec effacement immédiat.
+- Option Android « Toujours partager si le GPS est actif » avec suivi en arrière-plan et notification persistante.
 - Icône et écran de lancement générés à partir de `assets/logo.svg`.
 - Firebase conserve son cache hors ligne existant.
 
@@ -153,10 +154,12 @@ Sur certains téléphones Xiaomi, Samsung, Oppo ou Realme, désactivez l’optim
 2. Sur chaque téléphone, ouvrez **Hub → Réglages → Localisation GPS** et acceptez l’autorisation Android.
 3. Ouvrez **Carte**, puis activez **Partager ma position en direct** sur les deux comptes.
 4. Vérifiez que les deux marqueurs, la distance, la précision et l’heure de mise à jour apparaissent.
-5. Déplacez un téléphone de quelques mètres et vérifiez la nouvelle position après une quinzaine de secondes.
-6. Arrêtez le partage : le marqueur correspondant doit disparaître chez le partenaire après la synchronisation Firestore.
+5. Utilisez les boutons `+`, `−` et cadrage : le zoom choisi doit rester stable pendant les mises à jour GPS.
+6. Dans **Hub → Réglages → Position du foyer**, activez **Toujours partager si le GPS est actif**, acceptez « Autoriser tout le temps » et l’autorisation de notification, puis verrouillez l’écran. Une notification T9DYA reste visible pendant le suivi.
+7. Déplacez un téléphone de quelques mètres et vérifiez la nouvelle position après une quinzaine de secondes.
+8. Arrêtez le partage : le marqueur correspondant doit disparaître chez le partenaire après la synchronisation Firestore.
 
-La localisation continue pendant la navigation dans T9DYA tant que l’application reste active. Cette version ne demande pas la localisation Android permanente en arrière-plan; Android peut suspendre le GPS lorsque l’application est placée longtemps en arrière-plan ou complètement arrêtée.
+Le mode normal continue pendant la navigation dans T9DYA. Le mode « Toujours » utilise un service Android avec notification visible afin de continuer écran verrouillé ou application en arrière-plan. Couper le GPS ou forcer l’arrêt de T9DYA depuis Android suspend le service jusqu’à la prochaine ouverture.
 
 ## 9. Générer l’APK privé
 

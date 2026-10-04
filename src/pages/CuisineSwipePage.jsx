@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
-import { ChefHat } from 'lucide-react'
+import { BookHeart, ChefHat } from 'lucide-react'
 import AppHeader from '../components/AppHeader'
 import CategoryPicker from '../features/cuisine/components/CategoryPicker'
 import SwipeDeck from '../features/cuisine/components/SwipeDeck'
 import ResultsList from '../features/cuisine/components/ResultsList'
 import RecipeDetail from '../features/cuisine/components/RecipeDetail'
+import CustomRecipeBook from '../features/cuisine/components/CustomRecipeBook'
 import { ingredients, ingredientsById } from '../features/cuisine/data/ingredients'
 import { recipes } from '../features/cuisine/data/recipes'
 import { buildIngredientDeck, matchRecipes } from '../features/cuisine/utils/matchRecipes'
@@ -109,13 +110,14 @@ export default function CuisineSwipePage() {
   }
 
   return <main className={`cuisine-page mx-auto min-h-dvh w-full max-w-2xl px-4 pb-28 sm:px-6 ${step === 'swipe' ? 'cuisine-swipe-mode pt-3' : 'pt-6'}`}>
-    <AppHeader title="Chnou nṭayab ?" subtitle={step === 'swipe' ? null : 'Des idées avec ce qu’on a déjà'} />
-    {step !== 'swipe' && <div className="mb-5 flex items-center gap-3 rounded-2xl bg-surface p-3 shadow-sm"><span className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-orange-100 to-amber-100 text-orange-600 dark:from-orange-950 dark:to-amber-950"><ChefHat /></span><p className="text-sm text-muted"><strong className="block text-ink">Cuisine Swipe</strong>Pas de gaspillage, juste de bonnes idées.</p></div>}
+    <AppHeader title="Chnou nṭayab ?" subtitle={step === 'swipe' ? null : step === 'custom' ? 'Les recettes inventées à la maison' : 'Des idées avec ce qu’on a déjà'} />
+    {step !== 'swipe' && step !== 'custom' && <div className="mb-5 flex items-center gap-3 rounded-2xl bg-surface p-3 shadow-sm"><span className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-orange-100 to-amber-100 text-orange-600 dark:from-orange-950 dark:to-amber-950"><ChefHat /></span><p className="min-w-0 flex-1 text-sm text-muted"><strong className="block text-ink">Cuisine Swipe</strong>Pas de gaspillage, juste de bonnes idées.</p><button type="button" onClick={() => setStep('custom')} className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-rose-500 px-3 text-xs font-black text-white"><BookHeart size={17} />Mes recettes</button></div>}
     <AnimatePresence mode="wait">
       <Motion.div key={step} initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -14 }} transition={{ duration: 0.2 }}>
         {step === 'category' && <CategoryPicker onChoose={choose} savedSession={savedSession} onResume={resume} />}
         {step === 'swipe' && <SwipeDeck deck={deck} index={decisions.length} decisions={decisions} onDecide={decide} onUndo={undo} onDone={finishSession} onChangeCategory={changeCategory} />}
         {step === 'results' && <ResultsList results={results} onOpen={setSelectedRecipe} onRestart={restart} onChangeCategory={changeCategory} />}
+        {step === 'custom' && <CustomRecipeBook household={household} user={user} lists={lists} activeList={activeList} allItems={allItems} notify={notify} onBack={changeCategory} />}
       </Motion.div>
     </AnimatePresence>
     {selectedRecipe && <RecipeDetail recipe={selectedRecipe} ingredientsById={ingredientsById} lists={lists} activeList={activeList} onClose={() => setSelectedRecipe(null)} onAddMissing={addMissing} adding={adding} />}

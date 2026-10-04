@@ -26,6 +26,7 @@
     "@capacitor/local-notifications": "^8.0.0",
     "@capacitor/splash-screen": "^8.0.0",
     "@capacitor/status-bar": "^8.0.0",
+    "@capgo/background-geolocation": "^8.4.7",
     "firebase": "^12.19.0",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.468.0",

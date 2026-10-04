@@ -1,11 +1,12 @@
 import { BellRing, Cake, Check, ChevronLeft, Clipboard, Clock3, Home, LoaderCircle, LocateFixed, LogOut, Moon, Save, ShieldCheck, Sparkles, Sun, UserRound, Users } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { BackgroundGeolocation } from '@capgo/background-geolocation'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { updateHouseholdName, updateMemberProfile } from '../../services/household'
 import { isNativeApp, syncNativeTheme } from '../../native/capacitor'
 import { getNotificationPreferences, nativeNotificationPermission, notificationOptions, requestNativeNotificationPermission, saveNotificationPreferences, sendTestNotification } from '../../native/notifications'
-import { locationPermissionState, requestLocationPermission } from '../../native/locationSharing'
+import { isAlwaysLocationSharingEnabled, locationPermissionState, requestLocationPermission, setAlwaysLocationSharingEnabled } from '../../native/locationSharing'
 
 const sexLabels = { female: 'Femme', male: 'Homme' }
 
@@ -23,6 +24,8 @@ export default function HubSettingsPage() {
   const [notificationPreferences, setNotificationPreferences] = useState(getNotificationPreferences)
   const [testingNotification, setTestingNotification] = useState(false)
   const [locationPermission, setLocationPermission] = useState('prompt')
+  const [alwaysSharing, setAlwaysSharing] = useState(() => isAlwaysLocationSharingEnabled(user?.uid))
+  const [changingAlwaysSharing, setChangingAlwaysSharing] = useState(false)
   const members = (household.members || []).map((uid) => household.memberProfiles?.[uid]).filter(Boolean)
 
   useEffect(() => {
@@ -132,6 +135,37 @@ export default function HubSettingsPage() {
     }
   }
 
+  const toggleAlwaysSharing = async () => {
+    if (!user?.uid || !isNativeApp) return
+    setChangingAlwaysSharing(true)
+    setError('')
+    try {
+      if (alwaysSharing) {
+        setAlwaysLocationSharingEnabled(user.uid, false)
+        setAlwaysSharing(false)
+        setMessage('Le partage permanent est désactivé. Le partage en direct reste contrôlable dans Carte.')
+        return
+      }
+      await requestLocationPermission()
+      const permissions = await BackgroundGeolocation.requestPermissions({ permissions: ['location', 'backgroundLocation', 'notification'] })
+      const foregroundGranted = permissions.location === 'granted'
+      const backgroundGranted = ['granted', 'always'].includes(permissions.backgroundLocation)
+      if (!foregroundGranted || !backgroundGranted) {
+        setLocationPermission(foregroundGranted ? 'granted' : (permissions.location || 'denied'))
+        setError('Pour “Toujours partager”, choisissez « Autoriser tout le temps » dans les réglages Android de T9DYA.')
+        return
+      }
+      setLocationPermission('granted')
+      setAlwaysLocationSharingEnabled(user.uid, true)
+      setAlwaysSharing(true)
+      setMessage('Partage permanent activé. Android affichera une notification pendant le suivi GPS.')
+    } catch {
+      setError('Impossible d’activer le partage permanent. Vérifiez les autorisations GPS et notifications Android.')
+    } finally {
+      setChangingAlwaysSharing(false)
+    }
+  }
+
   return (
     <main className="min-h-dvh bg-canvas px-4 py-6 text-ink sm:px-6 sm:py-10">
       <div className="mx-auto max-w-2xl">
@@ -164,6 +198,17 @@ export default function HubSettingsPage() {
           <div className="flex min-h-16 items-center gap-3 px-5"><span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><ShieldCheck size={20} /></span><span className="flex-1"><strong className="block">Foyer privé</strong><small className="text-muted">Accessible uniquement à vos deux comptes</small></span></div>
           <button type="button" onClick={enableNotifications} disabled={notificationPermission === 'granted' || notificationPermission === 'unsupported'} className="flex min-h-16 w-full items-center gap-3 border-t border-slate-100 px-5 text-left disabled:opacity-70 dark:border-slate-800"><span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-50 text-amber-700"><BellRing size={20} /></span><span className="flex-1"><strong className="block">Notifications</strong><small className="text-muted">{notificationPermission === 'granted' ? 'Activées sur cet appareil' : notificationPermission === 'denied' ? (isNativeApp ? 'Bloquées dans les réglages Android' : 'Bloquées dans le navigateur') : 'Activer les alertes de la plateforme'}</small></span>{notificationPermission === 'granted' && <Check size={19} className="text-emerald-600" />}</button>
           <button type="button" onClick={enableLocation} disabled={locationPermission === 'granted' || locationPermission === 'unsupported'} className="flex min-h-16 w-full items-center gap-3 border-t border-slate-100 px-5 text-left disabled:opacity-70 dark:border-slate-800"><span className="grid h-10 w-10 place-items-center rounded-xl bg-sky-50 text-sky-700 dark:bg-sky-950"><LocateFixed size={20} /></span><span className="flex-1"><strong className="block">Localisation GPS</strong><small className="text-muted">{locationPermission === 'granted' ? 'Autorisée · partage contrôlé dans Carte' : locationPermission === 'denied' ? 'Bloquée dans les réglages Android' : locationPermission === 'unsupported' ? 'Indisponible sur cet appareil' : 'Autoriser sans commencer le partage'}</small></span>{locationPermission === 'granted' && <Check size={19} className="text-emerald-600" />}</button>
+        </section>
+
+        <section className="mt-4 rounded-[1.75rem] bg-surface p-5 shadow-card">
+          <div className="flex items-center gap-3"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"><LocateFixed size={22} /></span><div><h2 className="font-black">Position du foyer</h2><p className="text-xs text-muted">Votre choix reste propre à ce téléphone</p></div></div>
+          <button type="button" role="switch" aria-checked={alwaysSharing} disabled={!isNativeApp || changingAlwaysSharing} onClick={toggleAlwaysSharing} className={`mt-4 flex min-h-20 w-full items-center gap-3 rounded-2xl border-2 p-4 text-left transition disabled:opacity-55 ${alwaysSharing ? 'border-sky-400 bg-sky-50 dark:bg-sky-950/30' : 'border-slate-200 bg-canvas dark:border-slate-700'}`}>
+            <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${alwaysSharing ? 'bg-sky-600 text-white' : 'bg-surface text-muted'}`}>{changingAlwaysSharing ? <LoaderCircle className="animate-spin" size={20} /> : <LocateFixed size={20} />}</span>
+            <span className="min-w-0 flex-1"><strong className="block">Toujours partager si le GPS est actif</strong><small className="mt-1 block leading-4 text-muted">Continue écran verrouillé ou app en arrière-plan. Une notification Android reste visible.</small></span>
+            <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${alwaysSharing ? 'bg-sky-600' : 'bg-slate-300 dark:bg-slate-700'}`}><span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${alwaysSharing ? 'left-6' : 'left-1'}`} /></span>
+          </button>
+          {!isNativeApp && <p className="mt-3 text-xs text-muted">Cette option apparaît dans l’APK Android. Le navigateur partage seulement tant que la page reste active.</p>}
+          <p className="mt-3 rounded-2xl bg-sky-50 px-4 py-3 text-xs leading-5 text-sky-900 dark:bg-sky-950/30 dark:text-sky-200">Désactiver le GPS du téléphone suspend le suivi. Forcer l’arrêt de T9DYA dans Android l’arrête aussi jusqu’à la prochaine ouverture.</p>
         </section>
 
         {isNativeApp && <section className="mt-4 rounded-[1.75rem] bg-surface p-5 shadow-card">

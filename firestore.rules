@@ -279,7 +279,7 @@ service cloud.firestore {
       }
 
       match /{collectionName}/{documentId} {
-        allow read, write: if collectionName in ['items', 'lists', 'customProducts', 'charges', 'chargePayments', 'envelopes', 'envelopeTransactions', 'expenses', 'salaryMonths', 'purchases', 'priceHistory', 'templates', 'pantry', 'trips'] && isMember(householdId);
+        allow read, write: if collectionName in ['items', 'lists', 'customProducts', 'customRecipes', 'charges', 'chargePayments', 'envelopes', 'envelopeTransactions', 'expenses', 'salaryMonths', 'purchases', 'priceHistory', 'templates', 'pantry', 'trips'] && isMember(householdId);
       }
     }
 

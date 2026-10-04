@@ -7,7 +7,8 @@
   },
   "android": {
     "backgroundColor": "#f8fafc",
-    "allowMixedContent": false
+    "allowMixedContent": false,
+    "useLegacyBridge": true
   },
   "plugins": {
     "SplashScreen": {

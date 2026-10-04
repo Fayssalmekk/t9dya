@@ -68,5 +68,12 @@ Hwayj demande une seule image `1024x1024` en qualité `low` par ajout et analyse
 
 1. Déployez obligatoirement les nouvelles règles : `npx firebase deploy --only firestore:rules`. Sans cette étape, l’application affichera « Impossible d’envoyer votre position ».
 2. Redéployez le site Vercel afin d’appliquer `Permissions-Policy: geolocation=(self)` à la version Web.
-3. Exécutez `npm run android:update`, puis reconstruisez l’APK signé. Le manifeste Android contient désormais `ACCESS_COARSE_LOCATION` et `ACCESS_FINE_LOCATION`.
-4. Installez l’APK sur les deux téléphones, autorisez le GPS séparément et testez l’arrêt du partage. L’arrêt doit supprimer le document `households/{householdId}/locations/{uid}`.
+3. Exécutez `npm run android:update`, puis reconstruisez l’APK signé. Le manifeste Android contient `ACCESS_COARSE_LOCATION`, `ACCESS_FINE_LOCATION` et `ACCESS_BACKGROUND_LOCATION`.
+4. Installez l’APK sur les deux téléphones. Pour le mode **Toujours**, acceptez la localisation « tout le temps » et les notifications : Android garde une notification visible pendant le service GPS.
+5. Testez l’arrêt du partage. Il doit arrêter le service et supprimer le document `households/{householdId}/locations/{uid}`.
+
+## Carnet de recettes maison
+
+1. Déployez les règles Firestore pour autoriser `households/{householdId}/customRecipes` aux deux membres du foyer.
+2. Dans **T9dya → Cuisine → Mes recettes**, créez une recette avec plusieurs quantités et vérifiez qu’elle apparaît sur le second compte.
+3. Marquez quelques ingrédients manquants et ajoutez-les à une liste active. Les noms, quantités, unités et la note « Pour … » doivent être conservés.

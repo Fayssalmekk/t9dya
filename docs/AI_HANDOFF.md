@@ -176,7 +176,7 @@ Le composant monte `ShoppingProvider`, puis `PlatformShell`. Les pages historiqu
 
 - `/t9dya/list` : accueil des listes et détail d’une liste.
 - `/t9dya/catalog` : catalogue et ajout de produits.
-- `/t9dya/cuisine` : suggestions de recettes par swipe.
+- `/t9dya/cuisine` : suggestions par swipe et carnet de recettes maison partagé.
 - `/t9dya/history` : historique des achats.
 - `/t9dya/settings` : redirection vers les réglages du Hub.
 
@@ -215,6 +215,8 @@ Types : repas, desserts et jus. L’utilisateur swipe les ingrédients disponibl
 - `t9dya-cuisine-availability-v1`
 
 Les ingrédients souvent disponibles remontent en priorité grâce aux scores locaux. Les bases nécessitant normalement de la farine sont représentées comme produits prêts à l’emploi : pâte à pizza, pain tacos, supports panini, etc. Les ingrédients manquants d’une recette peuvent être ajoutés à une liste existante.
+
+Le carnet **Mes recettes** est stocké dans `households/{householdId}/customRecipes`. Les deux partenaires peuvent créer et modifier un plat, ses quantités, ses étapes et sa note. Chaque ingrédient peut être marqué individuellement comme manquant puis envoyé vers une liste active avec sa quantité et son unité.
 
 Le catalogue Cuisine couvre aussi les produits pratiques courants au Maroc : préparation pour flan, crème pâtissière et béchamel prêtes, boudoirs, spéculoos, frites, nuggets, chicken rings et légumes surgelés. Les desserts proposent notamment tiramisus, mouhalabias fruitées, kika à la crème, Jawhara express, ghribas, flans froids et douceurs à la fleur d’oranger. Plusieurs recettes possèdent leurs propres étapes détaillées via le neuvième champ facultatif de `makeRecipes`.
 
@@ -397,7 +399,7 @@ Chaque téléphone demande l’autorisation GPS séparément. L’autorisation s
 
 La carte utilise les tuiles OpenStreetMap et affiche les deux marqueurs, la précision, la distance et la date de dernière mise à jour. Une position de plus de 90 secondes est marquée comme ancienne. Arrêter le partage supprime immédiatement `households/{householdId}/locations/{uid}` et le partenaire ne peut ni écrire ni supprimer la position de l’autre.
 
-Cette version ne demande volontairement pas l’autorisation Android de localisation permanente en arrière-plan et ne lance pas de service natif continu. Android peut donc suspendre les mises à jour quand l’application reste en arrière-plan ou est arrêtée; la carte le signale grâce à l’âge de la position.
+La carte possède des commandes `+`, `−` et recadrage; le zoom manuel reste stable pendant les nouvelles positions. Le réglage **Toujours partager si le GPS est actif** utilise `@capgo/background-geolocation`, l’autorisation Android de localisation permanente et une notification de service visible. Il continue écran verrouillé ou application en arrière-plan. Couper le GPS ou forcer l’arrêt suspend le suivi jusqu’à la prochaine ouverture. Le mode normal conserve le suivi WebView existant.
 
 ## 12. API IA et sécurité
 

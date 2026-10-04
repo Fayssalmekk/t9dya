@@ -3,7 +3,7 @@ import { ArrowLeft, Crosshair, ExternalLink, LocateFixed, MapPinned, Navigation,
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { subscribeHouseholdLocations } from '../../../services/location'
-import { isLocationSharingEnabled, locationPermissionState, requestLocationPermission, setLocationSharingEnabled } from '../../../native/locationSharing'
+import { isAlwaysLocationSharingEnabled, isLocationSharingEnabled, locationPermissionState, requestLocationPermission, setAlwaysLocationSharingEnabled, setLocationSharingEnabled } from '../../../native/locationSharing'
 import LiveMap from '../components/LiveMap'
 
 const LIVE_WINDOW = 90000
@@ -36,6 +36,7 @@ export default function MapPage() {
   const { user, household, profile } = useAuth()
   const [locations, setLocations] = useState([])
   const [sharing, setSharing] = useState(() => isLocationSharingEnabled(user.uid))
+  const [alwaysSharing, setAlwaysSharing] = useState(() => isAlwaysLocationSharingEnabled(user.uid))
   const [permission, setPermission] = useState('prompt')
   const [requesting, setRequesting] = useState(false)
   const [error, setError] = useState('')
@@ -46,7 +47,10 @@ export default function MapPage() {
     locationPermissionState().then(setPermission)
     const clock = window.setInterval(() => setNow(Date.now()), 15000)
     const sharingChanged = (event) => {
-      if (event.detail?.userId === user.uid) setSharing(event.detail.enabled)
+      if (event.detail?.userId === user.uid) {
+        setSharing(event.detail.enabled)
+        setAlwaysSharing(isAlwaysLocationSharingEnabled(user.uid))
+      }
     }
     const locationError = (event) => setError(event.detail || 'Position GPS indisponible.')
     window.addEventListener('t9dya-location-sharing', sharingChanged)
@@ -61,8 +65,10 @@ export default function MapPage() {
   const toggleSharing = async () => {
     setError('')
     if (sharing) {
+      setAlwaysLocationSharingEnabled(user.uid, false)
       setLocationSharingEnabled(user.uid, false)
       setSharing(false)
+      setAlwaysSharing(false)
       return
     }
     setRequesting(true)
@@ -99,7 +105,7 @@ export default function MapPage() {
       <section className="mt-5 overflow-hidden rounded-[2rem] border border-sky-100 bg-surface shadow-xl dark:border-sky-950">
         <LiveMap points={points} />
         <div className="grid gap-3 p-4 sm:grid-cols-2">
-          <article className="rounded-2xl bg-sky-50 p-4 dark:bg-sky-950/30"><div className="flex items-center gap-2 text-sky-700 dark:text-sky-300"><LocateFixed size={18} /><strong>Votre téléphone</strong></div><p className="mt-2 text-sm font-bold">{sharing ? (ownLocation ? 'Position partagée' : 'Recherche GPS en cours…') : 'Partage désactivé'}</p>{ownLocation && <small className="mt-1 block text-muted">Précision ±{Math.round(ownLocation.accuracy || 0)} m · {relativeUpdate(timestampValue(ownLocation.updatedAt), now)}</small>}</article>
+          <article className="rounded-2xl bg-sky-50 p-4 dark:bg-sky-950/30"><div className="flex items-center gap-2 text-sky-700 dark:text-sky-300"><LocateFixed size={18} /><strong>Votre téléphone</strong>{alwaysSharing && <span className="ml-auto rounded-full bg-sky-600 px-2 py-1 text-[9px] font-black uppercase text-white">Toujours</span>}</div><p className="mt-2 text-sm font-bold">{sharing ? (ownLocation ? 'Position partagée' : 'Recherche GPS en cours…') : 'Partage désactivé'}</p>{ownLocation && <small className="mt-1 block text-muted">Précision ±{Math.round(ownLocation.accuracy || 0)} m · {relativeUpdate(timestampValue(ownLocation.updatedAt), now)}</small>}</article>
           <article className={`rounded-2xl p-4 ${partnerLive ? 'bg-violet-50 dark:bg-violet-950/30' : 'bg-canvas'}`}><div className={`flex items-center gap-2 ${partnerLive ? 'text-violet-700 dark:text-violet-300' : 'text-muted'}`}><Radio size={18} /><strong>{partner?.displayName || 'Votre partenaire'}</strong></div><p className="mt-2 text-sm font-bold">{partnerLive ? 'En direct' : partnerLocation ? 'Dernière position connue' : 'Ne partage pas sa position'}</p>{partnerLocation && <small className="mt-1 block text-muted">{relativeUpdate(timestampValue(partnerLocation.updatedAt), now)}{distance !== null ? ` · ${distance < 1 ? `${Math.round(distance * 1000)} m` : `${distance.toFixed(1)} km`}` : ''}</small>}</article>
         </div>
       </section>
