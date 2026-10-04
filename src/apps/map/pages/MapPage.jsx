@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, Crosshair, ExternalLink, LocateFixed, MapPinned, Navigation, Radio, ShieldCheck } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Crosshair, ExternalLink, LocateFixed, MapPinned, Navigation, Radio, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { subscribeHouseholdLocations } from '../../../services/location'
 import { isAlwaysLocationSharingEnabled, isLocationSharingEnabled, locationPermissionState, requestLocationPermission, setAlwaysLocationSharingEnabled, setLocationSharingEnabled } from '../../../native/locationSharing'
@@ -98,7 +97,7 @@ export default function MapPage() {
 
   return <main className="min-h-dvh bg-canvas px-4 pb-10 pt-5 text-ink sm:px-6 sm:pt-8">
     <div className="mx-auto max-w-3xl">
-      <header className="flex items-center gap-3"><Link to="/" className="grid h-11 w-11 place-items-center rounded-xl bg-surface text-muted shadow-sm" aria-label="Retour au Hub"><ArrowLeft size={20} /></Link><span className="grid h-11 w-11 place-items-center rounded-xl bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"><MapPinned size={22} /></span><div><p className="text-[10px] font-black uppercase tracking-[0.17em] text-sky-700 dark:text-sky-300">Notre position</p><h1 className="text-2xl font-black">Carte du foyer</h1></div></header>
+      <header className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-xl bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"><MapPinned size={22} /></span><div><p className="text-[10px] font-black uppercase tracking-[0.17em] text-sky-700 dark:text-sky-300">Notre position</p><h1 className="text-2xl font-black">Carte du foyer</h1></div></header>
 
       {error && <p className="mt-4 rounded-2xl bg-red-50 p-4 text-sm font-bold text-red-700 dark:bg-red-950/30 dark:text-red-200">{error}</p>}
 

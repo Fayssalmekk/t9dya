@@ -40,8 +40,8 @@ export async function finalizeImages(dataUrl) {
   let main = canvasDataUrl(image, 900, 'image/webp', quality)
   while (main.length > 800000 && quality > 0.42) { quality -= 0.08; main = canvasDataUrl(image, 900, 'image/webp', quality) }
   if (main.length > 850000) throw new Error('IMAGE_TOO_LARGE')
-  let thumbSize = 320
-  let thumbQuality = 0.86
+  let thumbSize = 420
+  let thumbQuality = 0.84
   let thumb = canvasDataUrl(image, thumbSize, 'image/webp', thumbQuality)
   while (thumb.length > 220000 && thumbQuality > 0.42) { thumbQuality -= 0.08; thumb = canvasDataUrl(image, thumbSize, 'image/webp', thumbQuality) }
   while (thumb.length > 235000 && thumbSize > 240) { thumbSize = Math.max(240, Math.round(thumbSize * 0.85)); thumb = canvasDataUrl(image, thumbSize, 'image/webp', 0.58) }

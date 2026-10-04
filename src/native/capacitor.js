@@ -6,11 +6,11 @@ import { StatusBar, Style } from '@capacitor/status-bar'
 
 export const isNativeApp = Capacitor.isNativePlatform()
 
-export async function syncNativeTheme() {
+export async function syncNativeTheme(dark = document.documentElement.classList.contains('dark')) {
   if (!isNativeApp) return
   await Promise.allSettled([
-    StatusBar.setBackgroundColor({ color: '#000000' }),
-    StatusBar.setStyle({ style: Style.Light })
+    StatusBar.setBackgroundColor({ color: dark ? '#020617' : '#f8fafc' }),
+    StatusBar.setStyle({ style: dark ? Style.Light : Style.Dark })
   ])
 }
 

@@ -49,5 +49,5 @@ function OutfitPreview({ outfit, clothes, ownerId }) {
   const bottomEntry = outfit.items?.find((entry) => entry.slot === 'bottom') || outfit.items?.[1]
   const top = clothes.find((item) => item.id === topEntry?.itemId)
   const bottom = clothes.find((item) => item.id === bottomEntry?.itemId)
-  return <div className="flex aspect-[2/3] max-h-[30rem] w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-2xl bg-gradient-to-br from-slate-50 to-violet-50 p-3 dark:from-slate-900 dark:to-violet-950/40">{top && <ClothingImage ownerId={ownerId} item={top} className="min-h-0 w-full flex-1 object-contain" />}{bottom && <ClothingImage ownerId={ownerId} item={bottom} className="min-h-0 w-full flex-1 object-contain" />}</div>
+  return <div className="grid aspect-[2/3] max-h-[30rem] w-full place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-slate-50 to-violet-50 p-3 dark:from-slate-900 dark:to-violet-950/40"><div className="flex h-[92%] w-full flex-col items-center justify-center gap-0">{top && <ClothingImage ownerId={ownerId} item={top} normalizedSlot="top" className="h-[43%] w-full shrink-0 object-contain" />}{bottom && <ClothingImage ownerId={ownerId} item={bottom} normalizedSlot="bottom" className="h-[51%] w-full shrink-0 object-contain" />}</div></div>
 }

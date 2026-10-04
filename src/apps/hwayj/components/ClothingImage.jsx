@@ -7,20 +7,13 @@ const normalizedPromises = new Map()
 const transparentPixel = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='
 
 function getPixelRatio() {
-  return Math.min(3, Math.max(2, Math.ceil(window.devicePixelRatio || 1)))
+  // The swipe canvas is phone-sized. A 1.5x buffer stays crisp on dense
+  // screens without decoding and repainting a full-HD garment on every swipe.
+  return (window.devicePixelRatio || 1) > 1 ? 1.5 : 1
 }
 
 function getNormalizedKey(ownerId, itemId, slot) {
   return `${ownerId}:${itemId}:${slot}:${getPixelRatio()}`
-}
-
-async function loadClothingSource(ownerId, item) {
-  const cacheKey = `${ownerId}:${item.id}`
-  if (imageCache.has(cacheKey)) return imageCache.get(cacheKey)
-  const image = await getClothingImage(ownerId, item.id).catch(() => null)
-  const source = image || item.thumb
-  imageCache.set(cacheKey, source)
-  return source
 }
 
 function decodeImage(source) {
@@ -34,9 +27,7 @@ function decodeImage(source) {
 }
 
 function normalizeTransparentGarment(source, slot) {
-  // The normalized image is displayed at roughly the logical canvas size, but
-  // Android phones commonly render at 2x or 3x density. Keep that extra pixel
-  // information so the browser never has to enlarge a low-resolution canvas.
+  // Keep a compact, decoded canvas dedicated to the outfit carousel.
   const pixelRatio = getPixelRatio()
   const cacheKey = `${slot}:${pixelRatio}:${source.length}:${source.slice(-96)}`
   if (normalizedCache.has(cacheKey)) return Promise.resolve(normalizedCache.get(cacheKey))
@@ -77,8 +68,8 @@ function normalizeTransparentGarment(source, slot) {
         const output = document.createElement('canvas')
         const logicalWidth = 360
         const logicalHeight = isBottom ? 280 : 220
-        output.width = logicalWidth * pixelRatio
-        output.height = logicalHeight * pixelRatio
+        output.width = Math.round(logicalWidth * pixelRatio)
+        output.height = Math.round(logicalHeight * pixelRatio)
         const maxWidth = isBottom ? 182 : 232
         const maxHeight = isBottom ? 274 : 212
         const scale = Math.min(maxWidth / cropWidth, maxHeight / cropHeight)
@@ -90,7 +81,7 @@ function normalizeTransparentGarment(source, slot) {
         outputContext.imageSmoothingEnabled = true
         outputContext.imageSmoothingQuality = 'high'
         outputContext.drawImage(image, left, top, cropWidth, cropHeight, x, y, width, height)
-        const normalized = output.toDataURL('image/webp', 0.98)
+        const normalized = output.toDataURL('image/webp', 0.86)
         normalizedCache.set(cacheKey, normalized)
         resolve(normalized)
       } catch {
@@ -109,7 +100,9 @@ export function preloadNormalizedClothingImage(ownerId, item, slot) {
   const key = getNormalizedKey(ownerId, item.id, slot)
   if (normalizedCache.has(key)) return Promise.resolve(normalizedCache.get(key))
   if (normalizedPromises.has(key)) return normalizedPromises.get(key)
-  const promise = loadClothingSource(ownerId, item)
+  // Thumbnails are already transparent WebP images and are large enough for
+  // the phone carousel. The HD document remains available on detail screens.
+  const promise = Promise.resolve(item.thumb)
     .then((source) => normalizeTransparentGarment(source, slot))
     .then(async (normalized) => {
       await decodeImage(normalized)
