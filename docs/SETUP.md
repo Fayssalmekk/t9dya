@@ -41,7 +41,7 @@ Hwayj demande une seule image `1024x1024` en qualité `low` par ajout et analyse
 
 ## S7a ya s7a (suivi santé)
 
-1. PowerShell à la racine du projet : `npx firebase deploy --only firestore:rules` pour autoriser les données santé privées par utilisateur, notamment le suivi quotidien de l’eau dans `healthWater`.
+1. PowerShell à la racine du projet : `npx firebase deploy --only firestore:rules` pour autoriser les données santé privées par utilisateur, notamment le suivi quotidien de l’eau dans `healthWater` et les compteurs d’habitudes dans `healthBadHabits`.
 2. Après déploiement Vercel, ouvrez `/s7a/today` avec chacun des deux comptes : chaque profil garde son dossier séparé, mais les deux membres du foyer peuvent le consulter et le modifier.
 3. Hub → Réglages → Mes notifications Android : autorisez Android, puis activez séparément demandes de courses, produits ajoutés, rappel courses, traitements, rendez-vous, stock faible et résumé quotidien. Les rappels planifiés sonnent après fermeture; les événements du partenaire sont reçus quand l’APK est active ou à sa prochaine synchronisation.
 4. Les estimations IA de glucides sont indicatives et ne remplacent jamais le calcul validé par le diabétologue; aucune dose d’insuline n’est générée automatiquement.
@@ -50,10 +50,12 @@ Hwayj demande une seule image `1024x1024` en qualité `low` par ajout et analyse
 
 ## Budget et journal des dépenses
 
-1. Déployez les règles après cette mise à jour : `npx firebase deploy --only firestore:rules`. La nouvelle collection partagée `households/{id}/expenses` restera inaccessible tant que les règles distantes ne sont pas actualisées.
+1. Déployez les règles après cette mise à jour : `npx firebase deploy --only firestore:rules`. Les collections partagées `households/{id}/expenses` et `households/{id}/salaryMonths` resteront inaccessibles tant que les règles distantes ne sont pas actualisées.
 2. Ouvrez `/budget/expenses` avec chacun des deux comptes et vérifiez qu’une dépense apparaît en temps réel chez les deux membres.
 3. Pour une dépense payée depuis une enveloppe, vérifiez que le solde diminue. En supprimant la dépense, le solde doit être recrédité et le mouvement d’annulation doit apparaître.
-4. Après le déploiement Web, exécutez `npm run android:update` avant de générer un nouvel APK afin d’inclure toutes les applications.
+4. Dans la vue globale, saisissez les deux salaires pour le mois, puis vérifiez qu’une dépense, une charge payée, les achats T9dya et un versement vers une enveloppe diminuent le bon salaire.
+5. Vérifiez que changer de mois affiche les salaires et dépenses de ce mois tout en conservant exactement le même solde cumulé des enveloppes.
+6. Après le déploiement Web, exécutez `npm run android:update` avant de générer un nouvel APK afin d’inclure toutes les applications.
 
 ## Commandes de vérification
 

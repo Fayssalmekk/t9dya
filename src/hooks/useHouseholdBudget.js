@@ -12,6 +12,7 @@ export function useHouseholdBudget(household, userId) {
   const [payments, setPayments] = useState([])
   const [movements, setMovements] = useState([])
   const [expenses, setExpenses] = useState([])
+  const [salaryMonths, setSalaryMonths] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const setupStarted = useRef(false)
@@ -26,7 +27,7 @@ export function useHouseholdBudget(household, userId) {
 
   useEffect(() => {
     if (!householdId) return undefined
-    let waiting = 5
+    let waiting = 6
     const loaded = () => {
       waiting -= 1
       if (waiting === 0) setLoading(false)
@@ -48,7 +49,7 @@ export function useHouseholdBudget(household, userId) {
       setPayments(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })))
       loaded()
     }, failed)
-    const movementsQuery = query(collection(db, ...basePath, 'envelopeTransactions'), orderBy('createdAt', 'desc'), limit(60))
+    const movementsQuery = query(collection(db, ...basePath, 'envelopeTransactions'), orderBy('createdAt', 'desc'), limit(250))
     const unsubscribeMovements = onSnapshot(movementsQuery, (snapshot) => {
       setMovements(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })))
       loaded()
@@ -58,6 +59,10 @@ export function useHouseholdBudget(household, userId) {
       setExpenses(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })))
       loaded()
     }, failed)
+    const unsubscribeSalaries = onSnapshot(collection(db, ...basePath, 'salaryMonths'), (snapshot) => {
+      setSalaryMonths(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })))
+      loaded()
+    }, failed)
 
     return () => {
       unsubscribeCharges()
@@ -65,8 +70,9 @@ export function useHouseholdBudget(household, userId) {
       unsubscribePayments()
       unsubscribeMovements()
       unsubscribeExpenses()
+      unsubscribeSalaries()
     }
   }, [householdId])
 
-  return { charges, envelopes, payments, movements, expenses, loading, error }
+  return { charges, envelopes, payments, movements, expenses, salaryMonths, loading, error }
 }

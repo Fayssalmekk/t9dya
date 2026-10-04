@@ -1,4 +1,4 @@
-import { CalendarDays, HeartPulse, Pill, Syringe } from 'lucide-react'
+import { Ban, CalendarDays, HeartPulse, Pill, Syringe } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useHealth } from '../context/HealthContext'
 
@@ -6,7 +6,8 @@ const tabs = [
   { to: '/s7a/today', label: 'Aujourd’hui', icon: HeartPulse },
   { to: '/s7a/diabetes', label: 'Diabète', icon: Syringe },
   { to: '/s7a/medications', label: 'Traitements', icon: Pill },
-  { to: '/s7a/appointments', label: 'Rendez-vous', icon: CalendarDays }
+  { to: '/s7a/appointments', label: 'Rendez-vous', icon: CalendarDays },
+  { to: '/s7a/habits', label: 'Habitudes', icon: Ban }
 ]
 
 export default function HealthNavigation() {

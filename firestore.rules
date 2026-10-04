@@ -204,6 +204,26 @@ service cloud.firestore {
           && request.resource.data.goalMl == 2000;
       }
 
+      match /healthBadHabits/{habitId} {
+        allow read, delete: if owns(userId) || sharesHousehold(userId);
+        allow create, update: if (owns(userId) || sharesHousehold(userId))
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 100
+          && request.resource.data.category in ['soda', 'sugar', 'smoking', 'screen', 'sleep', 'other']
+          && request.resource.data.note is string
+          && request.resource.data.note.size() <= 500
+          && request.resource.data.lastOccurredOn is string
+          && request.resource.data.lastOccurredOn.size() == 10
+          && request.resource.data.goalDays is number
+          && request.resource.data.goalDays >= 1
+          && request.resource.data.goalDays <= 365
+          && request.resource.data.relapseCount is number
+          && request.resource.data.relapseCount >= 0
+          && request.resource.data.bestStreakDays is number
+          && request.resource.data.bestStreakDays >= 0;
+      }
+
       match /{document=**} {
         allow read, write: if false;
       }
@@ -259,7 +279,7 @@ service cloud.firestore {
       }
 
       match /{collectionName}/{documentId} {
-        allow read, write: if collectionName in ['items', 'lists', 'customProducts', 'charges', 'chargePayments', 'envelopes', 'envelopeTransactions', 'expenses', 'purchases', 'priceHistory', 'templates', 'pantry', 'trips'] && isMember(householdId);
+        allow read, write: if collectionName in ['items', 'lists', 'customProducts', 'charges', 'chargePayments', 'envelopes', 'envelopeTransactions', 'expenses', 'salaryMonths', 'purchases', 'priceHistory', 'templates', 'pantry', 'trips'] && isMember(householdId);
       }
     }
 

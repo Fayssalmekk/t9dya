@@ -23,7 +23,7 @@ T9DYA est un portail privé pour un foyer de deux personnes. Après connexion et
 1. **T9dya** : listes de courses, catalogue, cuisine et historique d’achats.
 2. **Budget** : vue financière, dépenses quotidiennes, charges fixes et enveloppes.
 3. **Hwayj** : dressing, vêtements et composition de tenues.
-4. **S7a ya s7a** : suivi santé, diabète, traitements, stocks et rendez-vous.
+4. **S7a ya s7a** : suivi santé, diabète, traitements, stocks, rendez-vous et mauvaises habitudes.
 5. **Carte** : partage GPS volontaire et position du partenaire sur une carte privée.
 
 Il n’y a plus d’application “Dar/Maison” ni de carte “bientôt disponible” dans le Hub. Ne réintroduire aucun placeholder sans demande explicite.
@@ -224,26 +224,28 @@ Racine : `src/apps/budget/BudgetApp.jsx`. Elle monte `PlatformProvider` et `Shop
 
 ### Routes Budget
 
-- `/budget/overview` : synthèse du mois, budget restant, catégories et derniers mouvements.
+- `/budget/overview` : dashboard mensuel, salaires des deux partenaires, disponible global, reste individuel et statistiques.
 - `/budget/expenses` : journal des dépenses quotidiennes.
 - `/budget/charges` : charges fixes et budget courses.
 - `/budget/envelopes` : enveloppes et mouvements.
 
 ### Dépenses
 
-Les documents `households/{householdId}/expenses/{expenseId}` contiennent montant, motif, note, catégorie, date `spentOn`, source et auteur. Une source peut être le budget T9dya, un compte/carte, des espèces ou une enveloppe.
+Les documents `households/{householdId}/expenses/{expenseId}` contiennent montant, motif, note, catégorie, date `spentOn`, source et auteur. Une nouvelle dépense est prélevée soit sur le salaire mensuel d’un membre (`sourceType: salary`, `sourceId: uid`), soit sur une enveloppe cumulative. Les anciens types de source restent lisibles pour préserver l’historique.
 
 Quand la source est une enveloppe, `createExpense` débite son solde et écrit simultanément la dépense et un `envelopeTransaction` dans une transaction Firestore. Le solde ne peut pas devenir négatif. Supprimer cette dépense recrédite l’enveloppe et écrit un mouvement d’annulation.
 
-La vue globale additionne séparément les achats T9dya automatiques, les charges marquées payées et les dépenses du journal. Les fonds des enveloppes sont affichés comme argent réservé.
+`households/{householdId}/salaryMonths/{YYYY-MM_uid}` stocke le salaire d’un membre pour un mois. Les deux partenaires peuvent voir et modifier les deux salaires. Le reste individuel soustrait les dépenses issues de ce salaire, les charges qui lui sont attribuées, les achats T9dya quand ce salaire est sélectionné et les versements faits vers les enveloppes. Le disponible global additionne les restes des deux salaires et le capital actuel des enveloppes; un transfert salaire → enveloppe ne gonfle donc jamais artificiellement le total.
+
+La vue globale possède son propre sélecteur de mois, des cartes séparées par partenaire, le disponible familial, les sorties du mois, les charges payées, le journal et la répartition par catégorie.
 
 ### Charges
 
-`src/services/budget.js` initialise une seule fois des charges par défaut lorsque `budget.plannerVersion < 1`. Chaque charge possède nom, montant, icône, jour d’échéance et statut actif. Les paiements sont enregistrés par mois dans `chargePayments` avec l’ID `${chargeId}_${month}` et peuvent être décochés.
+`src/services/budget.js` initialise une seule fois des charges par défaut lorsque `budget.plannerVersion < 1`. Chaque charge possède nom, montant, icône, jour d’échéance, `salaryOwnerId` et statut actif. Une ancienne charge sans salaire doit être éditée avant de pouvoir être marquée payée. Les paiements sont enregistrés par mois dans `chargePayments` avec l’ID `${chargeId}_${month}` et conservent le salaire source utilisé à ce moment. Le budget T9dya possède aussi `budget.grocerySalaryOwnerId`.
 
 ### Enveloppes
 
-Une enveloppe contient nom, icône, couleur, solde, objectif et statut. Alimenter ou retirer utilise une transaction Firestore, empêche un solde négatif et écrit un mouvement avec `balanceAfter`. Une enveloppe ne peut être archivée que si son solde est nul.
+Une enveloppe contient nom, icône, couleur, solde, objectif et statut. Son solde est permanent et cumulatif : il ne dépend jamais du mois affiché et ne revient pas à zéro. Alimenter exige de choisir le salaire source et enregistre `sourceSalaryId`, `sourceSalaryName` et `occurredOn`; le dashboard déduit ce transfert du reste de ce salaire. Retirer utilise aussi une transaction Firestore, empêche un solde négatif et écrit un mouvement avec `balanceAfter`. Une enveloppe ne peut être archivée que si son solde est nul.
 
 ## 10. Application Hwayj
 
@@ -350,6 +352,7 @@ Le profil actif est sélectionné entre les deux membres. Les deux partenaires p
 
 Dans le formulaire repas S7a, la photo et l’estimation GPT sont facultatives. Les champs du nom, des glucides confirmés et de la date restent montés même lorsque la valeur des glucides est temporairement vide, afin de permettre de l’effacer puis de la ressaisir sans fermer la feuille ni perdre la photo. Sans nom, l’enregistrement utilise la description puis « Repas ».
 - `users/{uid}/healthWater/{YYYY-MM-DD}` : quantité d’eau quotidienne en millilitres, plafonnée à l’objectif de 2 000 ml.
+- `users/{uid}/healthBadHabits` : habitudes à réduire, catégorie, dernière occurrence, objectif, nombre de rechutes et meilleur compteur atteint.
 
 Les règles Firestore permettent lecture et écriture au propriétaire ou à son partenaire du même foyer. Les valeurs critiques ont des bornes simples : glycémie positive sous 700, insuline de 0 à 200 unités, glucides de 0 à 1000.
 

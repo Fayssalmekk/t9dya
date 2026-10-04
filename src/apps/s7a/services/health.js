@@ -11,6 +11,7 @@ export const subscribeChecks = (uid, onData, onError) => subscribe(uid, 'medicat
 export const subscribeAppointments = (uid, onData, onError) => subscribe(uid, 'healthAppointments', 'date', 'asc', onData, onError)
 export const subscribeMeals = (uid, onData, onError) => subscribe(uid, 'mealAnalyses', 'eatenAt', 'desc', onData, onError)
 export const subscribeWater = (uid, onData, onError) => subscribe(uid, 'healthWater', 'date', 'desc', onData, onError)
+export const subscribeBadHabits = (uid, onData, onError) => subscribe(uid, 'healthBadHabits', 'createdAt', 'asc', onData, onError)
 
 export async function ensureRequiredInsulins(uid) {
   const now = serverTimestamp()
@@ -64,6 +65,35 @@ export function setMedicationCheck(uid, medicationId, date, taken) {
 export function setWaterIntake(uid, date, amountMl) {
   const reference = doc(db, 'users', uid, 'healthWater', date)
   return setDoc(reference, { date, amountMl: Math.min(2000, Math.max(0, Number(amountMl) || 0)), goalMl: 2000, updatedAt: serverTimestamp() }, { merge: true })
+}
+
+export function createBadHabit(uid, values) {
+  const reference = doc(userCollection(uid, 'healthBadHabits'))
+  return setDoc(reference, {
+    name: values.name.trim(),
+    category: values.category || 'other',
+    note: values.note.trim(),
+    lastOccurredOn: values.lastOccurredOn,
+    goalDays: Math.min(365, Math.max(1, Number(values.goalDays) || 30)),
+    relapseCount: 0,
+    bestStreakDays: 0,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  })
+}
+
+export function recordBadHabitOccurrence(uid, habit, occurredOn, streakDays) {
+  return updateDoc(doc(db, 'users', uid, 'healthBadHabits', habit.id), {
+    previousOccurredOn: habit.lastOccurredOn,
+    lastOccurredOn: occurredOn,
+    relapseCount: increment(1),
+    bestStreakDays: Math.max(Number(habit.bestStreakDays) || 0, Number(streakDays) || 0),
+    updatedAt: serverTimestamp()
+  })
+}
+
+export function deleteBadHabit(uid, habitId) {
+  return deleteDoc(doc(db, 'users', uid, 'healthBadHabits', habitId))
 }
 
 export function createAppointment(uid, values) {

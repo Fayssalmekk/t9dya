@@ -122,6 +122,9 @@ export async function addEnvelopeMovement(householdId, envelope, userId, values)
       type: values.type,
       amount,
       note: values.note.trim(),
+      occurredOn: values.occurredOn || new Date().toISOString().slice(0, 10),
+      sourceSalaryId: values.type === 'deposit' ? values.sourceSalaryId || '' : '',
+      sourceSalaryName: values.type === 'deposit' ? values.sourceSalaryName || '' : '',
       balanceAfter: nextBalance,
       createdBy: userId,
       createdAt: serverTimestamp()
@@ -135,6 +138,7 @@ export async function createCharge(householdId, userId, values) {
     amount: Number(values.amount) || 0,
     icon: values.icon,
     dueDay: Number(values.dueDay) || 1,
+    salaryOwnerId: values.salaryOwnerId || '',
     active: true,
     createdBy: userId,
     createdAt: serverTimestamp(),
@@ -148,6 +152,7 @@ export async function updateCharge(householdId, chargeId, values) {
     amount: Number(values.amount) || 0,
     icon: values.icon,
     dueDay: Number(values.dueDay) || 1,
+    salaryOwnerId: values.salaryOwnerId || '',
     updatedAt: serverTimestamp()
   })
 }
@@ -167,8 +172,26 @@ export async function markChargePaid(householdId, charge, month, userId) {
     chargeIcon: charge.icon,
     month,
     amount: Number(charge.amount) || 0,
+    salaryOwnerId: charge.salaryOwnerId || '',
     paidBy: userId,
     paidAt: serverTimestamp()
+  })
+}
+
+export function setMonthlySalary(householdId, memberId, month, amount, editedBy) {
+  return setDoc(doc(db, 'households', householdId, 'salaryMonths', `${month}_${memberId}`), {
+    memberId,
+    month,
+    amount: Math.max(0, Number(amount) || 0),
+    editedBy,
+    updatedAt: serverTimestamp()
+  }, { merge: true })
+}
+
+export function setGrocerySalaryOwner(householdId, memberId) {
+  return updateDoc(householdDoc(householdId), {
+    'budget.grocerySalaryOwnerId': memberId || '',
+    updatedAt: serverTimestamp()
   })
 }
 
@@ -217,6 +240,7 @@ export async function createExpense(householdId, userId, values) {
       expenseId: expenseRef.id,
       type: 'withdrawal',
       amount,
+      occurredOn: values.spentOn,
       note: `Dépense · ${values.reason.trim()}`,
       balanceAfter: nextBalance,
       createdBy: userId,
@@ -249,6 +273,7 @@ export async function deleteExpense(householdId, userId, expense) {
       expenseId: expense.id,
       type: 'deposit',
       amount: Number(storedExpense.amount || 0),
+      occurredOn: new Date().toISOString().slice(0, 10),
       note: `Annulation · ${storedExpense.reason}`,
       balanceAfter: nextBalance,
       createdBy: userId,
