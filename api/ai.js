@@ -107,32 +107,35 @@ function responseText(result) {
   return result.output?.flatMap((entry) => entry.content || []).find((entry) => entry.type === 'output_text')?.text || ''
 }
 
-async function enhance(image, instructions = '') {
+async function enhance(image, instructions = '', category = '', subcategory = '', gender = 'neutral') {
   const parsed = dataUrlParts(image)
   if (!parsed) throw new Error('INVALID_IMAGE')
   const userDirections = String(instructions || '').trim().slice(0, 600)
+  const safeCategory = Object.hasOwn(GARMENT_TYPES, category) ? category : 'Autre'
+  const safeSubcategory = GARMENT_TYPES[safeCategory].includes(subcategory) ? subcategory : GARMENT_TYPES[safeCategory][0]
+  const profileFit = gender === 'female'
+    ? 'For clothing, use a subtle feminine ghost-mannequin volume and proportions.'
+    : gender === 'male'
+      ? 'For clothing, use a subtle masculine ghost-mannequin volume and proportions.'
+      : 'For clothing, preserve the fit and silhouette visible in the reference.'
+  const presentation = safeCategory === 'Chaussures' || safeSubcategory === 'Chaussures de sport'
+    ? 'This is footwear. Show exactly one complete shoe in a clean outer-side profile, toe pointing left, heel on the right and sole horizontal. Never turn it into clothing and never show a pair.'
+    : `This is a ${safeCategory} / ${safeSubcategory}, not another product type. Show it upright in a straight-on front view. ${profileFit}`
   const form = new FormData()
   form.append('model', process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2.5-flare')
   form.append('image', new Blob([parsed.bytes], { type: parsed.mime }), `garment.${parsed.mime.split('/')[1]}`)
-  form.append('prompt', `Create a clean, high-detail e-commerce catalog image of this exact garment.
+  form.append('prompt', `Turn the photographed item into a realistic boutique catalog cutout on transparent background.
 
-NON-NEGOTIABLE RULES:
-- Show one garment only in a strictly straight-on front view, perfectly centered and upright, as if displayed in a real clothing boutique.
-- The complete garment must be visible from its absolute highest point to its absolute lowest point on a transparent 1024x1536 portrait canvas.
-- Leave generous transparent margin on all four sides. Never crop, zoom in, fill the frame, cut off, split, fold away or hide any edge.
-- Keep the entire collar or neckline, hood, shoulders, both sleeves and cuffs, waist, pockets, hem, trouser legs, dress or skirt length and every extremity visible when present.
-- If the source photo is already cropped, conservatively reconstruct every missing continuation. Use the visible cut, symmetry, fabric, seams and repeating pattern as evidence so the generated garment is complete.
-- Preserve the exact product identity: dominant and secondary colors, motif geometry, motif size and spacing, print placement, logos, embroidery, stitching, seams, buttons, zippers, pockets, collar shape, sleeve shape, cut, texture, material and proportions.
-- Do not simplify, blur, redesign, replace, remove or invent distinctive details.
-- Use an invisible ghost mannequin only. Show no person, skin, face, hands, hanger, props, shop fixture or extra clothing.
-
-OPTIONAL USER DIRECTIONS (follow only when compatible with every rule above):
-${userDirections || 'No additional directions.'}`)
-  form.append('quality', 'high')
+IDENTITY: ${presentation}
+FRAMING: One item only, centered, upright and fully visible with generous transparent space on every side. Never crop any collar, hood, sleeve, cuff, hem, leg, toe, heel or sole. If the phone photo cuts off a part, conservatively complete it from symmetry, seams, fabric and the repeating pattern.
+FIDELITY: Copy every real detail exactly: all colors, contrast trims and piping (especially collar, cuffs, sleeves and bottom hem), motif geometry and spacing, logos, embroidery, stitching, seams, buttons, zips, pockets, texture, material, cut and proportions. Do not simplify, redesign, remove, recolor or invent distinctive details.
+SCENE: Invisible ghost mannequin only when needed for shape. No person, skin, face, hands, hanger, props, store furniture or extra product.
+USER NOTE: ${userDirections || 'None.'}`)
+  form.append('quality', 'medium')
   form.append('size', '1024x1536')
   form.append('background', 'transparent')
   form.append('output_format', 'webp')
-  form.append('output_compression', '80')
+  form.append('output_compression', '85')
   const result = await openAI('images/edits', form, true)
   const base64 = result.data?.[0]?.b64_json
   if (!base64) throw new Error('EMPTY_AI_IMAGE')
@@ -250,7 +253,7 @@ export default async function handler(request, response) {
   const action = request.body?.action
   if (!['enhance', 'combine', 'compose', 'tag', 'suggest', 'meal'].includes(action)) return json(response, 400, { error: 'INVALID_ACTION' })
   try {
-    const result = action === 'enhance' ? await enhance(request.body.image, request.body.instructions) : action === 'combine' ? await combine(request.body.images, request.body.names) : action === 'compose' ? await compose(request.body.images, request.body.names, request.body.gender, request.body.instructions, request.body.garments) : action === 'tag' ? await tag(request.body.image) : action === 'meal' ? await analyseMeal(request.body.image, request.body.description) : await suggest(request.body)
+    const result = action === 'enhance' ? await enhance(request.body.image, request.body.instructions, request.body.category, request.body.subcategory, request.body.gender) : action === 'combine' ? await combine(request.body.images, request.body.names) : action === 'compose' ? await compose(request.body.images, request.body.names, request.body.gender, request.body.instructions, request.body.garments) : action === 'tag' ? await tag(request.body.image) : action === 'meal' ? await analyseMeal(request.body.image, request.body.description) : await suggest(request.body)
     return json(response, 200, result)
   } catch (error) {
     const clientErrors = ['INVALID_IMAGE', 'INVALID_IMAGES', 'INVALID_WARDROBE']
