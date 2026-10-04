@@ -48,6 +48,10 @@ html.native-app::before {
   pointer-events: none;
 }
 
+.portal-top-bar {
+  top: var(--app-safe-top);
+}
+
 .cuisine-page {
   background:
     radial-gradient(circle at 100% 4%, rgb(var(--cuisine-warm) / 0.08), transparent 18rem),
