@@ -59,6 +59,19 @@ function OutfitComposer({ outfitId, outfit, clothes }) {
 
   const selectedItem = (slot) => clothes.find((item) => item.id === manual[slot])
   const choices = (slot) => slot === 'top' ? tops : slots.bottom
+
+  useEffect(() => {
+    const warmNeighbours = (slot, available, selectedId) => {
+      if (available.length < 2 || !selectedId) return
+      const index = available.findIndex((item) => item.id === selectedId)
+      if (index < 0) return
+      const neighbours = [available[(index + 1) % available.length], available[(index - 1 + available.length) % available.length]]
+      neighbours.forEach((item) => preloadNormalizedClothingImage(ownerId, item, slot))
+    }
+    warmNeighbours('top', tops, manual.top)
+    warmNeighbours('bottom', slots.bottom, manual.bottom)
+  }, [manual.bottom, manual.top, ownerId, slots.bottom, tops])
+
   const cycle = async (slot, direction) => {
     const available = choices(slot)
     if (!available.length) return

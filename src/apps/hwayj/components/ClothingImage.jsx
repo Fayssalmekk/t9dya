@@ -7,9 +7,9 @@ const normalizedPromises = new Map()
 const transparentPixel = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='
 
 function getPixelRatio() {
-  // The swipe canvas is phone-sized. A 1.5x buffer stays crisp on dense
-  // screens without decoding and repainting a full-HD garment on every swipe.
-  return (window.devicePixelRatio || 1) > 1 ? 1.5 : 1
+  // The carousel still paints a compact canvas, but 1.65x keeps fine fabric
+  // edges clean on dense phone screens without returning to a 2x/3x buffer.
+  return (window.devicePixelRatio || 1) > 1 ? 1.65 : 1
 }
 
 function getNormalizedKey(ownerId, itemId, slot) {
@@ -24,6 +24,14 @@ function decodeImage(source) {
     image.src = source
     if (image.decode) image.decode().then(resolve).catch(() => {})
   })
+}
+
+async function loadClothingSource(ownerId, item) {
+  const cacheKey = `${ownerId}:${item.id}`
+  if (imageCache.has(cacheKey)) return imageCache.get(cacheKey)
+  const source = await getClothingImage(ownerId, item.id).catch(() => null) || item.thumb
+  imageCache.set(cacheKey, source)
+  return source
 }
 
 function normalizeTransparentGarment(source, slot) {
@@ -81,7 +89,7 @@ function normalizeTransparentGarment(source, slot) {
         outputContext.imageSmoothingEnabled = true
         outputContext.imageSmoothingQuality = 'high'
         outputContext.drawImage(image, left, top, cropWidth, cropHeight, x, y, width, height)
-        const normalized = output.toDataURL('image/webp', 0.86)
+        const normalized = output.toDataURL('image/webp', 0.9)
         normalizedCache.set(cacheKey, normalized)
         resolve(normalized)
       } catch {
@@ -100,9 +108,9 @@ export function preloadNormalizedClothingImage(ownerId, item, slot) {
   const key = getNormalizedKey(ownerId, item.id, slot)
   if (normalizedCache.has(key)) return Promise.resolve(normalizedCache.get(key))
   if (normalizedPromises.has(key)) return normalizedPromises.get(key)
-  // Thumbnails are already transparent WebP images and are large enough for
-  // the phone carousel. The HD document remains available on detail screens.
-  const promise = Promise.resolve(item.thumb)
+  // Read the original once, then keep only this medium canvas in the carousel.
+  // Neighbouring garments are warmed by the composer before the user swipes.
+  const promise = loadClothingSource(ownerId, item)
     .then((source) => normalizeTransparentGarment(source, slot))
     .then(async (normalized) => {
       await decodeImage(normalized)
