@@ -10,7 +10,6 @@ import LoadingScreen from './components/LoadingScreen'
 import { I18nProvider } from './i18n/I18nContext'
 import NotificationCoordinator from './native/NotificationCoordinator'
 import LocationCoordinator from './native/LocationCoordinator'
-import PortalTopBar from './components/PortalTopBar'
 
 const legacyRoutes = ['list', 'catalog', 'history']
 
@@ -20,7 +19,7 @@ function AppRoutes() {
   if (!user) return <Routes><Route path="/auth" element={<AuthPage />} /><Route path="*" element={<Navigate to="/auth" replace />} /></Routes>
   if (accountClosed || !profile) return <ClosedAccountPage onSignOut={signOut} />
   if (!profile.householdId || !household) return <Suspense fallback={<LoadingScreen />}><Routes><Route path="/" element={<HubPage />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></Suspense>
-  return <><PortalTopBar /><Suspense fallback={<LoadingScreen />}><Routes>{appRegistry.filter((app) => app.enabled).map(({ id, basePath, component: AppComponent }) => <Route key={id} path={`${basePath}/*`} element={<AppComponent />} />)}{legacyRoutes.map((path) => <Route key={path} path={`/${path}`} element={<Navigate to={`/t9dya/${path}`} replace />} />)}<Route path="/charges" element={<Navigate to="/budget/charges" replace />} /><Route path="/envelopes" element={<Navigate to="/budget/envelopes" replace />} /><Route path="/settings" element={<HubSettingsPage />} /><Route path="/household" element={<Navigate to="/" replace />} /><Route path="/" element={<HubPage />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></Suspense></>
+  return <Suspense fallback={<LoadingScreen />}><Routes>{appRegistry.filter((app) => app.enabled).map(({ id, basePath, component: AppComponent }) => <Route key={id} path={`${basePath}/*`} element={<AppComponent />} />)}{legacyRoutes.map((path) => <Route key={path} path={`/${path}`} element={<Navigate to={`/t9dya/${path}`} replace />} />)}<Route path="/charges" element={<Navigate to="/budget/charges" replace />} /><Route path="/envelopes" element={<Navigate to="/budget/envelopes" replace />} /><Route path="/settings" element={<HubSettingsPage />} /><Route path="/household" element={<Navigate to="/" replace />} /><Route path="/" element={<HubPage />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></Suspense>
 }
 
 function ClosedAccountPage({ onSignOut }) {

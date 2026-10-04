@@ -43,13 +43,9 @@ html.native-app::before {
   right: 0;
   left: 0;
   height: var(--app-safe-top);
-  background: rgb(var(--color-canvas));
+  background: #0f172a;
   content: '';
   pointer-events: none;
-}
-
-.portal-top-bar {
-  top: var(--app-safe-top);
 }
 
 .cuisine-page {

@@ -22,13 +22,13 @@
     "SystemBars": {
       "insetsHandling": "css",
       "initialViewportFitValueHint": "cover",
-      "style": "LIGHT",
+      "style": "DARK",
       "hidden": false
     },
     "StatusBar": {
       "overlaysWebView": false,
-      "backgroundColor": "#000000",
-      "style": "LIGHT"
+      "backgroundColor": "#0f172a",
+      "style": "DARK"
     }
   }
 }

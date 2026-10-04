@@ -6,12 +6,12 @@ import { StatusBar, Style } from '@capacitor/status-bar'
 
 export const isNativeApp = Capacitor.isNativePlatform()
 
-export async function syncNativeTheme(dark = document.documentElement.classList.contains('dark')) {
+export async function syncNativeTheme() {
   if (!isNativeApp) return
   await Promise.allSettled([
-    SystemBars.setStyle({ style: dark ? SystemBarsStyle.Dark : SystemBarsStyle.Light }),
-    StatusBar.setBackgroundColor({ color: dark ? '#020617' : '#f8fafc' }),
-    StatusBar.setStyle({ style: dark ? Style.Light : Style.Dark })
+    SystemBars.setStyle({ style: SystemBarsStyle.Dark }),
+    StatusBar.setBackgroundColor({ color: '#0f172a' }),
+    StatusBar.setStyle({ style: Style.Dark })
   ])
 }
 
@@ -19,11 +19,9 @@ export async function initializeNativeShell() {
   if (!isNativeApp) return
 
   document.documentElement.classList.add('native-app')
-  const dark = document.documentElement.classList.contains('dark')
-
   await Promise.allSettled([
     StatusBar.setOverlaysWebView({ overlay: false }),
-    syncNativeTheme(dark),
+    syncNativeTheme(),
     Keyboard.setResizeMode({ mode: KeyboardResize.Native }),
     LocalNotifications.createChannel({
       id: 'health-reminders',
