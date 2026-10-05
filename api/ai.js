@@ -114,7 +114,7 @@ async function enhance(image, instructions = '', category = '', subcategory = ''
   const safeCategory = Object.hasOwn(GARMENT_TYPES, category) ? category : 'Autre'
   const safeSubcategory = GARMENT_TYPES[safeCategory].includes(subcategory) ? subcategory : GARMENT_TYPES[safeCategory][0]
   const profileFit = gender === 'female'
-    ? 'For clothing, use a subtle feminine ghost-mannequin volume and proportions.'
+    ? 'For clothing, use a clearly recognizable but natural feminine ghost-mannequin silhouette: softly defined waist, balanced bust and hip volume, and feminine shoulder proportions appropriate to this exact garment. It must read as women\'s clothing at first glance without exaggerated curves, changing the real cut, or showing a visible body.'
     : gender === 'male'
       ? 'For clothing, use a subtle masculine ghost-mannequin volume and proportions.'
       : 'For clothing, preserve the fit and silhouette visible in the reference.'
@@ -170,6 +170,11 @@ async function compose(images, names = [], gender = 'neutral', instructions = ''
   form.append('model', process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2.5-flare')
   parsedImages.forEach((image, index) => form.append('image[]', new Blob([image.bytes], { type: image.mime }), `outfit-${index + 1}.${image.mime.split('/')[1]}`))
   const audience = gender === 'female' ? 'women\'s wardrobe; keep the complete outfit clearly feminine' : gender === 'male' ? 'men\'s wardrobe; keep the complete outfit clearly masculine' : 'gender-neutral wardrobe; infer the intended fit only from the supplied garments'
+  const silhouetteRule = gender === 'female'
+    ? 'Use a clearly readable, natural feminine ghost-mannequin silhouette with a softly defined waist, balanced bust and hip volume, and feminine shoulder proportions. The outfit must read as women\'s clothing at first glance without exaggerated curves, a visible body, or altering any garment\'s real cut.'
+    : gender === 'male'
+      ? 'Use a natural masculine ghost-mannequin silhouette appropriate to the supplied garments without altering their real cut.'
+      : 'Infer the mannequin proportions only from the supplied garments and do not impose a gendered body shape.'
   const garmentDetails = Array.isArray(garments) ? garments.slice(0, 4).map((garment, index) => `Reference ${index + 1}: name=${String(garment?.name || names[index] || '').slice(0, 80)}; category=${String(garment?.category || '').slice(0, 50)}; precise type=${String(garment?.subcategory || '').slice(0, 60)}; colors=${Array.isArray(garment?.colors) ? garment.colors.slice(0, 5).map((color) => String(color).slice(0, 30)).join(', ') : ''}; pattern=${String(garment?.pattern || '').slice(0, 60)}; material=${String(garment?.material || '').slice(0, 60)}.`).join('\n') : ''
   const userDirections = String(instructions || '').trim().slice(0, 600)
   form.append('prompt', `Create one clean, high-detail, photorealistic boutique catalog image showing all these exact garments worn together as one coherent outfit: ${names.map((name) => String(name).slice(0, 60)).join(', ')}.
@@ -182,6 +187,7 @@ NON-NEGOTIABLE COMPOSITION RULES:
 - If an original reference is cropped, conservatively reconstruct its missing continuation into a plausible complete garment. Extend the visible cut, symmetry, fabric, seams and repeating motif; do not leave the generated garment cropped merely because the source is cropped.
 - Treat each supplied image and its metadata as the exact product identity. Reproduce the same dominant and secondary colors, motif geometry, motif scale and spacing, print placement, logos, embroidery, texture, fabric, seams, buttons, pockets, collar shape, sleeve shape, cut and proportions. Preserve deliberate styling such as rolled or pushed-up sleeves, open or closed fastenings, folded collars, turned cuffs, tucks, knots and drape. Do not simplify, blur, invent, remove, replace or redesign distinctive details.
 - Arrange upper layers, bottoms, dresses, shoes and accessories in anatomically correct positions. Preserve the intended gender, fit and silhouette. Never turn masculine cuts into feminine cuts or feminine cuts into masculine cuts.
+- ${silhouetteRule}
 - Use an invisible ghost mannequin only. Do not show a person, face, skin, hands, hanger, shop fixture or any garment that was not selected.
 
 Wardrobe profile: ${audience}.
