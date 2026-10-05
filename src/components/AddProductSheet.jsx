@@ -35,6 +35,7 @@ export default function AddProductSheet() {
 
   const submit = async (event) => {
     event.preventDefault()
+    if (submitting) return
     setSubmitting(true)
     setError('')
     try {
@@ -52,7 +53,7 @@ export default function AddProductSheet() {
     <AnimatePresence>
       {product && (
         <div className="fixed inset-0 z-40 flex items-end justify-center" role="dialog" aria-modal="true" aria-labelledby="add-product-title">
-          <Motion.button type="button" aria-label="Fermer" className="absolute inset-0 bg-slate-950/45 backdrop-blur-[2px]" onClick={closeProduct} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
+          <Motion.button type="button" aria-label="Fermer" className="absolute inset-0 bg-slate-950/45 backdrop-blur-[2px]" onClick={() => !submitting && closeProduct()} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
           <Motion.form onSubmit={submit} className="relative z-10 max-h-[94dvh] w-full max-w-lg overflow-y-auto rounded-t-[2rem] bg-surface px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3 shadow-2xl" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 320 }}>
             <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-200 dark:bg-slate-700" />
             <div className="flex items-start gap-4">
@@ -62,7 +63,7 @@ export default function AddProductSheet() {
                 <h2 id="add-product-title" className="mt-1 truncate text-xl font-extrabold">{product.name}</h2>
                 <p className="mt-0.5 text-sm text-muted" dir="auto">{product.altName}</p>
               </div>
-              <button type="button" onClick={closeProduct} className="grid min-h-11 min-w-11 place-items-center rounded-xl bg-slate-100 text-muted dark:bg-slate-800" aria-label="Fermer"><X size={20} /></button>
+              <button type="button" onClick={closeProduct} disabled={submitting} className="grid min-h-11 min-w-11 place-items-center rounded-xl bg-slate-100 text-muted disabled:opacity-40 dark:bg-slate-800" aria-label="Fermer"><X size={20} /></button>
             </div>
 
             {duplicate && <div className="mt-5 rounded-xl bg-amber-50 p-3 text-sm font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-200">Déjà dans la liste : la quantité sera additionnée.</div>}

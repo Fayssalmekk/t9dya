@@ -56,13 +56,21 @@ export default function ListPage() {
   }
 
   const unmarkBought = async (item) => {
-    await unmarkItemBought(household.id, item)
-    notify(`${item.name} remis dans la liste`)
+    try {
+      await unmarkItemBought(household.id, item)
+      notify(`${item.name} remis dans la liste`)
+    } catch {
+      notify('Impossible de remettre cet article dans la liste.')
+    }
   }
 
   const deleteItem = async (item) => {
-    await removeShoppingItem(household.id, item.id)
-    notify(`${item.name} supprimé`, { label: 'Annuler', onClick: () => restoreShoppingItem(household.id, item) })
+    try {
+      await removeShoppingItem(household.id, item.id)
+      notify(`${item.name} supprimé`, { label: 'Annuler', onClick: () => restoreShoppingItem(household.id, item).catch(() => notify('Restauration impossible.')) })
+    } catch {
+      notify('Suppression impossible.')
+    }
   }
 
   const shareList = async () => {
@@ -78,8 +86,12 @@ export default function ListPage() {
 
   const sendToPartner = async () => {
     if (!partnerId) return
-    await requestShoppingRun(household.id, activeList.id, user.uid, partnerId)
-    notify(`Liste envoyée à ${partner?.displayName || 'votre partenaire'}`)
+    try {
+      await requestShoppingRun(household.id, activeList.id, user.uid, partnerId)
+      notify(`Liste envoyée à ${partner?.displayName || 'votre partenaire'}`)
+    } catch {
+      notify('Impossible d’envoyer la liste pour le moment.')
+    }
   }
 
   return (
