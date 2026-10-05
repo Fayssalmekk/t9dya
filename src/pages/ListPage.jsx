@@ -1,13 +1,13 @@
-import { Clock3, ListPlus, PackagePlus, Search, Send, Share2, ShoppingCart, Sparkles } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Clock3, Search, Send, Share2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import AppHeader from '../components/AppHeader'
 import BoughtPriceSheet from '../components/BoughtPriceSheet'
 import ShoppingItem from '../components/ShoppingItem'
+import SmartListAdd from '../components/SmartListAdd'
 import { useAuth } from '../context/AuthContext'
 import { usePlatform } from '../context/PlatformContext'
 import { useShopping } from '../context/ShoppingContext'
-import { addQuickTextItem, markItemBought, removeShoppingItem, requestShoppingRun, restoreShoppingItem, startShoppingRun, unmarkItemBought } from '../services/shopping'
+import { markItemBought, removeShoppingItem, requestShoppingRun, restoreShoppingItem, startShoppingRun, unmarkItemBought } from '../services/shopping'
 
 const normalizeName = (value) => String(value || '').trim().toLocaleLowerCase('fr').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 
@@ -15,10 +15,6 @@ export default function ListPage() {
   const { user, household } = useAuth()
   const { items, activeList, incomingRequest, loading, error } = useShopping()
   const { notify } = usePlatform()
-  const navigate = useNavigate()
-  const quickInputRef = useRef(null)
-  const [quickText, setQuickText] = useState('')
-  const [adding, setAdding] = useState(false)
   const [buyingId, setBuyingId] = useState('')
   const [buyingItem, setBuyingItem] = useState(null)
   const [filter, setFilter] = useState('todo')
@@ -40,24 +36,6 @@ export default function ListPage() {
       return !needle || normalizeName(`${item.name} ${item.note || ''}`).includes(needle)
     })
   }, [filter, items, search])
-
-  const addTextItem = async (event) => {
-    event.preventDefault()
-    const name = quickText.trim().replace(/\s+/g, ' ')
-    if (!name || adding) return
-    setAdding(true)
-    const duplicate = activeItems.find((item) => normalizeName(item.name) === normalizeName(name))
-    try {
-      const result = await addQuickTextItem(household.id, user, name, duplicate)
-      setQuickText('')
-      notify(result.merged ? `${name} est déjà dans la liste · quantité +1` : `${name} ajouté`)
-      requestAnimationFrame(() => quickInputRef.current?.focus())
-    } catch {
-      notify('Impossible d’ajouter cet article pour le moment')
-    } finally {
-      setAdding(false)
-    }
-  }
 
   const quickBuy = async (item) => {
     if (buyingId) return
@@ -115,21 +93,7 @@ export default function ListPage() {
         </button>
       )}
 
-      <section className="rounded-[1.75rem] bg-surface p-4 shadow-card">
-        <div className="flex items-center gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent-100 text-accent-700"><Sparkles size={19} /></span><div><h2 className="font-extrabold">Ajout express</h2><p className="text-xs text-muted">Écrivez simplement ce qu’il faut acheter.</p></div></div>
-        <form onSubmit={addTextItem} className="mt-4 flex gap-2">
-          <label className="flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-2xl bg-canvas px-4">
-            <ListPlus size={20} className="shrink-0 text-muted" />
-            <span className="sr-only">Nouvel article</span>
-            <input ref={quickInputRef} value={quickText} onChange={(event) => setQuickText(event.target.value)} maxLength={100} placeholder="Ex. Maticha, lait, savon…" className="min-w-0 flex-1 bg-transparent text-base outline-none" />
-          </label>
-          <button type="submit" disabled={!quickText.trim() || adding} className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-accent-600 text-white shadow-lg shadow-teal-600/20 transition active:scale-95 disabled:opacity-40" aria-label="Ajouter à la liste"><ListPlus size={24} /></button>
-        </form>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <button type="button" onClick={() => navigate('/t9dya/catalog')} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-accent-50 px-3 text-sm font-extrabold text-accent-800 dark:bg-accent-950 dark:text-accent-200"><ShoppingCart size={18} />Catalogue rapide</button>
-          <button type="button" onClick={() => navigate('/t9dya/catalog?create=1')} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-canvas px-3 text-sm font-extrabold"><PackagePlus size={18} />Nouveau produit</button>
-        </div>
-      </section>
+      <SmartListAdd />
 
       <section className="mt-4 rounded-2xl bg-slate-900 p-4 text-white shadow-card dark:bg-accent-800">
         <div className="flex items-center justify-between gap-4"><div><strong className="text-2xl tabular-nums">{activeItems.length}</strong><span className="ml-2 text-sm text-white/65">à acheter</span></div><div className="text-right"><strong className="text-lg tabular-nums">{boughtItems.length}</strong><span className="ml-2 text-xs text-white/60">achetés</span></div></div>

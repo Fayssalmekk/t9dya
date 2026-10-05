@@ -162,7 +162,6 @@ export function matchesProductSearch(product, query) {
   const haystackWords = haystack.split(' ').filter(Boolean)
   return needle.split(' ').filter(Boolean).every((word) => haystackWords.some((candidate) => (
     candidate.startsWith(word)
-    || word.startsWith(candidate)
     || (word.length >= 4 && candidate.length >= 4 && Math.abs(word.length - candidate.length) <= 1 && editDistance(word, candidate) <= 1)
   )))
 }

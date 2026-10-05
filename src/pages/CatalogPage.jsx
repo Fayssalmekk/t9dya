@@ -16,7 +16,7 @@ export default function CatalogPage() {
   const { notify, openProduct } = usePlatform()
   const { activeItems, activeList, customProducts } = useShopping()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(() => searchParams.get('name') || '')
   const [category, setCategory] = useState('all')
   const [brand, setBrand] = useState('all')
   const [showAll, setShowAll] = useState(false)
