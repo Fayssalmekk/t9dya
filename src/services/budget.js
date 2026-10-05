@@ -13,6 +13,7 @@ import {
   writeBatch
 } from 'firebase/firestore'
 import { db } from './firebase'
+import { carExpenseFields } from '../apps/car/model'
 
 const householdDoc = (householdId) => doc(db, 'households', householdId)
 const householdCollection = (householdId, name) => collection(db, 'households', householdId, name)
@@ -219,6 +220,7 @@ export async function createExpense(householdId, userId, values) {
   const expenseRef = doc(householdCollection(householdId, 'expenses'))
   const payload = {
     amount,
+    ...carExpenseFields(values),
     reason: values.reason.trim(),
     note: values.note.trim(),
     category: values.category,

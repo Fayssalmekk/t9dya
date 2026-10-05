@@ -2,7 +2,9 @@
 
 Dernière mise à jour : 2 octobre 2026.
 
-Ce document est le point d’entrée pour toute IA ou tout développeur qui reprend le projet. Il décrit l’état réel du dépôt, ses cinq applications, les règles métier, les données, la sécurité, Android et les décisions déjà prises.
+Addendum IA du 5 octobre 2026 : consulter `docs/AI_COSTS.md` pour les optimisations, les réglages facultatifs et leurs effets sur les résultats. Les tests hors réseau sont dans `scripts/ai.test.js` (commande : `node --test scripts/ai.test.js`).
+
+Ce document est le point d’entrée pour toute IA ou tout développeur qui reprend le projet. Il décrit l’état réel du dépôt, ses six applications, les règles métier, les données, la sécurité, Android et les décisions déjà prises. La nouvelle application Voiture et le Hub en deux colonnes sont détaillés dans `docs/VOITURE.md` : lire ce guide avant de modifier les dépenses partagées ou les calculs d’entretien.
 
 ## 1. Ordre de lecture obligatoire
 
@@ -18,13 +20,14 @@ Règles importantes héritées de `prompt.md` : ne pas recréer le projet, ne pa
 
 ## 2. Vision du produit
 
-T9DYA est un portail privé pour un foyer de deux personnes. Après connexion et sélection/création du foyer, le Hub présente cinq applications :
+T9DYA est un portail privé pour un foyer de deux personnes. Après connexion et sélection/création du foyer, le Hub présente six applications :
 
 1. **T9dya** : listes de courses, catalogue, cuisine et historique d’achats.
 2. **Budget** : vue financière, dépenses quotidiennes, charges fixes et enveloppes.
 3. **Hwayj** : dressing, vêtements et composition de tenues.
 4. **S7a ya s7a** : suivi santé, diabète, traitements, stocks, rendez-vous et mauvaises habitudes.
 5. **Carte** : partage GPS volontaire et position du partenaire sur une carte privée.
+6. **Voiture** : compteur manuel partagé, entretiens configurables, carnet, assurance/contrôle et dépenses liées au même journal que Budget.
 
 Il n’y a plus d’application “Dar/Maison” ni de carte “bientôt disponible” dans le Hub. Ne réintroduire aucun placeholder sans demande explicite.
 
@@ -57,7 +60,7 @@ Les photos Hwayj et repas sont compressées dans le navigateur puis enregistrée
 - `src/main.jsx` : thème initial, initialisation Capacitor, PWA et montage React.
 - `src/native/NotificationCoordinator.jsx` : écoute globale Firestore et synchronisation des notifications Android, quel que soit l’écran ouvert.
 - `src/App.jsx` : garde globale Auth/Profil/Foyer et routes des applications.
-- `src/apps/registry.js` : registre des cinq applications du Hub.
+- `src/apps/registry.js` : registre des six applications du Hub.
 - `src/context/AuthContext.jsx` : session Firebase, profil `users/{uid}` et foyer.
 - `src/services/firebase.js` : initialisation Firebase et cache Firestore persistant.
 - `firestore.rules` : véritable barrière d’autorisation des données.
@@ -73,7 +76,7 @@ Les photos Hwayj et repas sont compressées dans le navigateur puis enregistrée
 2. Sans utilisateur Firebase : uniquement `/auth`; toute autre URL redirige vers `/auth`.
 3. Avec un compte sans document `users/{uid}` : page “Accès privé”.
 4. Avec un profil sans foyer : la racine affiche `HouseholdPage`; les autres URL retournent à `/`.
-5. Avec profil et foyer : Hub `/`, réglages `/settings`, puis routes `/t9dya/*`, `/budget/*`, `/hwayj/*`, `/s7a/*`.
+5. Avec profil et foyer : Hub `/`, réglages `/settings`, puis routes `/t9dya/*`, `/budget/*`, `/hwayj/*`, `/s7a/*`, `/map/*`, `/voiture/*`.
 
 Les anciens chemins `/list`, `/catalog` et `/history` redirigent vers T9dya. `/charges`, `/envelopes`, `/t9dya/charges`, `/t9dya/envelopes` et `/t9dya/budget` redirigent vers l’application Budget. `/budget` ouvre sa vue globale.
 
@@ -89,7 +92,7 @@ Fichiers :
 - `src/apps/hub/HealthHubAlerts.jsx`
 - `src/services/household.js`
 
-Le Hub affiche le foyer, ses deux membres, les alertes santé et les cinq cartes du registre. Pour ajouter un jour une vraie application, créer son dossier, son composant racine et une entrée activée dans `src/apps/registry.js`.
+Le Hub affiche le foyer, ses deux membres et les six cartes du registre en deux colonnes, y compris sur mobile. T9dya utilise un panier, Voiture un pictogramme automobile vert. Les alertes santé et l’installation restent accessibles sous les applications. Pour ajouter une vraie application, créer son dossier, son composant racine et une entrée activée dans `src/apps/registry.js`, puis mettre à jour `PortalTopBar.jsx`.
 
 Les réglages du Hub gèrent :
 
@@ -302,7 +305,7 @@ Les règles autorisent le partenaire à lire vêtements/images/outfits, mais seu
 2. aperçu de la photo, consignes facultatives, génération puis corrections successives sans perdre la photo ni le résultat précédent ;
 3. vérification et édition de tous les tags.
 
-`prepareUpload` réduit immédiatement la photo. L’action IA `enhance` reçoit jusqu’à 600 caractères de consignes facultatives et génère en qualité `high` une image détourée `1024x1536`. Le prompt impose un vêtement complet, droit et strictement de face, reconstruit les parties déjà coupées dans la source et préserve motifs, couleurs, coutures, boutons, poches, col et proportions. `tag` analyse ensuite une image réduite. L’écran montre explicitement la génération en cours puis uniquement le résultat GPT; la photo originale reste en mémoire pour une nouvelle tentative mais ne peut pas être enregistrée comme image finale.
+`prepareUpload` réduit immédiatement la photo. L’action IA `enhance` reçoit jusqu’à 600 caractères de consignes facultatives et génère par défaut en qualité `medium` une image détourée `1024x1536` (`OPENAI_ENHANCE_QUALITY` peut la modifier). Le prompt impose un vêtement complet, droit et strictement de face, reconstruit les parties déjà coupées dans la source et préserve motifs, couleurs, coutures, boutons, poches, col et proportions. Exception conservée pour les chaussures : une chaussure entière de profil extérieur. `tag` analyse ensuite une image réduite. L’écran montre explicitement la génération en cours puis uniquement le résultat GPT; la photo originale reste en mémoire pour une nouvelle tentative mais ne peut pas être enregistrée comme image finale.
 
 Après `enhance`, `hasSafeTransparentMargins` contrôle les quatre bords. Si le vêtement touche le cadre, une seconde génération demande automatiquement de dézoomer et de reconstruire les extrémités manquantes. En cas d’échec, l’utilisateur peut changer de photo ou relancer GPT.
 
@@ -322,7 +325,7 @@ Le dressing utilise uniquement les thumbnails afin d’éviter de charger toutes
 
 Mode manuel : un haut et un bas, avec swipe horizontal et flèches. Les vestes/manteaux sont inclus dans les hauts. Avant affichage, le navigateur détecte les limites opaques du vêtement, retire visuellement les marges transparentes variables puis le replace dans un canevas fixe propre à son slot. Ce canevas utilise une résolution interne 2x à 3x selon la densité de l’écran et un export WebP haute qualité afin que les vêtements restent nets sur Android. La prochaine pièce est normalisée et décodée avant de démarrer son animation; l’image brute n’est jamais brièvement affichée dans le slot, ce qui évite le saut visuel pendant un swipe. Tous les hauts utilisent ainsi la même échelle et le même point d’ancrage inférieur; tous les bas utilisent la même largeur de référence et le même point d’ancrage supérieur. La jonction et l’espace restent constants pendant les transitions et dans l’aperçu d’enregistrement.
 
-Mode IA : l’utilisateur ajoute de 2 à 4 pièces dans des cases successives. Avant la génération, il peut écrire jusqu’à 600 caractères de consignes facultatives; elles sont enregistrées dans `generationNotes`. Après un résultat, modifier ces consignes conserve l’image et toutes les pièces sélectionnées; le bouton devient « Corriger / régénérer ce look » afin d’itérer sans recommencer. L’action `compose` charge des références jusqu’à 768 px et transmet le nom, type précis, couleurs, motif, matière, genre et consignes. Le prompt impose une vue strictement de face, une marge transparente, la reproduction fidèle des détails et la reconstruction prudente des parties déjà coupées dans la photo source. Il interdit de couper col, manches, ourlets, jambes ou chaussures. Le résultat est généré en `1024x1536`, qualité `high`.
+Mode IA : l’utilisateur ajoute de 2 à 4 pièces dans des cases successives. Avant la génération, il peut écrire jusqu’à 600 caractères de consignes facultatives; elles sont enregistrées dans `generationNotes`. Après un résultat, modifier ces consignes conserve l’image et toutes les pièces sélectionnées; le bouton devient « Corriger / régénérer ce look » afin d’itérer sans recommencer. L’action `compose` charge des références jusqu’à 768 px et transmet le nom, type précis, couleurs, motif, matière, genre et consignes. Le prompt impose une vue strictement de face, une marge transparente, la reproduction fidèle des détails et la reconstruction prudente des parties déjà coupées dans la photo source. Il interdit de couper col, manches, ourlets, jambes ou chaussures. Le résultat est généré par défaut en `1024x1536`, qualité `medium` (`OPENAI_COMPOSE_QUALITY` reste disponible).
 
 Après chaque génération, `hasSafeTransparentMargins` analyse le canal alpha dans le navigateur. Si la silhouette touche un bord, Hwayj effectue automatiquement une seconde génération avec une instruction de recadrage renforcée. Le résultat haute définition est enregistré dans `outfitImages` et toujours affiché avec `object-contain` dans un cadre portrait. Cette seconde tentative consomme un appel image supplémentaire uniquement quand le contrôle détecte un cadrage insuffisant.
 
@@ -436,6 +439,8 @@ Il n’existe aucun quota interne quotidien ou par UID sur les actions IA. Les a
 
 Le serveur ne journalise jamais les images, tokens ou clés. La clé OpenAI n’est jamais importée dans React.
 
+Optimisation du 5 octobre 2026 : cache exact de `tag` par UID/requête pendant 300 secondes sur une instance chaude (64 résultats maximum), toujours après authentification. Aucun cache de génération ou repas. `suggest` filtre les statuts sales/indisponibles et envoie une liste blanche de champs courts, au plus 120 vêtements et 16 000 octets par défaut, sans tronquer le JSON. Les sorties structurées sont validées contre les schémas inchangés ; une seule reprise à plafond doublé est autorisée après troncature par tokens. Qualité, tailles et compression image par défaut restent inchangées par cette optimisation. `docs/AI_COSTS.md` liste tous les effets possibles sur les résultats et les contrôles à effectuer ; ne pas promettre une qualité identique sans comparaison visuelle.
+
 ### Variables serveur privées
 
 - `OPENAI_API_KEY`
@@ -447,6 +452,8 @@ Le serveur ne journalise jamais les images, tokens ou clés. La clé OpenAI n’
 - `APP_ORIGIN`
 
 Elles vivent dans Vercel et dans `.env.local` pour le middleware local. Elles ne doivent jamais porter le préfixe `VITE_`.
+
+Les variables facultatives de qualité, taille, compression, détail vision, raisonnement, plafonds et cache sont listées dans `.env.example` et `docs/AI_COSTS.md`. Les ajouter aussi à la liste serveur de `scripts/viteAiMiddleware.js` lors de toute extension future.
 
 ### Variables client Firebase
 

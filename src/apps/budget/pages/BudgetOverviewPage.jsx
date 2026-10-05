@@ -12,7 +12,7 @@ import ExpenseSheet from '../components/ExpenseSheet'
 const money = (value) => `${Number(value || 0).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} DH`
 const monthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
 const categories = {
-  food: ['Alimentation', 'bg-orange-500'], transport: ['Transport', 'bg-sky-500'], home: ['Maison', 'bg-violet-500'],
+  food: ['Alimentation', 'bg-orange-500'], car: ['Voiture', 'bg-emerald-500'], transport: ['Transport', 'bg-sky-500'], home: ['Maison', 'bg-violet-500'],
   health: ['Santé', 'bg-rose-500'], leisure: ['Loisirs', 'bg-fuchsia-500'], other: ['Autre', 'bg-slate-500']
 }
 
