@@ -4,7 +4,7 @@ Dernière mise à jour : 2 octobre 2026.
 
 Addendum IA du 5 octobre 2026 : consulter `docs/AI_COSTS.md` pour les optimisations, les réglages facultatifs et leurs effets sur les résultats. Les tests hors réseau sont dans `scripts/ai.test.js` (commande : `node --test scripts/ai.test.js`).
 
-Ce document est le point d’entrée pour toute IA ou tout développeur qui reprend le projet. Il décrit l’état réel du dépôt, ses cinq applications, les règles métier, les données, la sécurité, Android et les décisions déjà prises.
+Ce document est le point d’entrée pour toute IA ou tout développeur qui reprend le projet. Il décrit l’état réel du dépôt, ses six applications, les règles métier, les données, la sécurité, Android et les décisions déjà prises. La nouvelle application Voiture et le Hub en deux colonnes sont détaillés dans `docs/VOITURE.md` : lire ce guide avant de modifier les dépenses partagées ou les calculs d’entretien.
 
 ## 1. Ordre de lecture obligatoire
 
@@ -20,13 +20,14 @@ Règles importantes héritées de `prompt.md` : ne pas recréer le projet, ne pa
 
 ## 2. Vision du produit
 
-T9DYA est un portail privé pour un foyer de deux personnes. Après connexion et sélection/création du foyer, le Hub présente cinq applications :
+T9DYA est un portail privé pour un foyer de deux personnes. Après connexion et sélection/création du foyer, le Hub présente six applications :
 
 1. **T9dya** : listes de courses, catalogue, cuisine et historique d’achats.
 2. **Budget** : vue financière, dépenses quotidiennes, charges fixes et enveloppes.
 3. **Hwayj** : dressing, vêtements et composition de tenues.
 4. **S7a ya s7a** : suivi santé, diabète, traitements, stocks, rendez-vous et mauvaises habitudes.
 5. **Carte** : partage GPS volontaire et position du partenaire sur une carte privée.
+6. **Voiture** : compteur manuel partagé, entretiens configurables, carnet, assurance/contrôle et dépenses liées au même journal que Budget.
 
 Il n’y a plus d’application “Dar/Maison” ni de carte “bientôt disponible” dans le Hub. Ne réintroduire aucun placeholder sans demande explicite.
 
@@ -59,7 +60,7 @@ Les photos Hwayj et repas sont compressées dans le navigateur puis enregistrée
 - `src/main.jsx` : thème initial, initialisation Capacitor, PWA et montage React.
 - `src/native/NotificationCoordinator.jsx` : écoute globale Firestore et synchronisation des notifications Android, quel que soit l’écran ouvert.
 - `src/App.jsx` : garde globale Auth/Profil/Foyer et routes des applications.
-- `src/apps/registry.js` : registre des cinq applications du Hub.
+- `src/apps/registry.js` : registre des six applications du Hub.
 - `src/context/AuthContext.jsx` : session Firebase, profil `users/{uid}` et foyer.
 - `src/services/firebase.js` : initialisation Firebase et cache Firestore persistant.
 - `firestore.rules` : véritable barrière d’autorisation des données.
@@ -75,7 +76,7 @@ Les photos Hwayj et repas sont compressées dans le navigateur puis enregistrée
 2. Sans utilisateur Firebase : uniquement `/auth`; toute autre URL redirige vers `/auth`.
 3. Avec un compte sans document `users/{uid}` : page “Accès privé”.
 4. Avec un profil sans foyer : la racine affiche `HouseholdPage`; les autres URL retournent à `/`.
-5. Avec profil et foyer : Hub `/`, réglages `/settings`, puis routes `/t9dya/*`, `/budget/*`, `/hwayj/*`, `/s7a/*`.
+5. Avec profil et foyer : Hub `/`, réglages `/settings`, puis routes `/t9dya/*`, `/budget/*`, `/hwayj/*`, `/s7a/*`, `/map/*`, `/voiture/*`.
 
 Les anciens chemins `/list`, `/catalog` et `/history` redirigent vers T9dya. `/charges`, `/envelopes`, `/t9dya/charges`, `/t9dya/envelopes` et `/t9dya/budget` redirigent vers l’application Budget. `/budget` ouvre sa vue globale.
 
@@ -91,7 +92,7 @@ Fichiers :
 - `src/apps/hub/HealthHubAlerts.jsx`
 - `src/services/household.js`
 
-Le Hub affiche le foyer, ses deux membres, les alertes santé et les cinq cartes du registre. Pour ajouter un jour une vraie application, créer son dossier, son composant racine et une entrée activée dans `src/apps/registry.js`.
+Le Hub affiche le foyer, ses deux membres et les six cartes du registre en deux colonnes, y compris sur mobile. T9dya utilise un panier, Voiture un pictogramme automobile vert. Les alertes santé et l’installation restent accessibles sous les applications. Pour ajouter une vraie application, créer son dossier, son composant racine et une entrée activée dans `src/apps/registry.js`, puis mettre à jour `PortalTopBar.jsx`.
 
 Les réglages du Hub gèrent :
 

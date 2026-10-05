@@ -1,13 +1,14 @@
-import { Heart, HeartPulse, Home, MapPinned, Shirt, UserRound, WalletCards } from 'lucide-react'
+import { CarFront, HeartPulse, Home, MapPinned, Shirt, ShoppingCart, UserRound, WalletCards } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 const apps = [
-  { path: '/t9dya', label: 'T9dya', icon: Heart, tone: 'bg-teal-500', soft: 'bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-200' },
+  { path: '/t9dya', label: 'T9dya', icon: ShoppingCart, tone: 'bg-teal-500', soft: 'bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-200' },
   { path: '/budget', label: 'Budget', icon: WalletCards, tone: 'bg-amber-500', soft: 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-200' },
   { path: '/hwayj', label: 'Hwayj', icon: Shirt, tone: 'bg-violet-600', soft: 'bg-violet-50 text-violet-700 dark:bg-violet-950 dark:text-violet-200' },
   { path: '/s7a', label: 'S7a', icon: HeartPulse, tone: 'bg-rose-500', soft: 'bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-200' },
-  { path: '/map', label: 'Carte', icon: MapPinned, tone: 'bg-sky-600', soft: 'bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-200' }
+  { path: '/map', label: 'Carte', icon: MapPinned, tone: 'bg-sky-600', soft: 'bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-200' },
+  { path: '/voiture', label: 'Voiture', icon: CarFront, tone: 'bg-emerald-600', soft: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200' }
 ]
 
 export default function PortalTopBar() {

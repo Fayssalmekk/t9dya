@@ -14,6 +14,7 @@ const todayKey = () => {
   return `${monthKey(now)}-${String(now.getDate()).padStart(2, '0')}`
 }
 const categoryMeta = {
+  car: ['🚗', 'Voiture', 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200'],
   food: ['🍽️', 'Alimentation', 'bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-200'],
   transport: ['🚗', 'Transport', 'bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-200'],
   home: ['🏠', 'Maison', 'bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-200'],

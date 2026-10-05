@@ -67,12 +67,44 @@ Hwayj demande une seule image `1024x1536` en qualité `medium` par ajout et anal
 
 ## Commandes de vérification
 
+### Nouvelle application Voiture
+
+Guide complet : [VOITURE.md](./VOITURE.md). **Déployez les nouvelles règles** avec `npx firebase deploy --only firestore:rules` avant d’utiliser Voiture, puis redéployez le Web. Pour Android, exécutez `npm run android:update` et reconstruisez/réinstallez l’APK signé. Aucun index composite, clé API ou permission supplémentaire n’est nécessaire.
+
+Dans Hub → Voiture, configurez la Fabia puis son kilométrage réel. Dans Budget, sélectionnez **Voiture** pour qu’une dépense apparaisse automatiquement dans les deux espaces, sans double comptage. Les intervalles d’entretien sont à confirmer depuis votre carnet constructeur ; 10 000 km n’est qu’un exemple modifiable.
+
+Tests métier hors réseau : `node --test scripts/car.test.js`. Les étapes de validation à deux comptes, des transactions d’enveloppes et de la sécurité sont dans le guide.
+
+### Vérifications générales
+
+#### Compteur et messages flottants
+
+Les confirmations flottantes communes à T9dya, Budget, Hwayj, S7a et Voiture sont maintenant en haut, sous la zone sûre du téléphone, avec un fond à 85 % d’opacité. Elles sont rendues directement dans `document.body` pour ne pas être déplacées/coupées par un conteneur animé. Le fond laisse passer les interactions ; seuls Fermer et une éventuelle action sont cliquables. Les confirmations de suppression et erreurs dans les formulaires restent en place : elles ne sont pas des notifications temporaires.
+
+La célébration des traitements est centrée dans l’écran, translucide et non bloquante. L’animation de rebond qui remplaçait la translation de centrage a été retirée. Les effets décoratifs respectent le mode animations réduites.
+
+Vérifier sur Web et APK : appui court/long sur −/+, relâchement hors du bouton, passage en arrière-plan, valeurs 0 et 2 000 000 km, annulation d’un aperçu, diminution avec motif et mise à jour concurrente du partenaire. Vérifier aussi les notifications pendant l’ouverture d’une fenêtre et les clics derrière leur texte, ainsi que la célébration S7a sur écran étroit.
+
+Pour livrer : redéployer le Web ; `npm run android:update` puis reconstruire l’APK. Aucun changement de règle Firebase pour ces ajustements. Syntaxe JS/JSX vérifiée ; validation tactile, lint et build à exécuter avant livraison.
+
 1. `npm run lint`
 2. `npm run build:check`
 3. `npm run dev`
 4. Pour livrer les notifications dans l’APK, exécutez `npm run android:update`, relancez Android Studio puis régénérez l’APK signé avec la clé habituelle. Aucun déploiement Firestore ou Vercel supplémentaire n’est requis pour ce changement.
 
 ## Carte et partage GPS
+
+### Gestes de la carte (Web et Android)
+
+La carte accepte le déplacement avec un doigt ou un glisser à la souris et le zoom progressif avec deux doigts, centré sous les doigts. Le geste reste dans la carte, sans faire défiler ni zoomer toute la page ; le défilement reste normal en dehors de la carte. Les boutons +/− et recentrage restent disponibles. Au clavier : flèches, +/− et touche Origine/Home. Après un déplacement manuel, les nouvelles positions GPS actualisent les marqueurs sans déplacer la vue ; le bouton de recentrage réactive le suivi automatique.
+
+Pour cette mise à jour d’interface uniquement : redéployer le Web ; pour l’APK, exécuter `npm run android:update`, reconstruire et installer l’APK signé habituel. Aucune nouvelle dépendance, permission ou règle Firebase requise.
+
+Vérifications à lancer : `node --test scripts/mapViewport.test.js`, `npm run lint`, `npm run build:check`. Sur navigateur mobile et APK, tester : glisser, pincer hors du centre, lever un doigt puis continuer à glisser, sortir du cadre pendant un geste, tourner le téléphone, recentrer, recevoir une position GPS pendant une exploration et faire défiler la page hors de la carte. Vérifier aussi la souris et les boutons sur ordinateur. Les tests mathématiques ne remplacent pas ces essais tactiles sur appareil.
+
+Implémentation commune dans `LiveMap.jsx`, basée sur les [Pointer Events et gestes de pincement](https://developer.mozilla.org/en-US/docs/Web/API/Pointer_events/Pinch_zoom_gestures), sans bloquer les gestes du reste de l’application.
+
+### Configuration initiale du partage GPS
 
 1. Déployez obligatoirement les nouvelles règles : `npx firebase deploy --only firestore:rules`. Sans cette étape, l’application affichera « Impossible d’envoyer votre position ».
 2. Redéployez le site Vercel afin d’appliquer `Permissions-Policy: geolocation=(self)` à la version Web.

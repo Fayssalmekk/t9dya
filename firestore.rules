@@ -83,6 +83,43 @@ service cloud.firestore {
         && request.resource.data.favorite is bool;
     }
 
+    function validCarKm(value) {
+      return value is int && value >= 0 && value <= 2000000;
+    }
+
+    function validCarDate(value) {
+      return value is string && (value == '' || value.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'));
+    }
+
+    function validVehicle() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['name', 'year', 'transmission', 'color', 'plate', 'engine', 'insuranceDate', 'inspectionDate', 'assistancePhone', 'odometer', 'createdBy', 'createdAt', 'updatedBy', 'updatedAt', 'mileageUpdatedAt'])
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.year is int && data.year >= 1900 && data.year <= 2100
+        && data.transmission is string && data.transmission.size() <= 40
+        && data.color is string && data.color.size() <= 100
+        && data.plate is string && data.plate.size() <= 30
+        && data.engine is string && data.engine.size() <= 100
+        && data.assistancePhone is string && data.assistancePhone.size() <= 40
+        && validCarDate(data.insuranceDate) && validCarDate(data.inspectionDate)
+        && (data.odometer == null || validCarKm(data.odometer))
+        && data.updatedBy == request.auth.uid && data.updatedAt == request.time;
+    }
+
+    function validCarTask() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['vehicleId', 'name', 'intervalKm', 'intervalMonths', 'baselineKm', 'baselineDate', 'note', 'active', 'createdBy', 'createdAt', 'updatedAt'])
+        && data.vehicleId == 'main'
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.intervalKm is int && data.intervalKm >= 0 && data.intervalKm <= 200000
+        && data.intervalMonths is int && data.intervalMonths >= 0 && data.intervalMonths <= 120
+        && (data.intervalKm > 0 || data.intervalMonths > 0)
+        && validCarKm(data.baselineKm) && validCarDate(data.baselineDate)
+        && (data.intervalMonths == 0 || data.baselineDate != '')
+        && data.note is string && data.note.size() <= 300
+        && data.active is bool && data.updatedAt == request.time;
+    }
+
     match /users/{userId} {
       allow create: if false;
       allow read: if owns(userId);
@@ -276,6 +313,59 @@ service cloud.firestore {
           && request.resource.data.sharing == true
           && request.resource.data.updatedAt == request.time;
         allow delete: if isMember(householdId) && request.auth.uid == userId;
+      }
+
+      match /vehicles/{vehicleId} {
+        allow read: if isMember(householdId);
+        allow create: if isMember(householdId) && vehicleId == 'main' && validVehicle()
+          && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time;
+        allow update: if isMember(householdId) && vehicleId == 'main' && validVehicle()
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.createdAt == resource.data.createdAt;
+        allow delete: if false;
+      }
+
+      match /vehicleMileage/{entryId} {
+        allow read: if isMember(householdId);
+        allow create: if isMember(householdId)
+          && request.resource.data.keys().hasOnly(['vehicleId', 'previous', 'value', 'mode', 'note', 'createdBy', 'createdAt'])
+          && request.resource.data.vehicleId == 'main'
+          && validCarKm(request.resource.data.value)
+          && (request.resource.data.previous == null || validCarKm(request.resource.data.previous))
+          && request.resource.data.previous == get(/databases/$(database)/documents/households/$(householdId)/vehicles/main).data.odometer
+          && request.resource.data.value == getAfter(/databases/$(database)/documents/households/$(householdId)/vehicles/main).data.odometer
+          && request.resource.data.mode in ['absolute', 'increment', 'correction']
+          && request.resource.data.note is string && request.resource.data.note.size() <= 240
+          && (request.resource.data.mode != 'correction' || request.resource.data.note.size() > 0)
+          && (request.resource.data.mode == 'correction' || request.resource.data.previous == null || request.resource.data.value >= request.resource.data.previous)
+          && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time;
+        allow update, delete: if false;
+      }
+
+      match /vehicleTasks/{taskId} {
+        allow read: if isMember(householdId);
+        allow create: if isMember(householdId) && validCarTask()
+          && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time;
+        allow update: if isMember(householdId) && validCarTask()
+          && request.resource.data.createdBy == resource.data.createdBy && request.resource.data.createdAt == resource.data.createdAt;
+        allow delete: if false;
+      }
+
+      match /vehicleServices/{serviceId} {
+        allow read, delete: if isMember(householdId);
+        allow create: if isMember(householdId)
+          && request.resource.data.keys().hasOnly(['vehicleId', 'taskId', 'taskName', 'odometer', 'performedOn', 'garage', 'note', 'createdBy', 'createdAt'])
+          && request.resource.data.vehicleId == 'main'
+          && request.resource.data.taskId is string && request.resource.data.taskId.size() > 0 && request.resource.data.taskId.size() <= 100
+          && request.resource.data.taskName is string && request.resource.data.taskName.size() > 0 && request.resource.data.taskName.size() <= 100
+          && get(/databases/$(database)/documents/households/$(householdId)/vehicleTasks/$(request.resource.data.taskId)).data.active == true
+          && validCarKm(request.resource.data.odometer)
+          && request.resource.data.odometer <= get(/databases/$(database)/documents/households/$(householdId)/vehicles/main).data.odometer
+          && validCarDate(request.resource.data.performedOn) && request.resource.data.performedOn != ''
+          && request.resource.data.garage is string && request.resource.data.garage.size() <= 100
+          && request.resource.data.note is string && request.resource.data.note.size() <= 300
+          && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time;
+        allow update: if false;
       }
 
       match /{collectionName}/{documentId} {
