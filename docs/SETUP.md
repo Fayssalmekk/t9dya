@@ -35,9 +35,17 @@ Après toute modification de `.env.local`, arrêtez puis relancez `npm run dev`.
 
 La préparation du vêtement et le détourage utilisent uniquement l’API OpenAI côté serveur. Les images sont compressées avant l’appel puis à nouveau en WebP avant Firestore; elles restent privées dans `users/{uid}`.
 
-Le quota journalier dans `api/ai.js` est une protection simple en mémoire : il peut être remis à zéro lors d’un redémarrage serverless et ne remplace pas la limite de dépense OpenAI.
+Il n’existe pas de quota journalier interne dans `api/ai.js`. L’authentification reste obligatoire et les limites du compte OpenAI continuent de s’appliquer.
 
-Hwayj demande une seule image `1024x1024` en qualité `low` par ajout et analyse les tags en détail bas. Le bouton « Relancer la préparation GPT » déclenche un nouvel appel image payant; utilisez-le seulement si le premier résultat ne convient pas.
+Hwayj demande une seule image `1024x1536` en qualité `medium` par ajout et analyse les tags en détail bas. `combine` reste en `1024x1024`, et `compose` en `1024x1536`, qualité `medium` par défaut. Le bouton « Relancer la préparation GPT » déclenche un nouvel appel image payant; utilisez-le seulement si le premier résultat ne convient pas.
+
+### Optimisation IA (5 octobre 2026)
+
+1. Consultez [AI_COSTS.md](./AI_COSTS.md) pour les valeurs, compromis de qualité, cache et plafonds de tokens. Les nouveaux réglages sont facultatifs : aucun changement de secret ni de modèle n’est nécessaire.
+2. Pour un réglage local, décommentez seulement la variable souhaitée dans votre `.env.local` à partir des exemples de `.env.example`, puis redémarrez `npm run dev`. Pour la production, ajoutez cette variable dans Vercel → Settings → Environment Variables et redéployez.
+3. Vérification hors réseau : `node --test scripts/ai.test.js`, puis `npm run lint` et `npm run build:check`. Les tests remplacent Firebase et OpenAI : aucun crédit consommé.
+4. Le cache de tags peut être désactivé avec `OPENAI_TAG_CACHE_TTL_SECONDS=0`. L’authentification reste vérifiée même lors d’un cache hit.
+5. Cette modification concerne le serveur et sa configuration locale : pas de nouvelles règles Firestore, pas de nouvelle permission Android. Redéployez le serveur Vercel pour que le Web et l’APK utilisant cette API en bénéficient.
 
 ## S7a ya s7a (suivi santé)
 

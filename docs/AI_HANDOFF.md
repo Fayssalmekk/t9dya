@@ -2,6 +2,8 @@
 
 Dernière mise à jour : 2 octobre 2026.
 
+Addendum IA du 5 octobre 2026 : consulter `docs/AI_COSTS.md` pour les optimisations, les réglages facultatifs et leurs effets sur les résultats. Les tests hors réseau sont dans `scripts/ai.test.js` (commande : `node --test scripts/ai.test.js`).
+
 Ce document est le point d’entrée pour toute IA ou tout développeur qui reprend le projet. Il décrit l’état réel du dépôt, ses cinq applications, les règles métier, les données, la sécurité, Android et les décisions déjà prises.
 
 ## 1. Ordre de lecture obligatoire
@@ -302,7 +304,7 @@ Les règles autorisent le partenaire à lire vêtements/images/outfits, mais seu
 2. aperçu de la photo, consignes facultatives, génération puis corrections successives sans perdre la photo ni le résultat précédent ;
 3. vérification et édition de tous les tags.
 
-`prepareUpload` réduit immédiatement la photo. L’action IA `enhance` reçoit jusqu’à 600 caractères de consignes facultatives et génère en qualité `high` une image détourée `1024x1536`. Le prompt impose un vêtement complet, droit et strictement de face, reconstruit les parties déjà coupées dans la source et préserve motifs, couleurs, coutures, boutons, poches, col et proportions. `tag` analyse ensuite une image réduite. L’écran montre explicitement la génération en cours puis uniquement le résultat GPT; la photo originale reste en mémoire pour une nouvelle tentative mais ne peut pas être enregistrée comme image finale.
+`prepareUpload` réduit immédiatement la photo. L’action IA `enhance` reçoit jusqu’à 600 caractères de consignes facultatives et génère par défaut en qualité `medium` une image détourée `1024x1536` (`OPENAI_ENHANCE_QUALITY` peut la modifier). Le prompt impose un vêtement complet, droit et strictement de face, reconstruit les parties déjà coupées dans la source et préserve motifs, couleurs, coutures, boutons, poches, col et proportions. Exception conservée pour les chaussures : une chaussure entière de profil extérieur. `tag` analyse ensuite une image réduite. L’écran montre explicitement la génération en cours puis uniquement le résultat GPT; la photo originale reste en mémoire pour une nouvelle tentative mais ne peut pas être enregistrée comme image finale.
 
 Après `enhance`, `hasSafeTransparentMargins` contrôle les quatre bords. Si le vêtement touche le cadre, une seconde génération demande automatiquement de dézoomer et de reconstruire les extrémités manquantes. En cas d’échec, l’utilisateur peut changer de photo ou relancer GPT.
 
@@ -322,7 +324,7 @@ Le dressing utilise uniquement les thumbnails afin d’éviter de charger toutes
 
 Mode manuel : un haut et un bas, avec swipe horizontal et flèches. Les vestes/manteaux sont inclus dans les hauts. Avant affichage, le navigateur détecte les limites opaques du vêtement, retire visuellement les marges transparentes variables puis le replace dans un canevas fixe propre à son slot. Ce canevas utilise une résolution interne 2x à 3x selon la densité de l’écran et un export WebP haute qualité afin que les vêtements restent nets sur Android. La prochaine pièce est normalisée et décodée avant de démarrer son animation; l’image brute n’est jamais brièvement affichée dans le slot, ce qui évite le saut visuel pendant un swipe. Tous les hauts utilisent ainsi la même échelle et le même point d’ancrage inférieur; tous les bas utilisent la même largeur de référence et le même point d’ancrage supérieur. La jonction et l’espace restent constants pendant les transitions et dans l’aperçu d’enregistrement.
 
-Mode IA : l’utilisateur ajoute de 2 à 4 pièces dans des cases successives. Avant la génération, il peut écrire jusqu’à 600 caractères de consignes facultatives; elles sont enregistrées dans `generationNotes`. Après un résultat, modifier ces consignes conserve l’image et toutes les pièces sélectionnées; le bouton devient « Corriger / régénérer ce look » afin d’itérer sans recommencer. L’action `compose` charge des références jusqu’à 768 px et transmet le nom, type précis, couleurs, motif, matière, genre et consignes. Le prompt impose une vue strictement de face, une marge transparente, la reproduction fidèle des détails et la reconstruction prudente des parties déjà coupées dans la photo source. Il interdit de couper col, manches, ourlets, jambes ou chaussures. Le résultat est généré en `1024x1536`, qualité `high`.
+Mode IA : l’utilisateur ajoute de 2 à 4 pièces dans des cases successives. Avant la génération, il peut écrire jusqu’à 600 caractères de consignes facultatives; elles sont enregistrées dans `generationNotes`. Après un résultat, modifier ces consignes conserve l’image et toutes les pièces sélectionnées; le bouton devient « Corriger / régénérer ce look » afin d’itérer sans recommencer. L’action `compose` charge des références jusqu’à 768 px et transmet le nom, type précis, couleurs, motif, matière, genre et consignes. Le prompt impose une vue strictement de face, une marge transparente, la reproduction fidèle des détails et la reconstruction prudente des parties déjà coupées dans la photo source. Il interdit de couper col, manches, ourlets, jambes ou chaussures. Le résultat est généré par défaut en `1024x1536`, qualité `medium` (`OPENAI_COMPOSE_QUALITY` reste disponible).
 
 Après chaque génération, `hasSafeTransparentMargins` analyse le canal alpha dans le navigateur. Si la silhouette touche un bord, Hwayj effectue automatiquement une seconde génération avec une instruction de recadrage renforcée. Le résultat haute définition est enregistré dans `outfitImages` et toujours affiché avec `object-contain` dans un cadre portrait. Cette seconde tentative consomme un appel image supplémentaire uniquement quand le contrôle détecte un cadrage insuffisant.
 
@@ -436,6 +438,8 @@ Il n’existe aucun quota interne quotidien ou par UID sur les actions IA. Les a
 
 Le serveur ne journalise jamais les images, tokens ou clés. La clé OpenAI n’est jamais importée dans React.
 
+Optimisation du 5 octobre 2026 : cache exact de `tag` par UID/requête pendant 300 secondes sur une instance chaude (64 résultats maximum), toujours après authentification. Aucun cache de génération ou repas. `suggest` filtre les statuts sales/indisponibles et envoie une liste blanche de champs courts, au plus 120 vêtements et 16 000 octets par défaut, sans tronquer le JSON. Les sorties structurées sont validées contre les schémas inchangés ; une seule reprise à plafond doublé est autorisée après troncature par tokens. Qualité, tailles et compression image par défaut restent inchangées par cette optimisation. `docs/AI_COSTS.md` liste tous les effets possibles sur les résultats et les contrôles à effectuer ; ne pas promettre une qualité identique sans comparaison visuelle.
+
 ### Variables serveur privées
 
 - `OPENAI_API_KEY`
@@ -447,6 +451,8 @@ Le serveur ne journalise jamais les images, tokens ou clés. La clé OpenAI n’
 - `APP_ORIGIN`
 
 Elles vivent dans Vercel et dans `.env.local` pour le middleware local. Elles ne doivent jamais porter le préfixe `VITE_`.
+
+Les variables facultatives de qualité, taille, compression, détail vision, raisonnement, plafonds et cache sont listées dans `.env.example` et `docs/AI_COSTS.md`. Les ajouter aussi à la liste serveur de `scripts/viteAiMiddleware.js` lors de toute extension future.
 
 ### Variables client Firebase
 
