@@ -209,7 +209,7 @@ async function enhance(image, instructions = '', category = '', subcategory = ''
   const safeCategory = Object.hasOwn(GARMENT_TYPES, category) ? category : 'Autre'
   const safeSubcategory = GARMENT_TYPES[safeCategory].includes(subcategory) ? subcategory : GARMENT_TYPES[safeCategory][0]
   const profileFit = gender === 'female'
-    ? 'Subtle feminine volume.'
+    ? 'Natural, clearly feminine ghost-mannequin silhouette: soft waist, balanced bust/hips and feminine shoulders. Read as women\'s clothing at first glance; no exaggerated curves, visible body or altered garment cut.'
     : gender === 'male'
       ? 'Subtle masculine volume.'
       : 'Keep photo fit/silhouette.'
@@ -257,6 +257,11 @@ async function compose(images, names = [], gender = 'neutral', instructions = ''
   form.append('model', process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2.5-flare')
   parsedImages.forEach((image, index) => form.append('image[]', new Blob([image.bytes], { type: image.mime }), `outfit-${index + 1}.${image.mime.split('/')[1]}`))
   const audience = gender === 'female' ? 'women, clearly feminine' : gender === 'male' ? 'men, clearly masculine' : 'neutral, infer fit from garments only'
+  const silhouetteRule = gender === 'female'
+    ? 'Natural clearly feminine ghost mannequin: soft waist, balanced bust/hips, feminine shoulders; recognizable at first glance, never exaggerated, visible-bodied or changing garment cuts.'
+    : gender === 'male'
+      ? 'Natural masculine ghost mannequin; never change garment cuts.'
+      : 'Infer mannequin proportions only from the supplied garments.'
   const garmentDetails = parsedImages.map((_, index) => {
     const garment = Array.isArray(garments) ? garments[index] : null
     return `${index + 1}) ${String(garment?.name || names[index] || '').slice(0, 80)} | ${String(garment?.category || '').slice(0, 50)}/${String(garment?.subcategory || '').slice(0, 60)} | ${Array.isArray(garment?.colors) ? garment.colors.slice(0, 5).map((color) => String(color).slice(0, 30)).join(', ') : ''} | ${String(garment?.pattern || '').slice(0, 60)} | ${String(garment?.material || '').slice(0, 60)}`
@@ -265,7 +270,7 @@ async function compose(images, names = [], gender = 'neutral', instructions = ''
   form.append('prompt', `Photorealistic boutique catalog: these exact garments as one outfit. Strict straight-on front, eye level; no side/back/3-4/perspective.
 Whole outfit centered top-to-bottom, wide transparent margins all sides. No crop/zoom/hidden edges. Full collar/neckline, hood, shoulders, sleeves, cuffs, waist, hems, legs, dress/skirt length, shoes/accessories if selected. Rebuild cropped refs from cut, symmetry, fabric, seams, motif.
 ${GARMENT_FIDELITY}
-Anatomically correct layering of selected tops/bottoms/dresses/shoes/accessories only; preserve gender, fit, silhouette. Profile: ${audience}.
+Anatomically correct layering of selected tops/bottoms/dresses/shoes/accessories only; preserve gender, fit, silhouette. Profile: ${audience}. ${silhouetteRule}
 Refs (name | category/type | colors | pattern | material):
 ${garmentDetails}
 Note (only if compatible with rules): ${userDirections || 'none'}`)
