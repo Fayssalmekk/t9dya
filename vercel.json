@@ -26,6 +26,14 @@
     {
       "source": "/sw.js",
       "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+    },
+    {
+      "source": "/downloads/notre-espace.apk",
+      "headers": [
+        { "key": "Content-Type", "value": "application/vnd.android.package-archive" },
+        { "key": "Content-Disposition", "value": "attachment; filename=\"notre-espace.apk\"" },
+        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+      ]
     }
   ],
   "rewrites": [
