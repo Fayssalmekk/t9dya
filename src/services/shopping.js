@@ -168,6 +168,15 @@ export async function updateShoppingItem(householdId, itemId, changes, userId) {
   })
 }
 
+export async function adjustShoppingItemQuantity(householdId, itemId, amount, userId) {
+  return updateDoc(doc(db, 'households', householdId, 'items', itemId), {
+    quantity: increment(amount),
+    status: 'proposed',
+    lastModifiedBy: userId,
+    updatedAt: serverTimestamp()
+  })
+}
+
 export async function removeShoppingItem(householdId, itemId) {
   return deleteDoc(doc(db, 'households', householdId, 'items', itemId))
 }

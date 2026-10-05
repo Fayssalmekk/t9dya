@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import HealthHeader from '../components/HealthHeader'
 import { useHealth } from '../context/HealthContext'
 import { usePlatform } from '../../../context/PlatformContext'
+import { useConfirmDialog } from '../../../context/ConfirmContext'
 import { createBadHabit, deleteBadHabit, recordBadHabitOccurrence } from '../services/health'
 import { todayKey } from '../utils/dates'
 
@@ -32,11 +33,13 @@ function friendlyDate(date) {
 export default function BadHabitsPage() {
   const { badHabits, healthOwnerId } = useHealth()
   const { notify } = usePlatform()
+  const confirm = useConfirmDialog()
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [relapseHabit, setRelapseHabit] = useState(null)
   const [relapseDate, setRelapseDate] = useState(todayKey)
   const [saving, setSaving] = useState(false)
+  const [deletingId, setDeletingId] = useState('')
   const sortedHabits = useMemo(() => [...badHabits].sort((a, b) => daysBetween(b.lastOccurredOn) - daysBetween(a.lastOccurredOn)), [badHabits])
   const totalDays = badHabits.reduce((sum, habit) => sum + daysBetween(habit.lastOccurredOn), 0)
 
@@ -71,6 +74,20 @@ export default function BadHabitsPage() {
     }
   }
 
+  const removeHabit = async (habit) => {
+    const accepted = await confirm({ title: `Supprimer « ${habit.name} » ?`, message: 'Le compteur, le record et l’historique de ce suivi seront supprimés.', confirmLabel: 'Supprimer' })
+    if (!accepted || deletingId) return
+    setDeletingId(habit.id)
+    try {
+      await deleteBadHabit(healthOwnerId, habit.id)
+      notify('Suivi supprimé.')
+    } catch {
+      notify('Suppression impossible.')
+    } finally {
+      setDeletingId('')
+    }
+  }
+
   return <main className="mx-auto min-h-dvh w-full max-w-2xl px-4 pb-28 pt-6 sm:px-6">
     <HealthHeader title="Mauvaises habitudes" subtitle="Voir le chemin parcouru, sans culpabiliser" />
 
@@ -87,7 +104,7 @@ export default function BadHabitsPage() {
       const progress = Math.min(100, Math.round(days / goal * 100))
       const record = Math.max(days, Number(habit.bestStreakDays) || 0)
       return <article key={habit.id} className="overflow-hidden rounded-[1.75rem] bg-surface shadow-card">
-        <div className={`bg-gradient-to-r ${category.tone} p-4 text-white`}><div className="flex items-center gap-3"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/20 text-2xl">{category.emoji}</span><span className="min-w-0 flex-1"><small className="font-bold text-white/70">{category.label}</small><strong className="block truncate text-lg">{habit.name}</strong></span><button type="button" onClick={() => { if (window.confirm(`Supprimer le suivi « ${habit.name} » ?`)) deleteBadHabit(healthOwnerId, habit.id).catch(() => notify('Suppression impossible.')) }} className="grid h-10 w-10 place-items-center rounded-xl bg-black/10" aria-label={`Supprimer ${habit.name}`}><Trash2 size={17} /></button></div></div>
+        <div className={`bg-gradient-to-r ${category.tone} p-4 text-white`}><div className="flex items-center gap-3"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/20 text-2xl">{category.emoji}</span><span className="min-w-0 flex-1"><small className="font-bold text-white/70">{category.label}</small><strong className="block truncate text-lg">{habit.name}</strong></span><button type="button" onClick={() => removeHabit(habit)} disabled={Boolean(deletingId)} className="grid h-10 w-10 place-items-center rounded-xl bg-black/10 disabled:opacity-40" aria-label={`Supprimer ${habit.name}`}><Trash2 size={17} className={deletingId === habit.id ? 'animate-pulse' : ''} /></button></div></div>
         <div className="p-4"><div className="flex items-center gap-4"><div className="grid h-24 w-24 shrink-0 place-items-center rounded-full p-2" style={{ background: `conic-gradient(rgb(16 185 129) ${progress}%, rgb(226 232 240) ${progress}% 100%)` }}><span className="grid h-full w-full place-items-center rounded-full bg-surface text-center"><span><strong className="block text-3xl font-black text-emerald-600">{days}</strong><small className="font-bold text-muted">jour{days !== 1 ? 's' : ''}</small></span></span></div><div className="min-w-0 flex-1"><p className="flex items-center gap-2 text-xs font-bold text-muted"><CalendarDays size={15} />Dernière fois</p><strong className="mt-1 block">{friendlyDate(habit.lastOccurredOn)}</strong><p className="mt-3 flex items-center gap-2 text-xs font-bold text-amber-600"><Trophy size={15} />Record : {record} jour{record !== 1 ? 's' : ''}</p><p className="mt-1 text-xs text-muted">Objectif : {goal} jours · {progress}%</p></div></div>
           {habit.note && <p className="mt-4 rounded-xl bg-canvas px-3 py-2 text-sm leading-5 text-muted">{habit.note}</p>}
           {days >= goal ? <p className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-emerald-50 py-3 text-sm font-black text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300"><Check size={18} />Objectif atteint — continue comme ça !</p> : <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${progress}%` }} /></div>}

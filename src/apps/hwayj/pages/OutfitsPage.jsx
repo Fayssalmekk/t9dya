@@ -1,5 +1,7 @@
 import { Heart, Plus, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { useConfirmDialog } from '../../../context/ConfirmContext'
 import { usePlatform } from '../../../context/PlatformContext'
 import HwayjHeader from '../components/HwayjHeader'
 import ManualOutfitPreview from '../components/ManualOutfitPreview'
@@ -10,7 +12,23 @@ import { deleteOutfit, updateOutfit } from '../services/wardrobe'
 export default function OutfitsPage() {
   const { clothes, outfits, ownerId, ownerProfile, isOwnWardrobe } = useWardrobe()
   const { notify } = usePlatform()
+  const confirm = useConfirmDialog()
+  const [deletingId, setDeletingId] = useState('')
   const orderedOutfits = [...outfits].sort((a, b) => Number(Boolean(b.favorite)) - Number(Boolean(a.favorite)))
+
+  const remove = async (outfit) => {
+    const accepted = await confirm({ title: `Supprimer « ${outfit.name} » ?`, message: 'Cette tenue sera retirée de vos outfits enregistrés.', confirmLabel: 'Supprimer' })
+    if (!accepted || deletingId) return
+    setDeletingId(outfit.id)
+    try {
+      await deleteOutfit(ownerId, outfit.id)
+      notify('Tenue supprimée')
+    } catch {
+      notify('Impossible de supprimer cette tenue.')
+    } finally {
+      setDeletingId('')
+    }
+  }
 
   return (
     <main className="mx-auto min-h-dvh w-full max-w-2xl px-4 pb-32 pt-6 sm:px-6">
@@ -26,7 +44,7 @@ export default function OutfitsPage() {
               <small className="text-muted">{outfit.mode === 'ai' ? 'Look généré · ' : `${outfit.occasion || 'Toute occasion'} · `}{outfit.items?.length || 0} pièces</small>
               <OutfitReferences outfit={outfit} clothes={clothes} />
             </Link>
-            {isOwnWardrobe && <div className="mt-3 flex justify-end gap-2"><button type="button" onClick={() => updateOutfit(ownerId, outfit.id, { favorite: !outfit.favorite })} className={`grid h-11 w-11 place-items-center rounded-xl ${outfit.favorite ? 'bg-rose-500 text-white' : 'bg-rose-50 text-rose-600 dark:bg-rose-950'}`} aria-label={outfit.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}><Heart size={18} fill={outfit.favorite ? 'currentColor' : 'none'} /></button><button type="button" onClick={async () => { if (window.confirm('Supprimer cette tenue ?')) { await deleteOutfit(ownerId, outfit.id); notify('Tenue supprimée') } }} className="grid h-11 w-11 place-items-center rounded-xl bg-red-50 text-red-600" aria-label="Supprimer"><Trash2 size={17} /></button></div>}
+            {isOwnWardrobe && <div className="mt-3 flex justify-end gap-2"><button type="button" onClick={() => updateOutfit(ownerId, outfit.id, { favorite: !outfit.favorite })} className={`grid h-11 w-11 place-items-center rounded-xl ${outfit.favorite ? 'bg-rose-500 text-white' : 'bg-rose-50 text-rose-600 dark:bg-rose-950'}`} aria-label={outfit.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}><Heart size={18} fill={outfit.favorite ? 'currentColor' : 'none'} /></button><button type="button" onClick={() => remove(outfit)} disabled={Boolean(deletingId)} className="grid h-11 w-11 place-items-center rounded-xl bg-red-50 text-red-600 disabled:opacity-40" aria-label="Supprimer"><Trash2 size={17} className={deletingId === outfit.id ? 'animate-pulse' : ''} /></button></div>}
           </article>
         ))}
         {outfits.length === 0 && <div className="rounded-[1.75rem] border border-dashed border-slate-300 p-8 text-center text-muted sm:col-span-2"><span className="text-5xl">👚</span><p className="mt-3 font-bold">Composez votre première tenue en swipant.</p></div>}

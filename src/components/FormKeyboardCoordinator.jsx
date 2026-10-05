@@ -3,7 +3,7 @@ import { Keyboard } from '@capacitor/keyboard'
 import { isNativeApp } from '../native/capacitor'
 
 const EDITABLE_CONTROL = 'input:not([type="hidden"]), textarea, select, [contenteditable="true"]'
-const OVERLAY_SELECTOR = '[role="dialog"][aria-modal="true"], .fixed.inset-0'
+const OVERLAY_SELECTOR = '[role="dialog"][aria-modal="true"], [role="alertdialog"][aria-modal="true"], .fixed.inset-0'
 
 function keepFocusedControlVisible(control) {
   if (!(control instanceof HTMLElement) || !control.matches(EDITABLE_CONTROL)) return
@@ -28,7 +28,7 @@ export default function FormKeyboardCoordinator() {
 
     const syncDialogs = () => {
       const dialogs = [...document.querySelectorAll(OVERLAY_SELECTOR)].filter((dialog) => (
-        dialog.matches('[role="dialog"][aria-modal="true"]') || dialog.querySelector('form')
+        dialog.matches('[role="dialog"][aria-modal="true"], [role="alertdialog"][aria-modal="true"]') || dialog.querySelector('form')
       ))
       const newDialogOpened = dialogs.some((dialog) => {
         if (seenDialogs.has(dialog)) return false
