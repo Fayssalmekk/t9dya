@@ -15,6 +15,7 @@
     "android:assets": "capacitor-assets generate --android --iconBackgroundColor #7c3aed --iconBackgroundColorDark #581c87 --splashBackgroundColor #faf5ff --splashBackgroundColorDark #1e102f",
     "android:sync": "cap sync android",
     "android:update": "npm run build:android && cap sync android",
+    "android:publish-web": "node scripts/publishAndroidApk.mjs",
     "android:open": "cap open android",
     "android:run": "cap run android"
   },

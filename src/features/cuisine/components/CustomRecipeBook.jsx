@@ -3,6 +3,7 @@ import { BookHeart, Check, ChefHat, Clock3, LoaderCircle, Pencil, Plus, Shopping
 import { Link } from 'react-router-dom'
 import { createCustomRecipe, deleteCustomRecipe, subscribeCustomRecipes, updateCustomRecipe } from '../../../services/cuisine'
 import { addShoppingItem } from '../../../services/shopping'
+import { useConfirmDialog } from '../../../context/ConfirmContext'
 
 const EMPTY_INGREDIENT = { name: '', quantity: '1', unit: 'pièce', emoji: '🥕' }
 const EMPTY_RECIPE = { name: '', emoji: '🍲', type: 'meal', prepTime: '30', servings: '2', notes: '', steps: '', ingredients: [{ ...EMPTY_INGREDIENT }] }
@@ -41,7 +42,7 @@ function RecipeEditor({ recipe, saving, onClose, onSave }) {
   </form></div>
 }
 
-function RecipeViewer({ recipe, lists, activeList, allItems, adding, onAdd, onEdit, onDelete, onClose }) {
+function RecipeViewer({ recipe, lists, activeList, allItems, adding, deleting, onAdd, onEdit, onDelete, onClose }) {
   const availableLists = useMemo(() => lists.filter((list) => list.status !== 'completed'), [lists])
   const [listId, setListId] = useState(() => availableLists.find((list) => list.id === activeList?.id)?.id || availableLists[0]?.id || '')
   const [missing, setMissing] = useState([])
@@ -52,24 +53,40 @@ function RecipeViewer({ recipe, lists, activeList, allItems, adding, onAdd, onEd
     {recipe.steps?.length > 0 && <><h3 className="mt-7 text-lg font-black">Préparation</h3><ol className="mt-3 space-y-3">{recipe.steps.map((step, index) => <li key={`${index}-${step}`} className="flex gap-3"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-orange-100 font-black text-orange-700">{index + 1}</span><p className="pt-1 text-sm leading-6">{step}</p></li>)}</ol></>}
     {recipe.notes && <p className="mt-5 rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-900 dark:bg-amber-950/30 dark:text-amber-200"><strong>Le secret du foyer :</strong> {recipe.notes}</p>}
     {missing.length > 0 && <div className="mt-6 rounded-2xl bg-surface p-4">{availableLists.length ? <><label className="text-sm font-bold">Envoyer vers</label><select value={listId} onChange={(event) => setListId(event.target.value)} className="field-input mt-2">{availableLists.map((list) => <option key={list.id} value={list.id}>{list.title}</option>)}</select><button type="button" disabled={!listId || adding} onClick={() => onAdd(recipe.ingredients.filter((item) => missing.includes(item.id)), listId, allItems)} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-amber-500 font-black text-white disabled:opacity-45"><ShoppingBasket size={19} />{adding ? 'Ajout en cours…' : `Ajouter ${missing.length} à la liste`}</button></> : <p className="text-sm text-muted">Créez d’abord une liste dans <Link className="font-black text-accent-700 underline" to="/t9dya/list">Mes listes</Link>.</p>}</div>}
-    <button type="button" onClick={onDelete} className="mt-7 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-rose-200 font-black text-rose-600"><Trash2 size={18} />Supprimer cette recette</button>
+    <button type="button" onClick={onDelete} disabled={deleting} className="mt-7 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-rose-200 font-black text-rose-600 disabled:opacity-50"><Trash2 size={18} />{deleting ? 'Suppression…' : 'Supprimer cette recette'}</button>
   </div></article></div>
 }
 
 export default function CustomRecipeBook({ household, user, lists, activeList, allItems, notify, onBack }) {
+  const confirm = useConfirmDialog()
   const [recipes, setRecipes] = useState([])
   const [loading, setLoading] = useState(true)
   const [editor, setEditor] = useState(null)
   const [selected, setSelected] = useState(null)
   const [saving, setSaving] = useState(false)
   const [adding, setAdding] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   useEffect(() => subscribeCustomRecipes(household.id, (data) => { setRecipes(data); setLoading(false) }, () => { setLoading(false); notify('Impossible de charger le carnet du foyer.') }), [household.id, notify])
   const save = async (recipe) => { setSaving(true); try { if (editor?.id) await updateCustomRecipe(household.id, editor.id, recipe, user.uid); else await createCustomRecipe(household.id, user.uid, recipe); setEditor(null); setSelected(null); notify(editor?.id ? 'Recette mise à jour.' : 'Nouvelle recette ajoutée au carnet.'); } catch { notify('Impossible d’enregistrer la recette.'); } finally { setSaving(false) } }
-  const remove = async () => { if (!selected || !window.confirm(`Supprimer « ${selected.name} » ?`)) return; try { await deleteCustomRecipe(household.id, selected.id); setSelected(null); notify('Recette supprimée.'); } catch { notify('Impossible de supprimer la recette.'); } }
+  const remove = async () => {
+    if (!selected || deleting) return
+    const accepted = await confirm({ title: `Supprimer « ${selected.name} » ?`, message: 'La recette et ses étapes disparaîtront du carnet partagé.', confirmLabel: 'Supprimer' })
+    if (!accepted) return
+    setDeleting(true)
+    try {
+      await deleteCustomRecipe(household.id, selected.id)
+      setSelected(null)
+      notify('Recette supprimée.')
+    } catch {
+      notify('Impossible de supprimer la recette.')
+    } finally {
+      setDeleting(false)
+    }
+  }
   const addMissing = async (ingredients, listId) => { setAdding(true); try { for (const ingredient of ingredients) { const productId = `recipe-${selected.id}-${ingredient.id}`; const duplicate = allItems.find((item) => item.listId === listId && item.productId === productId); const numericQuantity = Number(String(ingredient.quantity).replace(',', '.')); await addShoppingItem(household.id, listId, { id: productId, name: ingredient.name, category: 'other', categoryName: 'Recette maison', emoji: ingredient.emoji, defaultPrice: 0 }, user, { quantity: Number.isFinite(numericQuantity) && numericQuantity > 0 ? numericQuantity : 1, unit: ingredient.unit, note: `Pour ${selected.name}` }, duplicate); } notify(`${ingredients.length} ingrédient${ingredients.length > 1 ? 's ajoutés' : ' ajouté'} à la liste.`); setSelected(null); } catch { notify('Impossible d’ajouter les ingrédients à la liste.'); } finally { setAdding(false) } }
   return <section><div className="rounded-[2rem] bg-gradient-to-br from-orange-500 via-rose-500 to-fuchsia-600 p-5 text-white shadow-xl"><div className="flex items-start gap-3"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-white/20"><BookHeart /></span><div className="flex-1"><p className="text-xs font-black uppercase tracking-[.16em] text-white/75">Créé à deux</p><h2 className="text-2xl font-black">Notre carnet secret</h2><p className="mt-1 text-sm text-white/80">Vos plats, vos quantités et les petits secrets de la maison.</p></div></div><div className="mt-5 grid grid-cols-2 gap-3"><button type="button" onClick={onBack} className="min-h-12 rounded-2xl bg-white/15 font-black">← Cuisine Swipe</button><button type="button" onClick={() => setEditor({})} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white font-black text-rose-600"><Plus size={19} />Nouvelle recette</button></div></div>
   {loading ? <div className="grid min-h-56 place-items-center"><LoaderCircle className="animate-spin text-orange-500" /></div> : recipes.length ? <div className="mt-5 grid gap-4 sm:grid-cols-2">{recipes.map((recipe) => <button key={recipe.id} type="button" onClick={() => setSelected(recipe)} className="overflow-hidden rounded-[1.6rem] bg-surface text-left shadow-card transition active:scale-[.98]"><div className={`bg-gradient-to-br ${typeGradients[recipe.type] || typeGradients.meal} p-5 text-white`}><span className="text-5xl">{recipe.emoji}</span><span className="float-right rounded-full bg-white/20 px-3 py-1 text-[10px] font-black uppercase">{typeLabels[recipe.type]}</span><h3 className="mt-5 text-xl font-black">{recipe.name}</h3></div><div className="flex items-center gap-4 p-4 text-xs font-bold text-muted"><span className="flex items-center gap-1"><Clock3 size={15} />{recipe.prepTime} min</span><span>{recipe.ingredients.length} ingrédients</span><span className="ml-auto text-accent-700">Ouvrir →</span></div></button>)}</div> : <div className="mt-5 rounded-[2rem] border-2 border-dashed border-orange-200 bg-orange-50/60 p-8 text-center dark:border-orange-900 dark:bg-orange-950/20"><span className="text-6xl">📖</span><h3 className="mt-4 text-xl font-black">La première page est vide</h3><p className="mt-2 text-sm leading-6 text-muted">Ajoutez votre plat signature. Il apparaîtra instantanément chez votre partenaire.</p><button type="button" onClick={() => setEditor({})} className="mt-5 min-h-12 rounded-2xl bg-orange-500 px-5 font-black text-white">Écrire notre première recette</button></div>}
   {editor && <RecipeEditor recipe={editor.id ? editor : null} saving={saving} onClose={() => setEditor(null)} onSave={save} />}
-  {selected && <RecipeViewer recipe={selected} lists={lists} activeList={activeList} allItems={allItems} adding={adding} onAdd={addMissing} onEdit={() => { setEditor(selected); setSelected(null) }} onDelete={remove} onClose={() => setSelected(null)} />}
+  {selected && <RecipeViewer recipe={selected} lists={lists} activeList={activeList} allItems={allItems} adding={adding} deleting={deleting} onAdd={addMissing} onEdit={() => { setEditor(selected); setSelected(null) }} onDelete={remove} onClose={() => setSelected(null)} />}
   </section>
 }

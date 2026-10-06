@@ -188,6 +188,18 @@ Conservez le fichier `.jks`, son alias et ses mots de passe dans un emplacement 
 
 Pour mettre à jour les deux téléphones, générez toujours le nouvel APK avec la même clé et installez-le par-dessus l’application existante. Les données principales restent dans Firebase.
 
+### Proposer l’APK depuis la version Web
+
+Le Hub Web contient un bouton **Télécharger l’APK Android**. Vercel sert le fichier `public/downloads/notre-espace.apk` comme un téléchargement direct.
+
+Après avoir généré un nouvel APK, copiez automatiquement la version signée disponible, ou à défaut l’APK de test, vers le site :
+
+```powershell
+npm run android:publish-web
+```
+
+La commande cherche d’abord un APK release signé dans les emplacements Android habituels, puis utilise `android/app/build/outputs/apk/debug/app-debug.apk` si aucun release signé n’existe. Lancez ensuite le build Web et déployez-le. Ne publiez jamais le fichier `.jks` ni ses mots de passe.
+
 ## 10. Limite actuelle : réception instantanée quand l’application est arrêtée
 
 La demande du partenaire et les nouveaux produits génèrent maintenant une vraie notification Android dès que l’application reçoit le changement Firestore. Pour recevoir instantanément « Salma a demandé cette liste » quand l’application est complètement arrêtée par Android, il faudra ajouter :

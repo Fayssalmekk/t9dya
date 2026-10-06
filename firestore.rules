@@ -129,13 +129,17 @@ service cloud.firestore {
       match /clothes/{itemId} {
         allow read: if owns(userId) || sharesHousehold(userId);
         allow delete: if owns(userId);
-        allow create, update: if owns(userId) && validClothing();
+        allow create: if (owns(userId) || sharesHousehold(userId)) && validClothing();
+        allow update: if owns(userId) && validClothing();
       }
 
       match /clothesImages/{itemId} {
         allow read: if owns(userId) || sharesHousehold(userId);
         allow delete: if owns(userId);
-        allow create, update: if owns(userId)
+        allow create: if (owns(userId) || sharesHousehold(userId))
+          && request.resource.data.image is string
+          && request.resource.data.image.size() < 900000;
+        allow update: if owns(userId)
           && request.resource.data.image is string
           && request.resource.data.image.size() < 900000;
       }

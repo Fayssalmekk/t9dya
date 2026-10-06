@@ -4,6 +4,7 @@ import AppHeader from '../components/AppHeader'
 import { useAuth } from '../context/AuthContext'
 import { useShopping } from '../context/ShoppingContext'
 import { catalogById } from '../data/catalog'
+import { matchesProductSearch } from '../utils/catalogSearch'
 
 export default function HistoryPage() {
   const { household } = useAuth()
@@ -14,7 +15,12 @@ export default function HistoryPage() {
   const stores = [...new Set(purchases.map((purchase) => purchase.store).filter(Boolean))]
 
   const filtered = useMemo(() => purchases.filter((purchase) => {
-    const matchesSearch = purchase.itemName?.toLocaleLowerCase('fr').includes(search.toLocaleLowerCase('fr'))
+    const catalogProduct = catalogById[purchase.productId]
+    const matchesSearch = matchesProductSearch(catalogProduct || {
+      name: purchase.itemName,
+      category: purchase.category,
+      categoryName: purchase.categoryName
+    }, search)
     return matchesSearch && (store === 'all' || purchase.store === store) && (buyer === 'all' || purchase.boughtBy === buyer)
   }), [buyer, purchases, search, store])
 
@@ -56,7 +62,8 @@ export default function HistoryPage() {
         const member = household.memberProfiles?.[purchase.boughtBy]
         const date = purchase.purchasedAt?.toDate?.()
         const emoji = catalogById[purchase.productId]?.emoji || purchase.emoji || '🛒'
-        return <article key={purchase.id} className="flex items-center gap-3 rounded-2xl bg-surface p-4 shadow-sm"><span className="grid h-12 w-12 place-items-center rounded-xl bg-canvas text-2xl">{emoji}</span><div className="min-w-0 flex-1"><strong className="block truncate">{purchase.itemName}</strong><p className="mt-1 truncate text-xs text-muted">{date?.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} · {purchase.store} · {member?.displayName || 'Membre'}</p></div><div className="text-right"><strong className="whitespace-nowrap">{Number.isFinite(purchase.price) ? `${purchase.price.toFixed(2)} DH` : '—'}</strong><small className="mt-1 block text-muted">{purchase.quantity} {purchase.unit}</small></div></article>
+        const purchaseDetails = [date?.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }), purchase.store, member?.displayName || 'Membre'].filter(Boolean).join(' · ')
+        return <article key={purchase.id} className="flex items-center gap-3 rounded-2xl bg-surface p-4 shadow-sm"><span className="grid h-12 w-12 place-items-center rounded-xl bg-canvas text-2xl">{emoji}</span><div className="min-w-0 flex-1"><strong className="block truncate">{purchase.itemName}</strong><p className="mt-1 truncate text-xs text-muted">{purchaseDetails}</p></div><div className="text-right"><strong className="whitespace-nowrap">{Number.isFinite(purchase.price) ? `${purchase.price.toFixed(2)} DH` : '—'}</strong><small className="mt-1 block text-muted">{purchase.quantity} {purchase.unit}</small></div></article>
       })}</div>}
     </main>
   )

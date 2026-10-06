@@ -1,7 +1,6 @@
 import { Camera, Check, ImagePlus, LoaderCircle, RefreshCw, Sparkles, WandSparkles } from 'lucide-react'
 import { useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../../context/AuthContext'
+import { useNavigate } from 'react-router-dom'
 import { usePlatform } from '../../../context/PlatformContext'
 import ColorPicker from '../components/ColorPicker'
 import HwayjHeader from '../components/HwayjHeader'
@@ -18,9 +17,8 @@ const normalizedText = (value) => String(value || '').trim().toLocaleLowerCase('
 const validSeasons = (values) => seasons.filter((season) => (Array.isArray(values) ? values : []).some((value) => normalizedText(value) === normalizedText(season)))
 
 export default function AddItemPage() {
-  const { user, profile } = useAuth()
   const { notify } = usePlatform()
-  const { isOwnWardrobe } = useWardrobe()
+  const { ownerId, ownerProfile, isOwnWardrobe } = useWardrobe()
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [original, setOriginal] = useState('')
@@ -32,7 +30,8 @@ export default function AddItemPage() {
   const [error, setError] = useState('')
   const [tags, setTags] = useState(initialTags)
 
-  if (!isOwnWardrobe) return <Navigate to="/hwayj/closet" replace />
+  const ownerName = ownerProfile?.displayName?.trim() || 'mon partenaire'
+  const wardrobeLabel = isOwnWardrobe ? 'mon dressing' : `le dressing de ${ownerName}`
 
   const update = (key, value) => setTags((current) => ({ ...current, [key]: value }))
   const updateMetadataCategory = (category) => setTags((current) => ({ ...current, category, subcategory: SUBCATEGORY_OPTIONS[category]?.[0] || 'Autre' }))
@@ -106,7 +105,7 @@ export default function AddItemPage() {
         image: original,
         category: tags.category,
         subcategory: tags.subcategory,
-        gender: getWardrobeGender(profile),
+        gender: getWardrobeGender(ownerProfile),
         instructions: generationNotes.trim(),
       })
       setProcessed(result.image)
@@ -137,14 +136,14 @@ export default function AddItemPage() {
     try {
       if (!processed) { setError('Générez d’abord l’image catalogue GPT.'); return }
       const images = await finalizeImages(processed)
-      const id = await createClothingItem(user.uid, {
+      const id = await createClothingItem(ownerId, {
         name: tags.name.trim(), category: tags.category, subcategory: tags.subcategory,
         colors: tags.colors.split(',').map((value) => value.trim()).filter(Boolean).slice(0, 3),
         pattern: tags.pattern.trim(), material: tags.material.trim(), season: validSeasons(tags.season),
         style: tags.style.split(',').map((value) => value.trim()).filter(Boolean),
         price: tags.price === '' ? null : Number(tags.price),
       }, images.image, images.thumb)
-      notify('Vêtement ajouté au dressing')
+      notify(`Vêtement ajouté dans ${wardrobeLabel}`)
       navigate(`/hwayj/item/${id}`, { replace: true })
     } catch (caught) {
       console.error('Échec de l’enregistrement du vêtement', caught)
@@ -161,7 +160,7 @@ export default function AddItemPage() {
 
   return (
     <main className="mx-auto min-h-dvh w-full max-w-2xl px-4 pb-32 pt-6 sm:px-6">
-      <HwayjHeader title="Ajouter un vêtement" subtitle={`Étape ${step} sur 3`} backTo="/hwayj/closet" />
+      <HwayjHeader title={isOwnWardrobe ? 'Ajouter un vêtement' : `Ajouter pour ${ownerName}`} subtitle={`Étape ${step} sur 3 · ${getWardrobeGenderLabel(ownerProfile)}`} backTo="/hwayj/closet" />
       <div className="mb-6 flex gap-2">{[1, 2, 3].map((value) => <span key={value} className={`h-1.5 flex-1 rounded-full transition-colors ${value <= step ? 'bg-violet-600' : 'bg-slate-200 dark:bg-slate-800'}`} />)}</div>
       {error && <p role="alert" className="mb-5 rounded-2xl bg-amber-50 p-4 text-sm font-bold leading-6 text-amber-800 dark:bg-amber-950 dark:text-amber-200">{error}</p>}
 
@@ -176,7 +175,7 @@ export default function AddItemPage() {
             <label><span className="mb-2 block text-sm font-bold">Catégorie *</span><select className="field-input" value={tags.category} onChange={(event) => chooseGenerationCategory(event.target.value)}><option value="">Choisir…</option>{CLOTHING_CATEGORIES.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
             <label><span className="mb-2 block text-sm font-bold">Type précis *</span><select className="field-input" value={tags.subcategory} disabled={!tags.category} onChange={(event) => chooseGenerationType(event.target.value)}><option value="">Choisir…</option>{(SUBCATEGORY_OPTIONS[tags.category] || []).map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
           </div>
-          <div className="mt-4 flex items-center gap-2 rounded-2xl bg-violet-50 px-4 py-3 text-xs font-bold text-violet-800 dark:bg-violet-950 dark:text-violet-200"><Sparkles size={16} />Silhouette catalogue : {getWardrobeGenderLabel(profile)}</div>
+          <div className="mt-4 flex items-center gap-2 rounded-2xl bg-violet-50 px-4 py-3 text-xs font-bold text-violet-800 dark:bg-violet-950 dark:text-violet-200"><Sparkles size={16} />Silhouette catalogue : {getWardrobeGenderLabel(ownerProfile)} · destination : {wardrobeLabel}</div>
         </section>}
 
         {!busy && <section className="rounded-[1.6rem] bg-surface p-5 shadow-card">
@@ -198,7 +197,7 @@ export default function AddItemPage() {
         <div className="mt-6 grid gap-4 sm:grid-cols-2"><Field label="Nom *" value={tags.name} onChange={(value) => update('name', value)} placeholder="Chemise blanche" /><label><span className="mb-2 block text-sm font-bold">Catégorie</span><select className="field-input" value={tags.category} onChange={(event) => updateMetadataCategory(event.target.value)}>{CLOTHING_CATEGORIES.map((value) => <option key={value}>{value}</option>)}</select></label><SubcategoryField category={tags.category} value={tags.subcategory} onChange={(value) => update('subcategory', value)} /><ColorPicker value={tags.colors} onChange={(value) => update('colors', value)} /><Field label="Motif" value={tags.pattern} onChange={(value) => update('pattern', value)} /><Field label="Matière" value={tags.material} onChange={(value) => update('material', value)} placeholder="Coton" /><Field label="Styles" value={tags.style} onChange={(value) => update('style', value)} placeholder="Casual, bureau" /><Field label="Prix en DH" type="number" value={tags.price} onChange={(value) => update('price', value)} placeholder="Facultatif" /></div>
         <div className="mt-5"><span className="mb-2 block text-sm font-bold">Saisons</span><div className="flex flex-wrap gap-2">{seasons.map((value) => <button key={value} type="button" onClick={() => update('season', tags.season.includes(value) ? tags.season.filter((entry) => entry !== value) : [...tags.season, value])} className={`min-h-11 rounded-full px-4 text-sm font-bold ${tags.season.includes(value) ? 'bg-violet-600 text-white' : 'bg-canvas text-muted'}`}>{value}</button>)}</div></div>
         <button type="button" onClick={() => setStep(2)} disabled={busy} className="mt-6 min-h-12 w-full rounded-2xl bg-canvas text-sm font-black text-muted">Revoir ou réessayer l’image</button>
-        <button type="button" disabled={busy || tagging} onClick={save} className="mt-3 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 font-black text-white disabled:opacity-60">{busy ? <LoaderCircle className="animate-spin" size={20} /> : <Check size={20} />}{busy ? 'Enregistrement…' : tagging ? 'Analyse des détails…' : 'Enregistrer dans mon dressing'}</button>
+        <button type="button" disabled={busy || tagging} onClick={save} className="mt-3 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-4 text-center font-black text-white disabled:opacity-60">{busy ? <LoaderCircle className="animate-spin" size={20} /> : <Check size={20} />}{busy ? 'Enregistrement…' : tagging ? 'Analyse des détails…' : `Enregistrer dans ${wardrobeLabel}`}</button>
       </section>}
     </main>
   )

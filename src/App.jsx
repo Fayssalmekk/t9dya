@@ -12,6 +12,7 @@ import NotificationCoordinator from './native/NotificationCoordinator'
 import LocationCoordinator from './native/LocationCoordinator'
 import PortalTopBar from './components/PortalTopBar'
 import FormKeyboardCoordinator from './components/FormKeyboardCoordinator'
+import { ConfirmProvider } from './context/ConfirmContext'
 
 const legacyRoutes = ['list', 'catalog', 'history']
 
@@ -29,5 +30,5 @@ function ClosedAccountPage({ onSignOut }) {
 }
 
 export default function App() {
-  return <AppErrorBoundary><I18nProvider><AuthProvider><FormKeyboardCoordinator /><NotificationCoordinator /><LocationCoordinator /><AppRoutes /></AuthProvider></I18nProvider></AppErrorBoundary>
+  return <AppErrorBoundary><I18nProvider><ConfirmProvider><AuthProvider><FormKeyboardCoordinator /><NotificationCoordinator /><LocationCoordinator /><AppRoutes /></AuthProvider></ConfirmProvider></I18nProvider></AppErrorBoundary>
 }

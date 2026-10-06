@@ -15,6 +15,91 @@ import {
 import { db } from './firebase'
 
 const householdCollection = (householdId, name) => collection(db, 'households', householdId, name)
+export const DEFAULT_LIST_ID = 'inbox'
+
+const normalizeItemName = (value) => String(value || '').trim().toLocaleLowerCase('fr').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+const quickProductId = (name) => {
+  let hash = 2166136261
+  for (const character of normalizeItemName(name)) {
+    hash ^= character.charCodeAt(0)
+    hash = Math.imul(hash, 16777619)
+  }
+  return `quick-${(hash >>> 0).toString(36)}`
+}
+
+export async function ensureDefaultShoppingList(householdId, userId, activeListId) {
+  const listRef = doc(db, 'households', householdId, 'lists', DEFAULT_LIST_ID)
+  const listSnapshot = await getDoc(listRef)
+  if (listSnapshot.exists() && activeListId === DEFAULT_LIST_ID) return DEFAULT_LIST_ID
+
+  const batch = writeBatch(db)
+  if (!listSnapshot.exists()) {
+    batch.set(listRef, {
+      title: 'Liste partagée',
+      plannedFor: Timestamp.now(),
+      status: 'active',
+      createdBy: userId,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    })
+  }
+  if (activeListId !== DEFAULT_LIST_ID) {
+    batch.update(doc(db, 'households', householdId), {
+      activeListId: DEFAULT_LIST_ID,
+      updatedAt: serverTimestamp()
+    })
+  }
+  await batch.commit()
+  return DEFAULT_LIST_ID
+}
+
+export async function addQuickTextItem(householdId, user, name, duplicate) {
+  const cleanName = String(name || '').trim().replace(/\s+/g, ' ').slice(0, 100)
+  if (!cleanName) throw new Error('ITEM_NAME_REQUIRED')
+  if (duplicate) {
+    await updateDoc(doc(db, 'households', householdId, 'items', duplicate.id), {
+      quantity: increment(1),
+      bought: false,
+      status: duplicate.addedBy === user.uid ? duplicate.status : 'proposed',
+      lastModifiedBy: user.uid,
+      updatedAt: serverTimestamp()
+    })
+    return { id: duplicate.id, merged: true }
+  }
+
+  const reference = await addDoc(householdCollection(householdId, 'items'), {
+    listId: DEFAULT_LIST_ID,
+    productId: quickProductId(cleanName),
+    name: cleanName,
+    brand: '',
+    format: '',
+    altName: '',
+    category: 'quick',
+    categoryName: '',
+    emoji: '',
+    quantity: 1,
+    unit: 'pièce',
+    note: '',
+    estimatedPrice: 0,
+    addedBy: user.uid,
+    lastModifiedBy: user.uid,
+    status: 'proposed',
+    bought: false,
+    quickEntry: true,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  })
+  return { id: reference.id, merged: false }
+}
+
+export async function removeExpiredBoughtItems(householdId, itemIds) {
+  const ids = [...new Set(itemIds)].filter(Boolean)
+  for (let start = 0; start < ids.length; start += 400) {
+    const batch = writeBatch(db)
+    ids.slice(start, start + 400).forEach((itemId) => batch.delete(doc(db, 'households', householdId, 'items', itemId)))
+    await batch.commit()
+  }
+}
 
 export async function addShoppingItem(householdId, listId, product, user, details, duplicate) {
   if (duplicate) {
@@ -77,6 +162,15 @@ export async function validateMany(householdId, items, userId) {
 export async function updateShoppingItem(householdId, itemId, changes, userId) {
   return updateDoc(doc(db, 'households', householdId, 'items', itemId), {
     ...changes,
+    status: 'proposed',
+    lastModifiedBy: userId,
+    updatedAt: serverTimestamp()
+  })
+}
+
+export async function adjustShoppingItemQuantity(householdId, itemId, amount, userId) {
+  return updateDoc(doc(db, 'households', householdId, 'items', itemId), {
+    quantity: increment(amount),
     status: 'proposed',
     lastModifiedBy: userId,
     updatedAt: serverTimestamp()
@@ -146,6 +240,7 @@ export async function markItemBought(householdId, item, userId, purchase) {
   })
 
   await batch.commit()
+  return purchaseRef.id
 }
 
 export async function createShoppingList(householdId, userId, title, plannedFor, legacyItems = []) {

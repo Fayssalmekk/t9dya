@@ -1,12 +1,14 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore'
 import { useAuth } from './AuthContext'
 import { db } from '../services/firebase'
 import { isNativeApp } from '../native/capacitor'
+import { DEFAULT_LIST_ID, ensureDefaultShoppingList, removeExpiredBoughtItems } from '../services/shopping'
 
 const ShoppingContext = createContext(null)
 
 const timeValue = (value) => value?.toMillis?.() || 0
+const BOUGHT_ITEM_LIFETIME = 24 * 60 * 60 * 1000
 
 export function ShoppingProvider({ children }) {
   const { household, user } = useAuth()
@@ -18,13 +20,17 @@ export function ShoppingProvider({ children }) {
   const [purchasesLoading, setPurchasesLoading] = useState(true)
   const [listsLoading, setListsLoading] = useState(true)
   const [error, setError] = useState('')
+  const ensuredHouseholdRef = useRef('')
 
   useEffect(() => {
     if (!household?.id) return undefined
     return onSnapshot(collection(db, 'households', household.id, 'items'), (snapshot) => {
       const nextItems = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))
       nextItems.sort((a, b) => timeValue(b.createdAt) - timeValue(a.createdAt))
-      setAllItems(nextItems)
+      const expiryTime = Date.now() - BOUGHT_ITEM_LIFETIME
+      const expiredBoughtItems = nextItems.filter((item) => item.bought && timeValue(item.boughtAt) > 0 && timeValue(item.boughtAt) <= expiryTime)
+      setAllItems(nextItems.filter((item) => !expiredBoughtItems.some((expired) => expired.id === item.id)))
+      if (expiredBoughtItems.length) removeExpiredBoughtItems(household.id, expiredBoughtItems.map((item) => item.id)).catch(() => {})
       setItemsLoading(false)
       setError('')
     }, () => {
@@ -32,6 +38,15 @@ export function ShoppingProvider({ children }) {
       setError('La liste ne peut pas être synchronisée pour le moment.')
     })
   }, [household?.id])
+
+  useEffect(() => {
+    if (!household?.id || !user?.uid || listsLoading || ensuredHouseholdRef.current === household.id) return
+    ensuredHouseholdRef.current = household.id
+    ensureDefaultShoppingList(household.id, user.uid, household.activeListId).catch(() => {
+      ensuredHouseholdRef.current = ''
+      setError('Impossible de préparer la liste partagée pour le moment.')
+    })
+  }, [household?.activeListId, household?.id, listsLoading, user?.uid])
 
   useEffect(() => {
     if (!household?.id) return undefined
@@ -68,12 +83,9 @@ export function ShoppingProvider({ children }) {
     }, () => setPurchasesLoading(false))
   }, [household?.id])
 
-  const activeList = lists.find((list) => list.id === household?.activeListId)
-    || lists.find((list) => list.status !== 'completed')
-    || null
-  const items = activeList
-    ? allItems.filter((item) => item.listId === activeList.id || (activeList.id === 'inbox' && !item.listId))
-    : allItems.filter((item) => !item.listId)
+  const activeList = useMemo(() => lists.find((list) => list.id === DEFAULT_LIST_ID)
+    || { id: DEFAULT_LIST_ID, title: 'Liste partagée', status: 'active' }, [lists])
+  const items = allItems
   const incomingRequest = lists.find((list) => list.assignedTo === user?.uid && list.status === 'requested') || null
 
   useEffect(() => {
