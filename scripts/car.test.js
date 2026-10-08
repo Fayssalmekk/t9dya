@@ -1,8 +1,52 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { addMonths, carExpenseFields, daysUntil, taskStatus, validDate } from '../src/apps/car/model.js'
+import { compactCarContext, compactCarResearch, validateCarChecks } from '../shared/carAi.js'
 
 const TASK = { id: 'oil', intervalKm: 10000, intervalMonths: 0, baselineKm: 0, baselineDate: '' }
+
+test('AI context stays compact and keeps only latest history per task', () => {
+  const context = compactCarContext({ v: ['Škoda', 'Fabia', '', 2026, '1.0 TSI', 'Essence', 'Automatique', '', 'Maroc'], km: 12500, day: '2026-10-06', s: [
+    { id: 'oil', n: 'Vidange', k: 10000, m: 0, b: 0, d: '' },
+  ], h: [
+    { t: 'oil', n: 'Vidange', k: 12000, d: '2026-10-01', key: 'oil' },
+    { t: 'oil', n: 'Vidange', k: 5000, d: '2026-01-01', key: 'oil' },
+  ] })
+  assert.equal(context.h.length, 1)
+  assert.equal(context.h[0].k, 12000)
+  assert.equal(JSON.stringify(context).includes('plate'), false)
+})
+
+test('AI result rejects duplicates and unknown task IDs', () => {
+  const context = compactCarContext({ v: ['Škoda', 'Fabia', '', 2026, '1.0 TSI', 'Essence', 'Automatique', '', 'Maroc'], km: 12500, day: '2026-10-06', s: [{ id: 'oil', n: 'Vidange', k: 10000, m: 0, b: 0, d: '' }], h: [] })
+  const checks = ['oil', 'filters', 'tires', 'brakes', 'battery', 'fluids'].map((key, index) => ({ key, taskId: '', label: key, advice: 'Vérifier.', dueKm: 15000 + index * 1000, remainingKm: 0, dueDate: '', remainingDays: -1, urgency: 'upcoming', basis: 'manufacturer' }))
+  assert.equal(validateCarChecks({ checks: [checks[0]] }, context).checks.length, 1)
+  assert.equal(validateCarChecks({ checks }, context).checks.length, 6)
+  assert.equal(validateCarChecks({ checks: checks.map((check, index) => index ? check : { ...check, taskId: 'missing' }) }, context).checks[0].taskId, '')
+  assert.deepEqual(validateCarChecks({ checks: checks.map((check, index) => index < 2 ? { ...check, taskId: 'oil' } : check) }, context).checks.slice(0, 2).map((check) => check.taskId), ['oil', ''])
+  assert.throws(() => validateCarChecks({ checks: checks.map((check, index) => index === 1 ? { ...check, key: 'oil' } : check) }, context), /OPENAI_ERROR/)
+})
+
+test('AI hides distant work and keeps reusable researched schedules', () => {
+  const context = compactCarContext({ v: ['Škoda', 'Fabia', '', 2026, '', 'Essence', 'Automatique', '', 'Maroc'], km: 5000, day: '2026-10-06', s: [], h: [] })
+  const result = validateCarChecks({ checks: [
+    { key: 'oil', taskId: '', label: 'Vidange', advice: 'À prévoir.', dueKm: 15000, remainingKm: 0, dueDate: '', remainingDays: -1, urgency: 'upcoming', basis: 'manufacturer' },
+    { key: 'transmission', taskId: '', label: 'Boîte', advice: 'Plus tard.', dueKm: 60000, remainingKm: 0, dueDate: '', remainingDays: -1, urgency: 'upcoming', basis: 'reliable' },
+  ] }, context, 15000)
+  assert.deepEqual(result.checks.map((check) => check.key), ['oil'])
+  assert.equal(result.checks[0].remainingKm, 10000)
+  assert.ok(compactCarResearch({ identity: 'Škoda Fabia 2026', summary: 'Référence enregistrée.', schedules: [{ key: 'oil', label: 'Vidange', everyKm: 15000, everyMonths: 12, firstDueKm: 15000, note: 'À confirmer avec le carnet.', basis: 'manufacturer' }] }))
+})
+
+test('AI keeps a distant mileage item when its calendar deadline is near', () => {
+  const context = compactCarContext({ v: ['Škoda', 'Fabia', '', 2026, '', 'Essence', 'Automatique', '', 'Maroc'], km: 5000, day: '2026-10-06', s: [], h: [] })
+  const result = validateCarChecks({ checks: [
+    { key: 'oil', taskId: '', label: 'Vidange', advice: 'Bientôt par date.', dueKm: 60000, remainingKm: 0, dueDate: '2026-10-20', remainingDays: 0, urgency: 'soon', basis: 'manufacturer' },
+    { key: 'tires', taskId: '', label: 'Pneus', advice: 'Contrôle visuel.', dueKm: -1, remainingKm: -1, dueDate: '', remainingDays: -1, urgency: 'inspect', basis: 'inspection' },
+  ] }, context, 15000)
+  assert.deepEqual(result.checks.map((check) => check.key), ['oil', 'tires'])
+  assert.equal(result.checks[0].remainingDays, 14)
+})
 
 test('10k / 20k / 30k comes from actual confirmed services, not automatic checks', () => {
   assert.equal(taskStatus(TASK, [], 9999, '2026-10-01').nextKm, 10000)

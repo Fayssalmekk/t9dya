@@ -48,12 +48,13 @@ export function WaterEditor({ value, onChange, onSave, saving = false }) {
   </form>
 }
 
-export function WaterTodayCard({ amountMl = 0 }) {
+export function WaterTodayCard({ amountMl = 0, onClick }) {
   const safeAmount = clampWater(amountMl)
   const percent = safeAmount / WATER_GOAL_ML * 100
-  return <section className="relative mt-4 overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-sky-500 via-cyan-500 to-blue-700 p-5 text-white shadow-lg">
+  const Root = onClick ? 'button' : 'section'
+  return <Root type={onClick ? 'button' : undefined} onClick={onClick} className="relative mt-4 w-full overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-sky-500 via-cyan-500 to-blue-700 p-5 text-left text-white shadow-lg">
     <span className="pointer-events-none absolute -right-10 -top-14 h-40 w-40 rounded-full bg-white/10" />
     <span className="pointer-events-none absolute -bottom-20 left-10 h-40 w-40 rounded-full bg-blue-950/10" />
-    <div className="relative flex items-center gap-4"><WaterGauge amountMl={safeAmount} size="small" /><div className="min-w-0 flex-1"><p className="text-xs font-black uppercase tracking-[.18em] text-white/70">Eau aujourd’hui</p><strong className="mt-1 block text-3xl font-black">{(safeAmount / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} <span className="text-lg text-white/75">/ 2 L</span></strong><p className="mt-2 text-sm font-bold text-white/80">{percent >= 100 ? 'Objectif atteint 💧' : `${Math.round(percent)} % de votre objectif`}</p><div className="mt-3 h-2.5 overflow-hidden rounded-full bg-white/20"><div className="h-full rounded-full bg-white shadow-[0_0_14px_rgba(255,255,255,.65)] transition-[width] duration-700" style={{ width: `${percent}%` }} /></div></div></div>
-  </section>
+    <div className="relative flex items-center gap-4"><WaterGauge amountMl={safeAmount} size="small" /><div className="min-w-0 flex-1"><p className="text-xs font-black uppercase tracking-[.18em] text-white/70">Eau aujourd’hui</p><strong className="mt-1 block text-3xl font-black">{(safeAmount / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} <span className="text-lg text-white/75">/ 2 L</span></strong><p className="mt-2 text-sm font-bold text-white/80">{percent >= 100 ? 'Objectif atteint 💧' : `${Math.round(percent)} % de votre objectif`}</p><div className="mt-3 h-2.5 overflow-hidden rounded-full bg-white/20"><div className="h-full rounded-full bg-white shadow-[0_0_14px_rgba(255,255,255,.65)] transition-[width] duration-700" style={{ width: `${percent}%` }} /></div>{onClick && <span className="mt-3 block text-xs font-black text-white/85">Mettre à jour →</span>}</div></div>
+  </Root>
 }

@@ -3,13 +3,19 @@ import { Check, Minus, Pill, Plus, Trash2, X } from 'lucide-react'
 import { useConfirmDialog } from '../../../context/ConfirmContext'
 import { usePlatform } from '../../../context/PlatformContext'
 import HealthHeader from '../components/HealthHeader'
+import DoseEntrySheet from '../components/DoseEntrySheet'
+import InsulinCard from '../components/InsulinCard'
 import TreatmentCelebration from '../components/TreatmentCelebration'
 import { useHealth } from '../context/HealthContext'
-import { adjustMedicationStock, createMedication, deleteMedication, setMedicationCheck } from '../services/health'
-import { todayKey } from '../utils/dates'
+import { useAuth } from '../../../context/AuthContext'
+import { useShopping } from '../../../context/ShoppingContext'
+import { addShoppingItem } from '../../../services/shopping'
+import { addInsulinDose, adjustMedicationStock, createMedication, deleteMedication, setMedicationCheck, updateMedication } from '../services/health'
+import { localDateKey, todayKey } from '../utils/dates'
 import { isMedicationDueOnDate, medicationFrequencyLabel, MEDICATION_FREQUENCIES, nextMedicationDueDate } from '../utils/medicationSchedule'
 
 const TODAY = todayKey
+const nowLocal = () => { const date = new Date(); return `${localDateKey(date)}T${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}` }
 const createEmptyForm = () => ({
   name: '',
   stock: 1,
@@ -22,7 +28,9 @@ const createEmptyForm = () => ({
 })
 
 export default function MedicationsPage() {
-  const { medications, checks, healthOwnerId } = useHealth()
+  const { medications, checks, doses, healthOwnerId, activeHealthProfile } = useHealth()
+  const { user, household } = useAuth()
+  const { lists, allItems } = useShopping()
   const { notify } = usePlatform()
   const confirm = useConfirmDialog()
   const [showForm, setShowForm] = useState(false)
@@ -30,14 +38,52 @@ export default function MedicationsPage() {
   const [saving, setSaving] = useState(false)
   const [busyAction, setBusyAction] = useState('')
   const [celebration, setCelebration] = useState(null)
+  const [dose, setDose] = useState({ insulin: 'novorapid', units: 1, meal: '', note: '', takenAt: nowLocal() })
+  const [doseOpen, setDoseOpen] = useState(false)
+  const [savingDose, setSavingDose] = useState(false)
+  const [targetListId, setTargetListId] = useState('')
   const celebrationTimer = useRef(null)
 
   useEffect(() => () => window.clearTimeout(celebrationTimer.current), [])
 
   const supplements = medications.filter((item) => item.kind === 'supplement')
+  const insulins = medications.filter((item) => item.kind === 'insulin')
+  const activeLists = lists.filter((list) => list.status !== 'completed')
   const dueSupplements = supplements.filter((item) => isMedicationDueOnDate(item, TODAY))
   const checked = new Set(checks.filter((item) => item.date === TODAY && item.taken).map((item) => item.medicationId))
   const completedCount = dueSupplements.filter((item) => checked.has(item.id)).length
+
+  const openDose = (insulin) => {
+    setDose({ insulin, units: 1, meal: '', note: '', takenAt: nowLocal() })
+    setDoseOpen(true)
+  }
+
+  const saveDose = async (event) => {
+    event.preventDefault()
+    if (savingDose) return
+    setSavingDose(true)
+    try {
+      await addInsulinDose(healthOwnerId, dose)
+      setDoseOpen(false)
+      notify('Dose réellement prise enregistrée.')
+    } catch {
+      notify('Impossible d’enregistrer la dose.')
+    } finally {
+      setSavingDose(false)
+    }
+  }
+
+  const addInsulinToT9dya = async (medication) => {
+    const listId = activeLists.length === 1 ? activeLists[0].id : targetListId
+    if (!listId) return notify(activeLists.length ? 'Choisissez une liste T9dya.' : 'Créez d’abord une liste dans T9dya.')
+    const product = { id: `pharmacy-${medication.id}`, name: medication.name, altName: '', brand: '', format: '', category: 'pharmacie', categoryName: 'Pharmacie & Santé', emoji: '💉', defaultPrice: 0, unit: medication.unit }
+    const duplicate = allItems.find((item) => item.listId === listId && item.productId === product.id)
+    try {
+      if (!duplicate) await addShoppingItem(household.id, listId, product, user, { quantity: 1, unit: medication.unit, note: 'Stock faible · S7a ya s7a' }, null)
+      await updateMedication(healthOwnerId, medication.id, { shoppingAdded: true })
+      notify(duplicate ? `${medication.name} est déjà dans cette liste.` : `${medication.name} ajouté à T9dya.`)
+    } catch { notify('Ajout à T9dya impossible.') }
+  }
 
   const save = async (event) => {
     event.preventDefault()
@@ -106,8 +152,16 @@ export default function MedicationsPage() {
   }
 
   return <main className="mx-auto min-h-dvh w-full max-w-2xl px-4 pb-28 pt-6 sm:px-6">
-    <HealthHeader title="Traitements" subtitle="Compléments, médicaments et fréquences" />
+    {doseOpen && <DoseEntrySheet dose={dose} setDose={setDose} onClose={() => setDoseOpen(false)} onSubmit={saveDose} saving={savingDose} />}
+    <HealthHeader title="Traitements" subtitle={activeHealthProfile?.diabetic ? 'Insuline, médicaments et compléments' : 'Médicaments, compléments et fréquences'} />
     <TreatmentCelebration celebration={celebration} />
+
+    {activeHealthProfile?.diabetic && <section className="mb-6"><div className="mb-3"><p className="text-xs font-black uppercase tracking-[.18em] text-orange-500">Insuline</p><h2 className="text-2xl font-black">Mes traitements injectables</h2><p className="mt-1 text-sm text-muted">Enregistrez uniquement une dose réellement prise et gérez le stock des stylos.</p></div><div className="grid gap-4">{insulins.map((item) => {
+      const todayDoses = doses.filter((entry) => entry.insulin === item.insulin && localDateKey(entry.takenAt?.toDate?.() || new Date(0)) === TODAY)
+      const baseline = item.stockUpdatedAt?.toMillis?.() || item.createdAt?.toMillis?.() || 0
+      const usedUnits = doses.filter((entry) => entry.insulin === item.insulin && (entry.takenAt?.toMillis?.() || 0) >= baseline).reduce((sum, entry) => sum + (Number(entry.units) || 0), 0)
+      return <InsulinCard key={item.id} medication={item} todayCount={todayDoses.length} todayUnits={todayDoses.reduce((sum, entry) => sum + (Number(entry.units) || 0), 0)} remainingUnits={Math.max(0, (Number(item.stock) || 0) * 300 - usedUnits)} onDecrease={() => adjustMedicationStock(healthOwnerId, item.id, -1).catch(() => notify('Stock non modifié.'))} onIncrease={() => adjustMedicationStock(healthOwnerId, item.id, 1).catch(() => notify('Stock non modifié.'))} onInject={() => openDose(item.insulin)} onAddToShopping={() => addInsulinToT9dya(item)} lowStockContent={activeLists.length > 1 ? <select value={targetListId} onChange={(event) => setTargetListId(event.target.value)} className="mt-2 h-10 w-full rounded-lg border bg-white px-2 text-sm text-slate-900"><option value="">Choisir une liste</option>{activeLists.map((list) => <option key={list.id} value={list.id}>{list.title}</option>)}</select> : null} />
+    })}</div><p className="mt-3 rounded-2xl bg-amber-50 p-3 text-xs leading-5 text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">S7a enregistre votre décision ; elle ne calcule et ne recommande jamais une dose d’insuline.</p></section>}
 
     <section className={`rounded-[1.75rem] bg-gradient-to-br from-rose-500 to-pink-500 p-5 text-white shadow-lg transition-all duration-500 ${celebration?.complete ? 'scale-[1.02] shadow-rose-300' : ''}`}>
       <p className="text-sm font-bold text-white/75">Routine du {new Date(`${TODAY}T12:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</p>
@@ -117,7 +171,7 @@ export default function MedicationsPage() {
       {!dueSupplements.length && <p className="mt-3 text-center text-sm font-bold text-white/80">Aucune prise prévue aujourd’hui</p>}
     </section>
 
-    <button type="button" onClick={() => setShowForm(true)} className="mt-5 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 font-black text-white dark:bg-white dark:text-slate-900"><Plus /> Ajouter un traitement</button>
+    <button type="button" onClick={() => setShowForm(true)} className="mt-5 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 font-black text-white dark:bg-white dark:text-slate-900"><Plus /> Ajouter un médicament ou complément</button>
 
     <section className="mt-5 space-y-3">
       {supplements.map((item) => {

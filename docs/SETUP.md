@@ -52,9 +52,10 @@ Hwayj demande une seule image `1024x1536` en qualité `medium` par ajout et anal
 1. PowerShell à la racine du projet : `npx firebase deploy --only firestore:rules` pour autoriser les données santé privées par utilisateur, notamment le suivi quotidien de l’eau dans `healthWater` et les compteurs d’habitudes dans `healthBadHabits`.
 2. Après déploiement Vercel, ouvrez `/s7a/today` avec chacun des deux comptes : chaque profil garde son dossier séparé, mais les deux membres du foyer peuvent le consulter et le modifier.
 3. Hub → Réglages → Mes notifications Android : autorisez Android, puis activez séparément demandes de courses, produits ajoutés, rappel courses, traitements, rendez-vous, stock faible et résumé quotidien. Les rappels planifiés sonnent après fermeture; les événements du partenaire sont reçus quand l’APK est active ou à sa prochaine synchronisation.
-4. Les estimations IA de glucides sont indicatives et ne remplacent jamais le calcul validé par le diabétologue; aucune dose d’insuline n’est générée automatiquement.
-5. Dans Hub → Réglages → Mon profil, cochez « Je suis diabétique » uniquement pour le membre concerné. Les deux membres du même foyer peuvent ensuite consulter et gérer ses rendez-vous, traitements et données diabète depuis le sélecteur de profil S7a.
+4. Les estimations IA de protéines et glucides sont indicatives et ne remplacent jamais un avis médical ou le calcul validé par le diabétologue; aucune dose d’insuline n’est générée automatiquement.
+5. Dans Hub → Réglages → Mon profil, cochez « Je suis diabétique » uniquement pour le membre concerné. Il n’existe plus d’onglet Diabète séparé : glycémie et résumés apparaissent dans **Aujourd’hui**, tandis que les doses et stocks d’insuline se gèrent dans **Traitements**. Les deux membres du foyer peuvent gérer le profil sélectionné.
 6. Le nombre d’unités restantes affiché sur un stylo est une estimation de confort (`300 unités × stylos en stock`, moins les doses enregistrées depuis le dernier ajustement du stock). Il ne faut pas l’utiliser pour décider une dose ou remplacer la vérification du stylo réel.
+7. Après la refonte du journal nutritionnel, redéployez `firestore.rules` pour autoriser le champ borné `protein`, puis redéployez le Web afin que l’API retourne aussi `estimated_protein_g`. Pour Android, relancez `npm run android:update` avant de reconstruire l’APK.
 
 ## Budget et journal des dépenses
 
@@ -69,7 +70,9 @@ Hwayj demande une seule image `1024x1536` en qualité `medium` par ajout et anal
 
 ### Nouvelle application Voiture
 
-Guide complet : [VOITURE.md](./VOITURE.md). **Déployez les nouvelles règles** avec `npx firebase deploy --only firestore:rules` avant d’utiliser Voiture, puis redéployez le Web. Pour Android, exécutez `npm run android:update` et reconstruisez/réinstallez l’APK signé. Aucun index composite, clé API ou permission supplémentaire n’est nécessaire.
+Guide complet : [VOITURE.md](./VOITURE.md). **Déployez les nouvelles règles** avec `npx firebase deploy --only firestore:rules` avant d’utiliser Voiture, puis redéployez le Web et la fonction `/api/ai`. La checklist réutilise `OPENAI_API_KEY` et `OPENAI_TEXT_MODEL`. La première analyse emploie l’outil Web Search du Responses API ; `OPENAI_CAR_WEB_MODEL` est facultatif et hérite du modèle texte. Les valeurs facultatives prêtes dans `.env.example` sont `OPENAI_CAR_MAX_OUTPUT_TOKENS=1400`, `OPENAI_CAR_RESEARCH_MAX_OUTPUT_TOKENS=2400`, `OPENAI_CAR_HORIZON_KM=15000` et `OPENAI_CAR_REASONING_EFFORT=low`. Pour Android, exécutez `npm run android:update` et reconstruisez/réinstallez l’APK signé. Aucun index composite ni permission Android supplémentaire n’est nécessaire.
+
+Le modèle actuel `gpt-5.4-nano` prend en charge Responses, les sorties structurées et Web Search. OpenAI le marque toutefois comme déprécié avec retrait annoncé au 1er avril 2027. Aucun remplacement silencieux n’est effectué ici : avant cette date, choisissez explicitement un successeur disponible dans votre projet et testez la qualité/coût, puis changez `OPENAI_TEXT_MODEL` et éventuellement `OPENAI_CAR_WEB_MODEL` dans Vercel et `.env.local`.
 
 Dans Hub → Voiture, configurez la Fabia puis son kilométrage réel. Dans Budget, sélectionnez **Voiture** pour qu’une dépense apparaisse automatiquement dans les deux espaces, sans double comptage. Les intervalles d’entretien sont à confirmer depuis votre carnet constructeur ; 10 000 km n’est qu’un exemple modifiable.
 

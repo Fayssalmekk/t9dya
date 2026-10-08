@@ -13,7 +13,11 @@ const errors = {
   INVALID_TASK: 'Vérifiez les intervalles. Pour un rappel en mois, renseignez aussi une date de départ.',
   INVALID_SERVICE: 'Vérifiez la date (pas dans le futur) et le kilométrage.',
   INVALID_MILEAGE: 'Saisissez un nombre entier de kilomètres valide.',
-  TASK_NOT_FOUND: 'Cet entretien a été supprimé. Fermez puis actualisez votre sélection.'
+  INVALID_VEHICLE: 'Renseignez au minimum le nom, la marque, le modèle, le carburant, la boîte et l’année.',
+  INVALID_DATE: 'Vérifiez les dates de la voiture.',
+  TASK_NOT_FOUND: 'Cet entretien a été supprimé. Fermez puis actualisez votre sélection.',
+  AI_PLAN_CHANGED: 'La checklist IA a changé. Fermez cette fenêtre puis utilisez la nouvelle liste.',
+  AI_CHECK_ALREADY_DONE: 'Votre partenaire vient déjà de confirmer ce check.'
 }
 
 function useSave(action, onClose) {
@@ -68,15 +72,20 @@ export function VehicleSheet({ vehicle, onSave, onClose }) {
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }))
   const state = useSave(() => onSave(form), onClose)
   return <Sheet title="La voiture du foyer" onClose={onClose} {...state}>
-    <Field label="Modèle"><input required maxLength={100} className="field-input" value={form.name} onChange={(event) => update('name', event.target.value)} /></Field>
-    <div className="grid grid-cols-2 gap-3"><Field label="Année"><input required type="number" min={1900} max={2100} className="field-input" value={form.year} onChange={(event) => update('year', event.target.value)} /></Field><Field label="Boîte"><select className="field-input" value={form.transmission} onChange={(event) => update('transmission', event.target.value)}><option>Automatique</option><option>Manuelle</option></select></Field></div>
+    <p className="rounded-2xl bg-emerald-50 p-3 text-xs leading-5 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">Ces informations permettent à l’IA de rechercher le bon plan d’entretien. Plus le moteur et la boîte sont précis, moins les recommandations seront génériques. La plaque n’est jamais envoyée à l’IA.</p>
+    <Field label="Petit nom dans l’application"><input required maxLength={100} className="field-input" value={form.name} onChange={(event) => update('name', event.target.value)} placeholder="Ex. Ma Fabia" /></Field>
+    <div className="grid grid-cols-2 gap-3"><Field label="Marque *"><input required maxLength={60} className="field-input" value={form.make} onChange={(event) => update('make', event.target.value)} placeholder="Škoda" /></Field><Field label="Modèle *"><input required maxLength={60} className="field-input" value={form.model} onChange={(event) => update('model', event.target.value)} placeholder="Fabia" /></Field></div>
+    <div className="grid grid-cols-2 gap-3"><Field label="Année *"><input required type="number" min={1900} max={2100} className="field-input" value={form.year} onChange={(event) => update('year', event.target.value)} /></Field><Field label="Finition / version"><input maxLength={80} className="field-input" value={form.trim} onChange={(event) => update('trim', event.target.value)} placeholder="Selection, Monte Carlo…" /></Field></div>
+    <Field label="Moteur exact"><input maxLength={100} className="field-input" value={form.engine} onChange={(event) => update('engine', event.target.value)} placeholder="Ex. 1.0 TSI 115 ch" /></Field>
+    <div className="grid grid-cols-2 gap-3"><Field label="Carburant *"><select required className="field-input" value={form.fuel} onChange={(event) => update('fuel', event.target.value)}>{['Essence', 'Diesel', 'Hybride essence', 'Hybride diesel', 'Électrique', 'GPL', 'Autre'].map((value) => <option key={value}>{value}</option>)}</select></Field><Field label="Type de boîte *"><select required className="field-input" value={form.transmission} onChange={(event) => update('transmission', event.target.value)}><option>Automatique</option><option>Manuelle</option></select></Field></div>
+    <Field label="Boîte exacte"><input maxLength={60} className="field-input" value={form.gearbox} onChange={(event) => update('gearbox', event.target.value)} placeholder="Ex. DSG 7, BVM 5…" /></Field>
+    <div className="grid grid-cols-2 gap-3"><Field label="Marché / pays"><input maxLength={60} className="field-input" value={form.market} onChange={(event) => update('market', event.target.value)} placeholder="Maroc" /></Field><Field label="1re mise en circulation"><input type="date" className="field-input" value={form.registrationDate} onChange={(event) => update('registrationDate', event.target.value)} /></Field></div>
     <Field label="Couleur / toit"><input maxLength={100} className="field-input" value={form.color} onChange={(event) => update('color', event.target.value)} /></Field>
-    <Field label="Motorisation exacte (facultatif)"><input maxLength={100} className="field-input" value={form.engine} onChange={(event) => update('engine', event.target.value)} placeholder="À recopier depuis vos documents" /></Field>
     <Field label="Immatriculation (facultatif)"><input maxLength={30} className="field-input" value={form.plate} onChange={(event) => update('plate', event.target.value)} /></Field>
     <Field label="Assurance : date d’échéance"><input type="date" className="field-input" value={form.insuranceDate} onChange={(event) => update('insuranceDate', event.target.value)} /></Field>
     <Field label="Prochain contrôle technique (selon vos documents)"><input type="date" className="field-input" value={form.inspectionDate} onChange={(event) => update('inspectionDate', event.target.value)} /></Field>
     <Field label="Téléphone assistance (facultatif)"><input type="tel" maxLength={40} className="field-input" value={form.assistancePhone} onChange={(event) => update('assistancePhone', event.target.value)} /></Field>
-    <p className="text-xs leading-5 text-muted">Le kilométrage se renseigne séparément. Aucun relevé ni intervalle constructeur n’est inventé.</p>
+    <p className="text-xs leading-5 text-muted">Le kilométrage se renseigne séparément. Si vous modifiez marque, modèle, moteur, carburant ou boîte, la prochaine actualisation IA refera une recherche Web adaptée.</p>
   </Sheet>
 }
 
@@ -105,8 +114,8 @@ export function TaskSheet({ task, onSave, onClose }) {
   const state = useSave(() => onSave(form), onClose)
   return <Sheet title={task?.id ? 'Modifier l’entretien' : 'Planifier un entretien'} onClose={onClose} {...state}>
     <Field label="Nom"><input required maxLength={100} className="field-input" value={form.name} onChange={(event) => update('name', event.target.value)} placeholder="Vidange, filtres, pneus…" /></Field>
-    <p className="rounded-xl bg-amber-50 p-3 text-xs leading-5 text-amber-900 dark:bg-amber-950 dark:text-amber-200">À régler selon le carnet Škoda et votre garage. 10 000 km est votre exemple, pas une recommandation constructeur. Si les deux intervalles sont saisis, la première échéance atteinte compte.</p>
-    <div className="grid grid-cols-2 gap-3"><Field label="Tous les … km"><input type="number" inputMode="numeric" min={0} max={200000} step={1} className="field-input" value={form.intervalKm} onChange={(event) => update('intervalKm', event.target.value)} placeholder="Ex. 10000" /></Field><Field label="Ou tous les … mois"><input type="number" inputMode="numeric" min={0} max={120} step={1} className="field-input" value={form.intervalMonths} onChange={(event) => update('intervalMonths', event.target.value)} placeholder="Facultatif" /></Field></div>
+    <p className="rounded-xl bg-amber-50 p-3 text-xs leading-5 text-amber-900 dark:bg-amber-950 dark:text-amber-200">Recopiez uniquement l’intervalle confirmé dans votre carnet ou par votre garage. Si kilomètres et mois sont renseignés, la première échéance atteinte compte.</p>
+    <div className="grid grid-cols-2 gap-3"><Field label="Tous les … km"><input type="number" inputMode="numeric" min={0} max={200000} step={1} className="field-input" value={form.intervalKm} onChange={(event) => update('intervalKm', event.target.value)} placeholder="Selon le carnet" /></Field><Field label="Ou tous les … mois"><input type="number" inputMode="numeric" min={0} max={120} step={1} className="field-input" value={form.intervalMonths} onChange={(event) => update('intervalMonths', event.target.value)} placeholder="Facultatif" /></Field></div>
     <Field label="Dernier entretien connu / point de départ (km)"><input required type="number" inputMode="numeric" min={0} max={2000000} step={1} className="field-input" value={form.baselineKm} onChange={(event) => update('baselineKm', event.target.value)} /></Field>
     <Field label="Date du dernier entretien / point de départ"><input required={Number(form.intervalMonths) > 0} type="date" max={today} className="field-input" value={form.baselineDate} onChange={(event) => update('baselineDate', event.target.value)} /></Field>
     <Field label="Note / référence (facultatif)"><textarea maxLength={300} rows={2} className="field-input py-3" value={form.note} onChange={(event) => update('note', event.target.value)} /></Field>
@@ -114,7 +123,7 @@ export function TaskSheet({ task, onSave, onClose }) {
   </Sheet>
 }
 
-export function ServiceSheet({ task, odometer, onSave, onClose }) {
+export function ServiceSheet({ task, odometer, description, onSave, onClose }) {
   const [today] = useState(localDate)
   const [form, setForm] = useState(() => ({ odometer: odometer ?? '', performedOn: localDate(), garage: '', note: '' }))
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }))
@@ -124,7 +133,7 @@ export function ServiceSheet({ task, odometer, onSave, onClose }) {
     <Field label="Date"><input required type="date" max={today} value={form.performedOn} onChange={(event) => update('performedOn', event.target.value)} className="field-input" /></Field>
     <Field label="Garage (facultatif)"><input maxLength={100} value={form.garage} onChange={(event) => update('garage', event.target.value)} className="field-input" /></Field>
     <Field label="Détails / référence facture (facultatif)"><textarea rows={2} maxLength={300} value={form.note} onChange={(event) => update('note', event.target.value)} className="field-input py-3" /></Field>
-    <p className="text-xs leading-5 text-muted">La prochaine échéance repart de cette intervention. Vous pourrez ajouter son coût depuis le carnet : la dépense apparaîtra aussi dans Budget.</p>
+    <p className="text-xs leading-5 text-muted">{description || 'La prochaine échéance repart de cette intervention. Vous pourrez ajouter son coût depuis le carnet : la dépense apparaîtra aussi dans Budget.'}</p>
   </Sheet>
 }
 
@@ -132,6 +141,6 @@ export function DeleteSheet({ item, kind, onSave, onClose }) {
   const state = useSave(onSave, onClose)
   return <Sheet title="Confirmer la suppression" onClose={onClose} {...state} button="Supprimer">
     <p className="font-bold">{item.name || item.taskName || item.reason}</p>
-    <p className="text-sm leading-6 text-muted">{kind === 'task' ? 'Ce rappel sera retiré. Ses interventions déjà enregistrées restent dans le carnet.' : kind === 'service' ? `L’intervention du ${displayDate(item.performedOn)} sera retirée et les échéances recalculées. Sa dépense éventuelle reste dans Budget et Voiture ; supprimez-la séparément si elle était aussi erronée.` : 'Cette dépense sera supprimée dans Voiture ET Budget. Si elle venait d’une enveloppe, son montant sera recrédité.'}</p>
+    <p className="text-sm leading-6 text-muted">{kind === 'task' ? 'Ce rappel sera retiré. Ses interventions déjà enregistrées restent dans le carnet.' : kind === 'service' || kind === 'aiService' ? `L’intervention du ${displayDate(item.performedOn)} sera retirée et les échéances recalculées. Sa dépense éventuelle reste dans Budget et Voiture ; supprimez-la séparément si elle était aussi erronée.` : 'Cette dépense sera supprimée dans Voiture ET Budget. Si elle venait d’une enveloppe, son montant sera recrédité.'}</p>
   </Sheet>
 }

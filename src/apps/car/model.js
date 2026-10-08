@@ -1,4 +1,4 @@
-export const DEFAULT_VEHICLE = { name: 'Škoda Fabia', year: 2026, transmission: 'Automatique', color: 'Gris-vert · toit noir', plate: '', engine: '', insuranceDate: '', inspectionDate: '', assistancePhone: '' }
+export const DEFAULT_VEHICLE = { name: 'Ma Fabia', make: 'Škoda', model: 'Fabia', trim: '', year: 2026, engine: '', fuel: 'Essence', transmission: 'Automatique', gearbox: '', market: 'Maroc', registrationDate: '', color: 'Gris-vert · toit noir', plate: '', insuranceDate: '', inspectionDate: '', assistancePhone: '' }
 export const CAR_CATEGORIES = [
   ['fuel', '⛽', 'Carburant'], ['maintenance', '🔧', 'Entretien'], ['repair', '🛠️', 'Réparation'],
   ['insurance', '🛡️', 'Assurance'], ['parking', '🅿️', 'Parking / péage'], ['wash', '🫧', 'Lavage'], ['other', '🚗', 'Autre']

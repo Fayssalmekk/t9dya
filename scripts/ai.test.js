@@ -7,7 +7,7 @@ import handler from '../api/ai.js'
 const IMAGE = 'data:image/png;base64,aGVsbG8='
 const OTHER_IMAGE = 'data:image/png;base64,d29ybGQ='
 const TAGS = { category: 'Hauts', subcategory: 'T-shirt', colors: ['Noir'], pattern: 'Uni', material: 'Coton', season: ['Été'], style: ['Casual'], name_suggestion: 'T-shirt noir' }
-const MEAL = { dish_name: 'Repas', estimated_carbs_g: 30, range_min_g: 20, range_max_g: 40, confidence: 'moyenne', assumptions: ['Portion estimée'], safety_note: 'Confirmez les portions et suivez votre plan prescrit.' }
+const MEAL = { dish_name: 'Repas', estimated_carbs_g: 30, estimated_protein_g: 18, range_min_g: 20, range_max_g: 40, confidence: 'moyenne', assumptions: ['Portion estimée'], safety_note: 'Confirmez les portions et suivez votre plan prescrit.' }
 const completed = (value) => ({ status: 'completed', output_text: JSON.stringify(value) })
 const upstream = (value, status = 200) => ({ ok: status < 400, status, json: async () => value })
 const suggestions = (id) => ({ combinations: Array.from({ length: 3 }, (_, index) => ({ name: `Tenue ${index + 1}`, itemIds: [id], reason: 'Assorti' })) })
@@ -182,6 +182,7 @@ test('meal keeps schema, French and no-insulin-dose rule, and never reuses cache
   assert.equal(api.calls[0].body.max_output_tokens, 450)
   const content = api.calls[0].body.input[0].content
   assert.match(content[0].text, /NEVER compute\/recommend an insulin dose/)
+  assert.match(content[0].text, /carbs and protein/)
   assert.match(content[0].text, /French/)
   assert.match(content[0].text, /Deux portions/)
   assert.equal(content[1].detail, 'low')

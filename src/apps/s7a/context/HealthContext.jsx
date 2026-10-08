@@ -29,9 +29,13 @@ export function HealthProvider({ children }) {
     if (!healthOwnerId) return undefined
     if (activeHealthProfile?.diabetic) ensureRequiredInsulins(healthOwnerId).catch(() => setError('Impossible d’initialiser les insulines. Déployez les règles Firebase.'))
     const fail = () => { setError('Impossible de synchroniser les données santé.'); setLoading(false) }
+    const diabetesSubscriptions = activeHealthProfile?.diabetic ? [
+      subscribeReadings(healthOwnerId, (value) => setReadings(value.map((item) => ({ ...item, healthOwnerId }))), fail),
+      subscribeDoses(healthOwnerId, (value) => setDoses(value.map((item) => ({ ...item, healthOwnerId }))), fail)
+    ] : []
     const subscriptions = [
-      subscribeReadings(healthOwnerId, (value) => { setReadings(value.map((item) => ({ ...item, healthOwnerId }))); setLoading(false); setError('') }, fail),
-      subscribeDoses(healthOwnerId, (value) => setDoses(value.map((item) => ({ ...item, healthOwnerId }))), fail), subscribeMedications(healthOwnerId, (value) => setMedications(value.map((item) => ({ ...item, healthOwnerId }))), fail),
+      ...diabetesSubscriptions,
+      subscribeMedications(healthOwnerId, (value) => { setMedications(value.map((item) => ({ ...item, healthOwnerId }))); setLoading(false); setError('') }, fail),
       subscribeChecks(healthOwnerId, (value) => setChecks(value.map((item) => ({ ...item, healthOwnerId }))), fail), subscribeAppointments(healthOwnerId, (value) => setAppointments(value.map((item) => ({ ...item, healthOwnerId }))), fail), subscribeMeals(healthOwnerId, (value) => setMeals(value.map((item) => ({ ...item, healthOwnerId }))), fail), subscribeWater(healthOwnerId, (value) => setWaterEntries(value.map((item) => ({ ...item, healthOwnerId }))), fail), subscribeBadHabits(healthOwnerId, (value) => setBadHabits(value.map((item) => ({ ...item, healthOwnerId }))), fail)
     ]
     return () => subscriptions.forEach((unsubscribe) => unsubscribe())
@@ -52,7 +56,7 @@ export function HealthProvider({ children }) {
     const activeLists = lists.filter((list) => list.status !== 'completed')
     if (!user?.uid || !healthOwnerId || !household?.id || activeLists.length !== 1) return
     const listId = activeLists[0].id
-    selectedData.medications.forEach(async (medication) => {
+    selectedData.medications.filter((medication) => activeHealthProfile?.diabetic || medication.kind !== 'insulin').forEach(async (medication) => {
       const medicationKey = `${healthOwnerId}:${medication.id}`
       if (medication.stock > medication.lowStockThreshold && medication.shoppingAdded) {
         await updateMedication(healthOwnerId, medication.id, { shoppingAdded: false }).catch(() => {})
@@ -67,7 +71,7 @@ export function HealthProvider({ children }) {
         await updateMedication(healthOwnerId, medication.id, { shoppingAdded: true })
       } catch { /* The in-app stock alert remains visible for a manual retry. */ } finally { addingToShopping.current.delete(medicationKey) }
     })
-  }, [allItems, healthOwnerId, household?.id, lists, selectedData.medications, user])
+  }, [activeHealthProfile?.diabetic, allItems, healthOwnerId, household?.id, lists, selectedData.medications, user])
 
   const value = useMemo(() => ({ ...selectedData, loading, error, healthProfiles, healthOwnerId, setHealthOwnerId, activeHealthProfile }), [activeHealthProfile, error, healthOwnerId, healthProfiles, loading, selectedData])
   return <HealthContext.Provider value={value}>{children}</HealthContext.Provider>

@@ -93,15 +93,21 @@ service cloud.firestore {
 
     function validVehicle() {
       let data = request.resource.data;
-      return data.keys().hasOnly(['name', 'year', 'transmission', 'color', 'plate', 'engine', 'insuranceDate', 'inspectionDate', 'assistancePhone', 'odometer', 'createdBy', 'createdAt', 'updatedBy', 'updatedAt', 'mileageUpdatedAt'])
+      return data.keys().hasOnly(['name', 'make', 'model', 'trim', 'year', 'engine', 'fuel', 'transmission', 'gearbox', 'market', 'registrationDate', 'color', 'plate', 'insuranceDate', 'inspectionDate', 'assistancePhone', 'odometer', 'createdBy', 'createdAt', 'updatedBy', 'updatedAt', 'mileageUpdatedAt'])
         && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.get('make', '') is string && data.get('make', '').size() <= 60
+        && data.get('model', '') is string && data.get('model', '').size() <= 60
+        && data.get('trim', '') is string && data.get('trim', '').size() <= 80
         && data.year is int && data.year >= 1900 && data.year <= 2100
+        && data.get('fuel', '') is string && data.get('fuel', '').size() <= 40
         && data.transmission is string && data.transmission.size() <= 40
+        && data.get('gearbox', '') is string && data.get('gearbox', '').size() <= 60
+        && data.get('market', '') is string && data.get('market', '').size() <= 60
         && data.color is string && data.color.size() <= 100
         && data.plate is string && data.plate.size() <= 30
         && data.engine is string && data.engine.size() <= 100
         && data.assistancePhone is string && data.assistancePhone.size() <= 40
-        && validCarDate(data.insuranceDate) && validCarDate(data.inspectionDate)
+        && validCarDate(data.get('registrationDate', '')) && validCarDate(data.insuranceDate) && validCarDate(data.inspectionDate)
         && (data.odometer == null || validCarKm(data.odometer))
         && data.updatedBy == request.auth.uid && data.updatedAt == request.time;
     }
@@ -118,6 +124,23 @@ service cloud.firestore {
         && (data.intervalMonths == 0 || data.baselineDate != '')
         && data.note is string && data.note.size() <= 300
         && data.active is bool && data.updatedAt == request.time;
+    }
+
+    function validCarAiPlan() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['vehicleId', 'version', 'input', 'checksJson', 'checkKeys', 'researchJson', 'sourcesJson', 'vehicleKey', 'sourceKm', 'generatedOn', 'updatedBy', 'updatedAt'])
+        && data.vehicleId == 'main'
+        && data.version is string && data.version.size() >= 8 && data.version.size() <= 80
+        && data.input is string && data.input.size() > 0 && data.input.size() <= 20000
+        && data.checksJson is string && data.checksJson.size() > 0 && data.checksJson.size() <= 8000
+        && data.researchJson is string && data.researchJson.size() > 0 && data.researchJson.size() <= 14000
+        && data.sourcesJson is string && data.sourcesJson.size() <= 6000
+        && data.vehicleKey is string && data.vehicleKey.size() > 0 && data.vehicleKey.size() <= 1000
+        && data.checkKeys is list && data.checkKeys.size() >= 1 && data.checkKeys.size() <= 6
+        && data.checkKeys.hasOnly(['oil', 'filters', 'tires', 'brakes', 'transmission', 'battery', 'fluids', 'other'])
+        && validCarKm(data.sourceKm)
+        && validCarDate(data.generatedOn) && data.generatedOn != ''
+        && data.updatedBy == request.auth.uid && data.updatedAt == request.time;
     }
 
     match /users/{userId} {
@@ -226,9 +249,15 @@ service cloud.firestore {
         allow create, update: if (owns(userId) || sharesHousehold(userId))
           && request.resource.data.name is string
           && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 100
+          && request.resource.data.description is string
+          && request.resource.data.description.size() <= 600
           && request.resource.data.carbs is number
           && request.resource.data.carbs >= 0
           && request.resource.data.carbs <= 1000
+          && request.resource.data.get('protein', 0) is number
+          && request.resource.data.get('protein', 0) >= 0
+          && request.resource.data.get('protein', 0) <= 1000
           && request.resource.data.thumb is string
           && request.resource.data.thumb.size() < 300000;
       }
@@ -363,6 +392,34 @@ service cloud.firestore {
           && request.resource.data.taskId is string && request.resource.data.taskId.size() > 0 && request.resource.data.taskId.size() <= 100
           && request.resource.data.taskName is string && request.resource.data.taskName.size() > 0 && request.resource.data.taskName.size() <= 100
           && get(/databases/$(database)/documents/households/$(householdId)/vehicleTasks/$(request.resource.data.taskId)).data.active == true
+          && validCarKm(request.resource.data.odometer)
+          && request.resource.data.odometer <= get(/databases/$(database)/documents/households/$(householdId)/vehicles/main).data.odometer
+          && validCarDate(request.resource.data.performedOn) && request.resource.data.performedOn != ''
+          && request.resource.data.garage is string && request.resource.data.garage.size() <= 100
+          && request.resource.data.note is string && request.resource.data.note.size() <= 300
+          && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time;
+        allow update: if false;
+      }
+
+      match /vehicleAiPlans/{planId} {
+        allow read: if isMember(householdId);
+        allow create, update: if isMember(householdId) && planId == 'current' && validCarAiPlan();
+        allow delete: if false;
+      }
+
+      match /vehicleAiServices/{serviceId} {
+        allow read, delete: if isMember(householdId);
+        allow create: if isMember(householdId)
+          && request.resource.data.keys().hasOnly(['vehicleId', 'planVersion', 'aiKey', 'taskId', 'taskName', 'odometer', 'performedOn', 'garage', 'note', 'createdBy', 'createdAt'])
+          && request.resource.data.vehicleId == 'main'
+          && request.resource.data.planVersion is string && request.resource.data.planVersion.size() >= 8 && request.resource.data.planVersion.size() <= 80
+          && request.resource.data.aiKey in ['oil', 'filters', 'tires', 'brakes', 'transmission', 'battery', 'fluids', 'other']
+          && serviceId == request.resource.data.planVersion + '-' + request.resource.data.aiKey
+          && request.resource.data.taskId is string && request.resource.data.taskId.size() <= 100
+          && request.resource.data.taskName is string && request.resource.data.taskName.size() > 0 && request.resource.data.taskName.size() <= 100
+          && exists(/databases/$(database)/documents/households/$(householdId)/vehicleAiPlans/current)
+          && get(/databases/$(database)/documents/households/$(householdId)/vehicleAiPlans/current).data.version == request.resource.data.planVersion
+          && request.resource.data.aiKey in get(/databases/$(database)/documents/households/$(householdId)/vehicleAiPlans/current).data.checkKeys
           && validCarKm(request.resource.data.odometer)
           && request.resource.data.odometer <= get(/databases/$(database)/documents/households/$(householdId)/vehicles/main).data.odometer
           && validCarDate(request.resource.data.performedOn) && request.resource.data.performedOn != ''

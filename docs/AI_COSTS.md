@@ -1,6 +1,6 @@
 # IA : coûts, latence et réglages
 
-Mise à jour : 5 octobre 2026. Implémentation : `api/ai.js`. Aucun changement de modèle imposé, aucun nouvel abonnement, aucune dépendance ajoutée.
+Mise à jour : 6 octobre 2026. Implémentation : `api/ai.js`. Aucun changement de modèle imposé, aucun nouvel abonnement, aucune dépendance ajoutée.
 
 ## Ce qui économise réellement
 
@@ -9,6 +9,7 @@ Mise à jour : 5 octobre 2026. Implémentation : `api/ai.js`. Aucun changement d
 - `tag` réutilise pendant **5 minutes** une analyse identique du même utilisateur sur la même instance serveur. Les requêtes identiques simultanées partagent un seul appel OpenAI. Un succès réutilisé ne consomme aucun nouvel appel OpenAI, mais Firebase vérifie toujours l’authentification.
 - Le prompt `compose` ne répète plus les noms dans deux listes. Les règles de fidélité sont partagées par les trois actions image ; `combine` explicite maintenant aussi les manches roulées, fermetures, finitions et interdictions mains/cintre. Son texte peut donc être plus long qu’avant : ne pas sacrifier ces règles pour quelques tokens.
 - Une seule image de sortie, explicitement `n=1`, comme le comportement précédent.
+- `car` ne lance Web Search qu’à la première analyse ou après changement de l’identité technique. La recherche et six sources au maximum sont stockées ; les kilomètres suivants réutilisent ce résultat. Une fenêtre serveur retire les opérations trop lointaines de la sortie visible.
 
 Pas de pourcentage d’économie promis sans mesures sur vos photos. Le cache n’aide que les répétitions ; `suggest` n’est actuellement pas appelé par l’interface Hwayj. Ces économies sur `suggest` profiteront à tout consommateur de cette action, mais ne réduisent pas le coût actuel de chaque génération d’image.
 
@@ -22,6 +23,8 @@ Pas de pourcentage d’économie promis sans mesures sur vos photos. Le cache n�
 | `tag` | low | source inchangée | — | 300 tokens |
 | `meal` | low | source inchangée | — | 450 tokens |
 | `suggest` | — | — | — | 900 tokens |
+| `car` (priorités) | recherche stockée | — | — | 1400 tokens |
+| `car` (nouvelle recherche Web) | contexte Web low | — | — | 2400 tokens |
 
 Ces valeurs étaient déjà celles du serveur avant cette optimisation. `low` est déjà le niveau de détail vision le plus bas proposé ici ; il ne prouve pas une précision suffisante pour chaque photo. Les images source ne sont ni réduites ni recompressées davantage par ce changement. Une analyse vision en détail bas ne dégrade pas l’image affichée dans le dressing.
 
@@ -50,6 +53,13 @@ Exemple d’essai volontaire : `OPENAI_ENHANCE_QUALITY=low`. Comparer visuelleme
 - `OPENAI_TAG_MAX_OUTPUT_TOKENS` : 300 par défaut, plage 300–4096.
 - `OPENAI_MEAL_MAX_OUTPUT_TOKENS` : 450 par défaut, plage 450–4096.
 - `OPENAI_SUGGEST_MAX_OUTPUT_TOKENS` : 900 par défaut, plage 900–8192.
+- `OPENAI_CAR_MAX_OUTPUT_TOKENS` : 1400 par défaut, plage 900–4096. La checklist Voiture ne part que sur clic et seulement si son entrée compacte diffère du plan partagé enregistré.
+- `OPENAI_CAR_RESEARCH_MAX_OUTPUT_TOKENS` : 2400 par défaut, plage 1400–6000. Utilisé seulement pour une première fiche technique ou après modification de l’identité technique de la voiture.
+- `OPENAI_CAR_HORIZON_KM` : 15000 par défaut, plage 3000–50000. Les interventions plus lointaines restent dans la fiche recherchée mais sont retirées de la checklist visible.
+- `OPENAI_CAR_WEB_MODEL` : facultatif ; sinon la recherche conserve `OPENAI_TEXT_MODEL`. Ne choisissez qu’un modèle auquel le projet a accès et compatible avec Responses Web Search.
+- `OPENAI_CAR_REASONING_EFFORT` : `low` par défaut pour la recherche Web. `none` coûte potentiellement moins mais peut réduire la qualité d’interprétation ; `medium`/`high` augmentent coût et latence.
+
+État au 6 octobre 2026 : `gpt-5.4-nano` supporte Web Search et les sorties structurées, mais OpenAI l’a marqué comme déprécié avec retrait annoncé au 1er avril 2027. Il est conservé car c’est le choix explicite actuel du projet ; planifier un test comparatif avant le retrait.
 
 Les plafonds ne sont pas des tokens facturés d’avance. Ils incluent la sortie visible **et** le raisonnement. Un plafond trop petit peut empêcher de produire le JSON. Les valeurs initiales existantes sont conservées : une réponse `incomplete` pour `max_output_tokens` déclenche au maximum **une** seconde tentative avec le double du plafond, dans un budget de 55 secondes partagé entre les deux appels OpenAI. Cette récupération coûte un appel supplémentaire quand elle se produit ; il vaut mieux augmenter le plafond initial si elle devient fréquente. Pas de retry automatique sur refus, quota, réseau ou erreur serveur.
 

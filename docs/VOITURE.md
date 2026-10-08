@@ -4,8 +4,8 @@
 
 Le Hub présente désormais **six applications, deux cartes par ligne**, même sur mobile. T9dya utilise l’icône panier. Voiture s’ouvre à `/voiture` et comporte quatre sections :
 
-1. **Tableau de bord** : compteur animé, dépenses du mois, prochains entretiens, échéances d’assurance/contrôle technique et raccourci assistance.
-2. **Entretiens** : rappels personnels en kilomètres et/ou en mois, modification, suppression d’un rappel et confirmation d’une intervention réelle.
+1. **Tableau de bord** : compteur animé, dépenses du mois, checklist d’entretien actualisable par IA, échéances d’assurance/contrôle technique et raccourci assistance.
+2. **Plan entretien** : page pédagogique séparant les priorités IA, les intervalles confirmés par le foyer et le carnet réel ; rappels regroupés en « à traiter » et « à venir ».
 3. **Dépenses** : saisie partagée avec Budget, navigation par mois, filtre par type, carburant/litres et prix moyen des pleins renseignés.
 4. **Carnet** : interventions réalisées, garage, notes, coûts liés et 50 derniers relevés du compteur.
 
@@ -23,11 +23,26 @@ Puis :
 
 1. Redéployez le site Vercel avec le nouveau code.
 2. Ouvrez **Hub → Voiture → Configurer ma Fabia**.
-3. Le formulaire propose **Škoda Fabia, 2026, automatique, gris-vert / toit noir**. Vérifiez et enregistrez. Ajoutez éventuellement la motorisation exacte, l’immatriculation, les échéances des documents et l’assistance.
+3. Touchez le pictogramme de voiture dans la grande carte. Complétez le nom, la marque, le modèle, la finition, l’année, le moteur, le carburant, le type et la référence exacte de boîte, le marché et la première mise en circulation. La plaque, la couleur, les échéances de documents et l’assistance restent privées et ne servent pas à l’analyse IA.
 4. Cliquez sur **Renseigner mon kilométrage** et saisissez la valeur réelle du tableau de bord. Il n’y a pas de kilométrage fictif à 0 ; avant la première saisie, le compteur affiche des tirets.
-5. Configurez les entretiens selon votre carnet et les indications de votre garage.
+5. Configurez les intervalles connus selon votre carnet et les indications du garage. Ils permettent d’afficher des kilomètres/jours restants fiables dans la checklist IA.
+6. Sous le compteur, cliquez sur **Rechercher mon plan sur le Web**. Cette action est volontaire et n’est jamais lancée automatiquement.
 
-Pas de clé API, pas de nouvelle dépendance, pas d’IA payante et pas de Cloud Storage. Les données sont de petits documents Firestore. La requête des dépenses Voiture utilise seulement l’égalité `category == 'car'`, sans index composite spécifique.
+La checklist utilise la configuration OpenAI serveur déjà employée par Hwayj et S7a : `OPENAI_TEXT_MODEL` et `OPENAI_API_KEY`. Aucune clé n’est incluse dans le navigateur ou l’APK. Il n’y a ni nouvelle dépendance ni Cloud Storage. La requête des dépenses Voiture utilise seulement l’égalité `category == 'car'`, sans index composite spécifique.
+
+### Checklist IA et consommation
+
+- La première analyse, ou une modification de marque/modèle/finition/année/moteur/carburant/boîte/marché, effectue une recherche Web OpenAI avec un contexte de recherche `low`. Les références techniques et leurs liens cliquables sont stockés dans `vehicleAiPlans/current`.
+- Une simple évolution du kilométrage, de la date ou du carnet réutilise cette recherche stockée : un petit appel texte recalcule seulement les priorités. Si rien n’a changé, aucun appel OpenAI n’est fait.
+- La requête est bornée : fiche technique, première mise en circulation, kilométrage, maximum 20 échéances et la dernière intervention de maximum 28 tâches/catégories. Plaque, couleur, photos, dépenses, noms des membres et longues notes ne sont jamais envoyés.
+- La checklist affiche de 1 à 6 éléments pertinents, sans carte de remplissage. Par défaut, une opération kilométrique située à plus de 15 000 km est conservée dans la recherche mais masquée. Ainsi, une intervention à 60 000 km n’apparaît pas quand le compteur affiche 5 000 km. Une échéance calendaire reste toutefois visible si elle arrive dans les 90 jours.
+- `OPENAI_CAR_HORIZON_KM` règle cette fenêtre (15 000 par défaut, 3 000–50 000). La réduire économise peu de tokens mais masque plus tôt des opérations ; l’augmenter rend la liste plus préventive mais plus chargée.
+- `OPENAI_CAR_MAX_OUTPUT_TOKENS=1400` couvre les priorités réutilisant la recherche. `OPENAI_CAR_RESEARCH_MAX_OUTPUT_TOKENS=2400` couvre la première recherche structurée.
+- La recherche Web utilise `OPENAI_CAR_WEB_MODEL` si présent, sinon `OPENAI_TEXT_MODEL`. `OPENAI_CAR_REASONING_EFFORT=low` est le défaut pour mieux interpréter les sources ; `none` peut réduire le raisonnement mais dégrader la sélection et l’interprétation des intervalles.
+- L’IA classe et explique les checks. Une règle saisie dans **Plan entretien** et l’historique réel priment. Pneus et freins restent des contrôles d’état sauf source autoritaire explicite ; aucune usure ni intervention effectuée n’est inventée.
+- Si l’IA renvoie un lien de rappel inconnu ou réutilise le même rappel pour deux checks, le serveur retire uniquement ce lien douteux ; le check reste visible en mode « à confirmer » au lieu de provoquer un nouvel appel payant.
+- Cocher ouvre toujours une confirmation date/kilométrage. La validation est ajoutée au carnet et à l’historique de la prochaine analyse. Toucher une case déjà cochée propose de retirer l’entrée.
+- Après un changement de compteur, d’intervalle ou d’historique, l’ancien plan reste visible avec la mention **à actualiser**. Après un changement technique de voiture, l’ancien plan est masqué et une nouvelle recherche Web est demandée.
 
 Pour Android :
 
@@ -95,6 +110,8 @@ Le journal Budget existant reste limité aux 250 dernières dépenses, toutes ca
 | `vehicleMileage/{id}` | `previous`, `value`, `mode`, note, auteur, date serveur ; entrées immuables |
 | `vehicleTasks/{id}` | Nom, intervalles, point de départ, note, état actif |
 | `vehicleServices/{id}` | Intervention, `taskId`, nom, kilométrage, date, garage, note |
+| `vehicleAiPlans/current` | Entrée compacte, priorités, recherche technique réutilisable, sources Web cliquables, empreinte de la voiture et version partagée |
+| `vehicleAiServices/{version-catégorie}` | Check IA réellement confirmé, date/km, lien éventuel vers un rappel et auteur |
 | `expenses/{id}` | Dépense Budget existante avec `category: 'car'`, `vehicleId: 'main'`, `carKind`, `carOdometer`, `carLiters`, `carServiceId` |
 
 Fichiers :
@@ -111,7 +128,7 @@ Les nouvelles collections ont des règles explicites réservées aux membres du 
 
 ## Vérifications avant livraison
 
-La syntaxe JS/JSX des 14 fichiers modifiés/ajoutés a été vérifiée. Build, lint, tests métier et règles via émulateur restent à exécuter par le propriétaire :
+La syntaxe JS/JSX des fichiers modifiés/ajoutés a été vérifiée. Build, lint, tests métier et règles via émulateur restent à exécuter par le propriétaire :
 
 ```powershell
 node --test scripts/car.test.js
@@ -124,11 +141,14 @@ Puis tester avec les deux comptes :
 1. Ouvrir les six cartes du Hub sur petit écran, Web et APK ; pas de débordement horizontal, deux cartes par ligne, animations réduites respectées.
 2. Configurer la voiture, saisir 9 500 km, puis ajouter 500 km. Vérifier le compteur et l’historique sur le second compte.
 3. Ouvrir une saisie absolue sur les deux comptes, sauvegarder sur l’un, puis tenter de sauvegarder l’ancienne valeur sur l’autre : refus attendu. Tester aussi une correction avec motif.
-4. Configurer une vidange de test à 10 000 km ; confirmer à 10 000 puis vérifier la prochaine échéance à 20 000. Ajouter une entrée antidatée puis supprimer une entrée erronée : les prochaines échéances doivent suivre l’historique réel.
-5. Tester un rappel uniquement calendaire, une fin de mois, une échéance déjà passée et une échéance d’assurance proche.
-6. Ajouter une dépense Voiture depuis Budget, puis depuis Voiture. Vérifier que chaque action crée un seul document et un seul débit.
-7. Tester le paiement avec une enveloppe insuffisante (refus), puis suffisante, puis supprimer depuis l’autre espace : solde restauré une seule fois. Tester les clics rapides et deux suppressions simultanées.
-8. Dans le carnet, lier le coût d’un entretien ; vérifier son total, puis supprimer la dépense depuis Budget : le lien doit disparaître du carnet.
-9. Tester sans connexion, les permissions Firebase manquantes, puis les règles avec un compte extérieur : aucune lecture/écriture des nouvelles collections ne doit être autorisée hors du foyer.
+4. Sous le compteur, lancer la recherche Web. Vérifier 1 à 6 priorités, les liens de sources et l’absence d’une opération lointaine à 60 000 km avec un compteur à 5 000 km. Recliquez sans modifier les données : le message doit confirmer qu’aucun token n’a été consommé.
+5. Confirmer un check avec date/km : la case devient verte, l’entrée apparaît dans le carnet et le plan indique qu’il doit être actualisé. Toucher de nouveau la case puis confirmer la suppression doit l’enlever sans supprimer une éventuelle dépense Budget.
+6. Sur les deux comptes, actualiser presque simultanément puis essayer de confirmer un ancien plan : la sauvegarde obsolète doit être refusée. Vérifier ensuite que le plan courant est identique sur les deux téléphones.
+7. Configurer une vidange de test à 10 000 km ; confirmer à 10 000 puis vérifier la prochaine échéance à 20 000. Ajouter une entrée antidatée puis supprimer une entrée erronée : les prochaines échéances doivent suivre l’historique réel.
+8. Tester un rappel uniquement calendaire, une fin de mois, une échéance déjà passée et une échéance d’assurance proche.
+9. Ajouter une dépense Voiture depuis Budget, puis depuis Voiture. Vérifier que chaque action crée un seul document et un seul débit.
+10. Tester le paiement avec une enveloppe insuffisante (refus), puis suffisante, puis supprimer depuis l’autre espace : solde restauré une seule fois. Tester les clics rapides et deux suppressions simultanées.
+11. Dans le carnet, lier le coût d’un entretien ; vérifier son total, puis supprimer la dépense depuis Budget : le lien doit disparaître du carnet.
+12. Tester sans connexion, les permissions Firebase manquantes, puis les règles avec un compte extérieur : aucune lecture/écriture des nouvelles collections ne doit être autorisée hors du foyer.
 
 Un test de calcul ne remplace pas une validation visuelle sur téléphone ni un test des règles Firebase dans l’émulateur.

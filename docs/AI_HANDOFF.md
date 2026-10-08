@@ -42,7 +42,7 @@ Le produit est en français. Des traductions historiques existent encore dans `s
 - Firebase Authentication Email/Password.
 - Cloud Firestore avec cache persistant multi-onglets.
 - Vercel pour le site et la fonction serverless `api/ai.js`.
-- OpenAI uniquement derrière la fonction serveur.
+- OpenAI uniquement derrière la fonction serveur. L’action texte `car` produit la checklist Voiture à partir d’un contexte borné ; elle nécessite l’authentification Firebase comme toutes les autres actions.
 - Framer Motion pour les transitions.
 - Lucide React pour les icônes d’interface.
 - Recharts est installé pour les visualisations.
@@ -342,11 +342,11 @@ Racine : `src/apps/s7a`.
 Routes :
 
 - `/s7a/today`
-- `/s7a/diabetes`
 - `/s7a/medications`
 - `/s7a/appointments`
+- `/s7a/habits`
 
-Le profil actif est sélectionné entre les deux membres. Les deux partenaires peuvent consulter et gérer les données santé de l’autre : cette collaboration est volontaire. L’onglet Diabète est masqué lorsque le profil actif n’est pas diabétique.
+Le profil actif est sélectionné entre les deux membres. Les deux partenaires peuvent consulter et gérer les données santé de l’autre : cette collaboration est volontaire. Il n’existe plus d’onglet Diabète. L’ancienne URL `/s7a/diabetes` redirige vers Aujourd’hui.
 
 ### Collections santé
 
@@ -355,21 +355,21 @@ Le profil actif est sélectionné entre les deux membres. Les deux partenaires p
 - `users/{uid}/healthMedications` : insulines ou compléments, stock, seuil, unité, rappels.
 - `users/{uid}/medicationChecks` : prise quotidienne cochée par date.
 - `users/{uid}/healthAppointments` : médecin, spécialité, lieu, date, heure, récurrence et rappel.
-- `users/{uid}/mealAnalyses` : repas, description, glucides confirmés/plage/confiance, thumbnail et date.
+- `users/{uid}/mealAnalyses` : repas, description, protéines, glucides confirmés/plage/confiance, thumbnail et date. Les anciens documents sans protéines restent compatibles et valent zéro dans le résumé.
 
-Dans le formulaire repas S7a, la photo et l’estimation GPT sont facultatives. Les champs du nom, des glucides confirmés et de la date restent montés même lorsque la valeur des glucides est temporairement vide, afin de permettre de l’effacer puis de la ressaisir sans fermer la feuille ni perdre la photo. Sans nom, l’enregistrement utilise la description puis « Repas ».
+Dans le formulaire repas S7a, la photo et l’estimation GPT sont facultatives. L’utilisateur peut choisir une image dans la galerie, ouvrir directement la caméra ou saisir le repas manuellement. Une photo déclenche une seule analyse qui préremplit protéines et glucides ; le nom, les deux valeurs et la date restent ensuite modifiables. Sans nom, l’enregistrement utilise la description puis « Repas ».
 - `users/{uid}/healthWater/{YYYY-MM-DD}` : quantité d’eau quotidienne en millilitres, plafonnée à l’objectif de 2 000 ml.
 - `users/{uid}/healthBadHabits` : habitudes à réduire, catégorie, dernière occurrence, objectif, nombre de rechutes et meilleur compteur atteint.
 
-Les règles Firestore permettent lecture et écriture au propriétaire ou à son partenaire du même foyer. Les valeurs critiques ont des bornes simples : glycémie positive sous 700, insuline de 0 à 200 unités, glucides de 0 à 1000.
+Les règles Firestore permettent lecture et écriture au propriétaire ou à son partenaire du même foyer. Les valeurs critiques ont des bornes simples : glycémie positive sous 700, insuline de 0 à 200 unités et glucides/protéines de 0 à 1000 g par repas.
 
 ### Aujourd’hui
 
-La page résume dernière glycémie, unités de NovoRapid prises aujourd’hui, glucides consommés, hydratation sur un objectif de 2 L, traitements du jour et alertes de stock. La jauge d’eau affiche un liquide animé qui monte avec la quantité enregistrée. Tresiba n’est pas utilisée comme statistique principale quotidienne si elle n’apporte pas d’information utile.
+La page est le journal quotidien commun à tous : navigation par jour, eau, protéines, glucides, traitements et alertes. Les cartes Protéines et Glucides ouvrent toutes les deux la même fiche repas ; il n’existe pas de carte d’ajout redondante. Pour un profil diabétique seulement, la page ajoute glycémie, unités de NovoRapid et entrées d’insuline. La jauge d’eau est cliquable et ouvre son éditeur animé. Tresiba n’est pas utilisée comme statistique principale quotidienne si elle n’apporte pas d’information utile.
 
 Les traitements peuvent être cochés directement. La progression s’anime comme une récompense et repart vide chaque nouveau jour grâce à une clé de date locale.
 
-### Diabète
+### Suivi conditionnel glycémie et insuline
 
 NovoRapid et Tresiba sont créées automatiquement pour un profil diabétique. Les images réelles sans fond se trouvent dans :
 
@@ -380,17 +380,17 @@ Le stock estime les unités restantes à partir de 300 unités par stylo, du nom
 
 L’application enregistre uniquement la dose réellement décidée et prise. Elle ne recommande jamais une dose. Cette règle de sécurité ne doit jamais être supprimée.
 
-La glycémie accepte mg/dL ou mmol/L. Le journal réunit glycémies, doses et repas et permet de supprimer une entrée. L’action Eau ouvre un curseur de 0 à 2 000 ml par pas de 100 ml, avec raccourcis de 250 ml; un document unique par date est mis à jour pour éviter les doublons.
+La glycémie accepte mg/dL ou mmol/L. Elle n’est visible et modifiable dans Aujourd’hui que si le profil actif est diabétique. Les stylos, doses et stocks d’insuline se trouvent dans Traitements et sont eux aussi totalement masqués pour un profil non diabétique. Les abonnements Firestore glycémie/doses ne sont pas ouverts pour ce dernier. Le journal permet de supprimer une entrée. L’action Eau ouvre un curseur de 0 à 2 000 ml par pas de 100 ml, avec raccourcis de 250 ml ; un document unique par date évite les doublons.
 
 ### Repas avec IA
 
-La photo est compressée dans le navigateur. L’action serveur `meal` estime une valeur centrale de glucides, une plage, une confiance et des hypothèses. L’utilisateur confirme/modifie les glucides avant sauvegarde. Le nombre de glucides est visuellement prioritaire sur le titre du repas.
+La photo est compressée dans le navigateur. L’action serveur `meal` estime, dans le même appel vision, une valeur centrale de protéines et de glucides, une plage de glucides, une confiance et des hypothèses. Son schéma inclut `estimated_protein_g`. L’utilisateur peut modifier toutes les valeurs avant l’enregistrement. Aucune donnée énergétique n’est suivie dans ce journal.
 
 L’IA ne doit jamais calculer ou suggérer une dose d’insuline. Le prompt serveur et l’interface le rappellent.
 
 ### Traitements et pharmacie
 
-Un traitement possède un stock, une heure de rappel et une fréquence en jours (quotidienne, tous les 2, 3, 7, 15 ou 30 jours). La date de création sert de premier jour de prise. Seuls les traitements prévus pour la date courante apparaissent dans la routine du jour et déclenchent les rappels; les anciens traitements sans fréquence restent quotidiens. Les prises prévues sont cochables/décochables. Si un stock atteint son seuil et qu’il existe exactement une liste de courses active, S7a ajoute automatiquement le médicament à cette liste avec une catégorie pharmacie. Avec zéro ou plusieurs listes, aucune liste n’est choisie arbitrairement.
+Un traitement possède un stock, une heure de rappel et une fréquence en jours (quotidienne, tous les 2, 3, 7, 15 ou 30 jours). La date de création sert de premier jour de prise. Seuls les traitements prévus pour la date affichée apparaissent dans la routine et les anciens traitements sans fréquence restent quotidiens. Les prises sont cochables/décochables. Pour un profil diabétique, NovoRapid et Tresiba sont présentés au-dessus de cette routine avec saisie de la dose réelle et gestion des stylos. Si un stock atteint son seuil et qu’il existe exactement une liste de courses active, S7a ajoute automatiquement le médicament à cette liste avec une catégorie pharmacie. Avec zéro ou plusieurs listes, aucune liste n’est choisie arbitrairement.
 
 ### Rendez-vous
 
@@ -418,6 +418,7 @@ Actions autorisées :
 - `tag`
 - `suggest`
 - `meal`
+- `car`
 
 ### Ordre de protection d’une requête
 
@@ -441,12 +442,19 @@ Le serveur ne journalise jamais les images, tokens ou clés. La clé OpenAI n’
 
 Optimisation du 5 octobre 2026 : cache exact de `tag` par UID/requête pendant 300 secondes sur une instance chaude (64 résultats maximum), toujours après authentification. Aucun cache de génération ou repas. `suggest` filtre les statuts sales/indisponibles et envoie une liste blanche de champs courts, au plus 120 vêtements et 16 000 octets par défaut, sans tronquer le JSON. Les sorties structurées sont validées contre les schémas inchangés ; une seule reprise à plafond doublé est autorisée après troncature par tokens. Qualité, tailles et compression image par défaut restent inchangées par cette optimisation. `docs/AI_COSTS.md` liste tous les effets possibles sur les résultats et les contrôles à effectuer ; ne pas promettre une qualité identique sans comparaison visuelle.
 
+Ajout du 6 octobre 2026 : `car` reçoit uniquement un résumé technique borné (aucune plaque, couleur, photo, dépense ou identité). La première analyse, ou un changement d’identité technique, force Responses `web_search` avec contexte `low`, enregistre la recherche et jusqu’à six sources cliquables. Les actualisations de kilométrage réutilisent cette recherche sans nouvel appel Web. La sortie visible contient 1 à 6 priorités et le serveur retire toute échéance au-delà de la fenêtre kilométrique configurée (15 000 km par défaut). Un cache exact de cinq minutes par UID protège aussi les doubles clics. Le client conserve l’ensemble dans `vehicleAiPlans/current`; des données strictement inchangées ne contactent pas l’API. Une validation réelle crée une entrée versionnée dans `vehicleAiServices` réinjectée dans l’historique suivant.
+
 ### Variables serveur privées
 
 - `OPENAI_API_KEY`
 - `OPENAI_IMAGE_MODEL`
 - `OPENAI_VISION_MODEL`
 - `OPENAI_TEXT_MODEL`
+- `OPENAI_CAR_MAX_OUTPUT_TOKENS` (facultatif, 1400 par défaut)
+- `OPENAI_CAR_RESEARCH_MAX_OUTPUT_TOKENS` (facultatif, 2400 par défaut)
+- `OPENAI_CAR_HORIZON_KM` (facultatif, 15000 par défaut)
+- `OPENAI_CAR_WEB_MODEL` (facultatif, hérite du modèle texte)
+- `OPENAI_CAR_REASONING_EFFORT` (facultatif, `low` par défaut)
 - `ALLOWED_UIDS`
 - `FIREBASE_API_KEY`
 - `APP_ORIGIN`
@@ -587,7 +595,7 @@ Scénarios de régression minimaux :
 4. Un UID connecté mais absent de `ALLOWED_UIDS` retourne 403.
 5. Chaque partenaire voit les données partagées T9dya.
 6. Hwayj affiche le dressing du partenaire mais interdit ses modifications.
-7. S7a autorise la gestion du partenaire et masque Diabète pour un profil non diabétique.
+7. S7a autorise la gestion du partenaire ; glycémie et insuline sont absentes pour un profil non diabétique, tandis que repas, eau, protéines, glucides et traitements généraux restent disponibles.
 8. Ajouter/acheter/démarquer/supprimer un produit fonctionne.
 9. Deux listes actives déclenchent le choix de liste; une seule est automatique.
 10. Images Hwayj et repas restent sous les limites Firestore.

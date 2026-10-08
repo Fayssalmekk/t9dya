@@ -114,5 +114,12 @@ export function completeAppointment(uid, appointment) {
 
 export function saveMealAnalysis(uid, values) {
   const reference = doc(userCollection(uid, 'mealAnalyses'))
-  return setDoc(reference, { name: values.name.trim(), description: values.description.trim(), carbs: Number(values.carbs), carbsMin: Number(values.carbsMin) || Number(values.carbs), carbsMax: Number(values.carbsMax) || Number(values.carbs), confidence: values.confidence || 'faible', thumb: values.thumb || '', eatenAt: Timestamp.fromDate(new Date(values.eatenAt)), createdAt: serverTimestamp() })
+  const number = (value, max) => { const parsed = Number(value || 0); if (!Number.isFinite(parsed) || parsed < 0 || parsed > max) throw new Error('INVALID_MEAL'); return parsed }
+  const name = String(values.name || '').trim().slice(0, 100)
+  const description = String(values.description || '').trim().slice(0, 600)
+  const carbs = number(values.carbs, 1000)
+  const protein = number(values.protein, 1000)
+  const eatenAt = new Date(values.eatenAt)
+  if (!name || !Number.isFinite(eatenAt.getTime())) throw new Error('INVALID_MEAL')
+  return setDoc(reference, { name, description, carbs, protein, carbsMin: number(values.carbsMin || carbs, 1000), carbsMax: number(values.carbsMax || carbs, 1000), confidence: String(values.confidence || 'saisie manuelle').slice(0, 40), thumb: String(values.thumb || ''), eatenAt: Timestamp.fromDate(eatenAt), createdAt: serverTimestamp() })
 }
