@@ -10,6 +10,7 @@ Une IA ou un développeur qui reprend le projet doit commencer par lire [`docs/A
 - Un projet Firebase sur le plan Spark
 - Un compte GitHub et un compte Vercel Hobby pour le deploiement
 
+
 ## Installation locale
 
 1. Executez `npm install`.
