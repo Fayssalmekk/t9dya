@@ -143,6 +143,26 @@ service cloud.firestore {
         && data.updatedBy == request.auth.uid && data.updatedAt == request.time;
     }
 
+    function validMealPlan() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['date', 'mealType', 'recipeId', 'recipeSource', 'name', 'emoji', 'servings', 'prepTime', 'ingredientIds', 'ingredientsJson', 'status', 'createdBy', 'createdAt', 'updatedBy', 'updatedAt'])
+        && data.date is string && data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && data.mealType in ['lunch', 'dinner']
+        && data.recipeId is string && data.recipeId.size() <= 120
+        && data.recipeSource in ['builtin', 'custom', 'free']
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 120
+        && data.emoji is string && data.emoji.size() > 0 && data.emoji.size() <= 16
+        && data.servings is int && data.servings >= 1 && data.servings <= 20
+        && data.prepTime is int && data.prepTime >= 0 && data.prepTime <= 600
+        && data.ingredientIds is list && data.ingredientIds.size() <= 60
+        && data.ingredientsJson is string && data.ingredientsJson.size() <= 12000
+        && data.status in ['planned', 'prepared', 'eaten']
+        && data.createdBy is string
+        && data.createdAt is timestamp
+        && data.updatedBy == request.auth.uid
+        && data.updatedAt == request.time;
+    }
+
     match /users/{userId} {
       allow create: if false;
       allow read: if owns(userId);
@@ -427,6 +447,16 @@ service cloud.firestore {
           && request.resource.data.note is string && request.resource.data.note.size() <= 300
           && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time;
         allow update: if false;
+      }
+
+      match /mealPlans/{planId} {
+        allow read, delete: if isMember(householdId);
+        allow create: if isMember(householdId) && validMealPlan()
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.createdAt == request.time;
+        allow update: if isMember(householdId) && validMealPlan()
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.createdAt == resource.data.createdAt;
       }
 
       match /{collectionName}/{documentId} {

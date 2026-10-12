@@ -119,4 +119,5 @@ Implémentation commune dans `LiveMap.jsx`, basée sur les [Pointer Events et ge
 
 1. Déployez les règles Firestore pour autoriser `households/{householdId}/customRecipes` aux deux membres du foyer.
 2. Dans **T9dya → Cuisine → Mes recettes**, créez une recette avec plusieurs quantités et vérifiez qu’elle apparaît sur le second compte.
+3. Après l’ajout de **T9dya → Menus**, redéployez `firestore.rules`. Planifiez un déjeuner et un dîner, puis vérifiez sur le second compte qu’ils apparaissent dans la même semaine. Testez ensuite **Restes demain**, la session meal prep et l’ajout groupé des ingrédients vers une liste active.
 3. Marquez quelques ingrédients manquants et ajoutez-les à une liste active. Les noms, quantités, unités et la note « Pour … » doivent être conservés.

@@ -156,6 +156,8 @@ Toutes sont accessibles uniquement aux deux membres du foyer :
 - `items`
 - `lists`
 - `customProducts`
+- `customRecipes`
+- `mealPlans`
 - `charges`
 - `chargePayments`
 - `envelopes`
@@ -182,10 +184,11 @@ Le composant monte `ShoppingProvider`, puis `PlatformShell`. Les pages historiqu
 - `/t9dya/list` : accueil des listes et détail d’une liste.
 - `/t9dya/catalog` : catalogue et ajout de produits.
 - `/t9dya/cuisine` : suggestions par swipe et carnet de recettes maison partagé.
+- `/t9dya/meal-prep` : calendrier hebdomadaire partagé des déjeuners et dîners.
 - `/t9dya/history` : historique des achats.
 - `/t9dya/settings` : redirection vers les réglages du Hub.
 
-La navigation inférieure contient uniquement Liste, Catalogue, Cuisine et Historique. Toute la gestion financière se trouve dans l’application Budget.
+La navigation inférieure contient Liste, Catalogue, Cuisine, Menus et Historique. Toute la gestion financière se trouve dans l’application Budget.
 
 ### Logique des listes
 
@@ -222,6 +225,14 @@ Types : repas, desserts et jus. L’utilisateur swipe les ingrédients disponibl
 Les ingrédients souvent disponibles remontent en priorité grâce aux scores locaux. Les bases nécessitant normalement de la farine sont représentées comme produits prêts à l’emploi : pâte à pizza, pain tacos, supports panini, etc. Les ingrédients manquants d’une recette peuvent être ajoutés à une liste existante.
 
 Le carnet **Mes recettes** est stocké dans `households/{householdId}/customRecipes`. Les deux partenaires peuvent créer et modifier un plat, ses quantités, ses étapes et sa note. Chaque ingrédient peut être marqué individuellement comme manquant puis envoyé vers une liste active avec sa quantité et son unité.
+
+### Planning Meal prep
+
+La page `src/pages/MealPrepPage.jsx` ouvre par défaut la semaine suivante et permet de naviguer entre les semaines. Chaque jour possède deux créneaux : déjeuner et dîner. Le sélecteur affiche seulement cinq suggestions au repos ; saisir un mot recherche dans tout le catalogue et une recherche sans résultat devient automatiquement un plat libre. Un créneau accepte ainsi une recette intégrée, une recette du carnet partagé ou un nom inventé sans étape supplémentaire. Les documents sont synchronisés dans `households/{householdId}/mealPlans` avec un identifiant stable `{date}_{mealType}` ; les deux partenaires voient et modifient donc le même calendrier.
+
+Un repas passe par `planned`, `prepared`, puis `eaten`. L’action **Restes demain** copie un dîner vers le déjeuner suivant et demande confirmation avant de remplacer un repas existant. La session meal prep réunit les plats de la semaine, déduplique leurs ingrédients, ignore les basiques du placard (`sel`, `poivre`, `huile`, `eau`) et laisse décocher ce qui est déjà disponible avant l’envoi vers une liste de courses active. Elle peut ensuite marquer en une fois tous les repas prévus comme préparés. Aucun planning et aucune liste ne sont créés automatiquement sans action explicite.
+
+Les écritures se trouvent dans `src/services/mealPlanner.js`. Les règles valident strictement la date, le type de repas, les statuts, les bornes de portions et de temps, la taille des ingrédients sérialisés et l’UID du membre ayant effectué la dernière modification.
 
 Le catalogue Cuisine couvre aussi les produits pratiques courants au Maroc : préparation pour flan, crème pâtissière et béchamel prêtes, boudoirs, spéculoos, frites, nuggets, chicken rings et légumes surgelés. Les desserts proposent notamment tiramisus, mouhalabias fruitées, kika à la crème, Jawhara express, ghribas, flans froids et douceurs à la fleur d’oranger. Plusieurs recettes possèdent leurs propres étapes détaillées via le neuvième champ facultatif de `makeRecipes`.
 
