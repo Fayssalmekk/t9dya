@@ -161,11 +161,6 @@ export default function WishlistPage() {
     })
   }, [categoryFilter, search, view, wishes])
 
-  const featured = useMemo(() => activeWishes.slice().sort((a, b) => {
-    const score = (wish) => (wish.priority === 'high' ? 4 : 0) + (wish.status === 'planned' ? 2 : 0) + (wish.voters?.length || 0)
-    return score(b) - score(a)
-  })[0], [activeWishes])
-
   const save = async (values) => {
     if (sheet?.wish) await updateWish(household.id, sheet.wish.id, user.uid, values)
     else await createWish(household.id, user.uid, values)
@@ -198,13 +193,11 @@ export default function WishlistPage() {
     <div className="mx-auto max-w-2xl">
       <header className="flex items-center gap-3"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-fuchsia-500 to-violet-700 text-white shadow-lg shadow-fuchsia-500/20"><Heart size={23} fill="currentColor" /></span><div><p className="text-[10px] font-black uppercase tracking-[.2em] text-fuchsia-600">Notre boîte à rêves</p><h1 className="text-2xl font-black">Wish list</h1></div><button type="button" onClick={() => setSheet({ type: 'new' })} className="ml-auto flex min-h-11 items-center gap-2 rounded-2xl bg-slate-950 px-4 text-xs font-black text-white shadow-lg dark:bg-white dark:text-slate-950"><Plus size={18} />Ajouter</button></header>
 
-      <section className="relative mt-5 overflow-hidden rounded-[2rem] bg-gradient-to-br from-fuchsia-700 via-violet-700 to-indigo-800 p-5 text-white shadow-xl shadow-violet-900/15 sm:p-6">
-        <span className="pointer-events-none absolute -right-10 -top-12 h-48 w-48 rounded-full bg-white/10 blur-2xl" /><span className="pointer-events-none absolute -bottom-16 -left-12 h-44 w-44 rounded-full bg-pink-300/15 blur-3xl" />
-        <div className="relative"><div className="flex items-center justify-between"><p className="text-[10px] font-black uppercase tracking-[.2em] text-fuchsia-100/80">À rêver, choisir puis vivre ensemble</p><Sparkles size={20} className="text-fuchsia-200" /></div>
-          {featured ? <button type="button" onClick={() => setSheet({ type: 'edit', wish: featured })} className="mt-5 block w-full text-left"><span className="text-4xl">{featured.emoji || categories[featured.category]?.emoji}</span><h2 className="mt-3 text-2xl font-black leading-tight">{featured.title}</h2><p className="mt-2 flex items-center gap-1.5 text-xs text-white/70">{recipientLabel(featured, household)}<ChevronRight size={14} /></p></button> : <div className="py-6 text-center"><span className="text-5xl">✨</span><h2 className="mt-4 text-xl font-black">Votre prochain beau projet commence ici</h2><p className="mt-2 text-sm text-white/70">Un cadeau, un voyage ou une petite sortie : gardez l’idée à deux.</p></div>}
-          <div className="mt-5 grid grid-cols-3 gap-2 border-t border-white/15 pt-4"><div><strong className="block text-lg font-black">{activeWishes.length}</strong><small className="text-[10px] text-white/65">envies actives</small></div><div><strong className="block text-lg font-black">{sharedCount}</strong><small className="text-[10px] text-white/65">coups de cœur communs</small></div><div><strong className="block truncate text-lg font-black">{estimatedTotal ? `${money(estimatedTotal)} DH` : '—'}</strong><small className="text-[10px] text-white/65">budget indicatif</small></div></div>
-        </div>
-      </section>
+      {!loading && activeWishes.length > 0 && <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted" aria-label="Résumé des envies actives">
+        <span><strong className="font-black text-ink">{activeWishes.length}</strong> envie{activeWishes.length > 1 ? 's' : ''} active{activeWishes.length > 1 ? 's' : ''}</span>
+        {sharedCount > 0 && <span className="inline-flex items-center gap-1.5 text-fuchsia-700 dark:text-fuchsia-300"><Heart size={13} /><strong className="font-black">{sharedCount}</strong> en commun</span>}
+        {estimatedTotal > 0 && <span className="inline-flex items-center gap-1.5"><CircleDollarSign size={14} />Budget estimé : <strong className="font-black text-ink">{money(estimatedTotal)} DH</strong></span>}
+      </div>}
 
       <nav className="mt-5 grid grid-cols-3 rounded-2xl bg-surface p-1.5 shadow-sm" aria-label="États des envies">{views.map((entry) => <button key={entry.id} type="button" onClick={() => setView(entry.id)} className={`relative min-h-11 rounded-xl px-2 text-xs font-black transition ${view === entry.id ? 'bg-fuchsia-600 text-white shadow-md' : 'text-muted'}`}>{entry.label}{entry.id === 'planned' && plannedCount > 0 && <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[9px] ${view === entry.id ? 'bg-white/20' : 'bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950 dark:text-fuchsia-200'}`}>{plannedCount}</span>}</button>)}</nav>
 
