@@ -163,6 +163,29 @@ service cloud.firestore {
         && data.updatedAt == request.time;
     }
 
+    function validWish(householdId) {
+      let data = request.resource.data;
+      let householdMembers = get(/databases/$(database)/documents/households/$(householdId)).data.members;
+      return data.keys().hasOnly(['title', 'category', 'status', 'forWhom', 'priority', 'estimatedBudget', 'targetDate', 'place', 'url', 'note', 'emoji', 'voters', 'createdBy', 'createdAt', 'updatedBy', 'updatedAt', 'completedAt'])
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 120
+        && data.category in ['buy', 'gift', 'travel', 'outing', 'experience', 'project']
+        && data.status in ['idea', 'planned', 'done']
+        && data.forWhom is string && (data.forWhom == 'couple' || data.forWhom in householdMembers)
+        && data.priority in ['low', 'normal', 'high']
+        && data.estimatedBudget is number && data.estimatedBudget >= 0 && data.estimatedBudget <= 10000000
+        && data.targetDate is string && (data.targetDate == '' || data.targetDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'))
+        && data.place is string && data.place.size() <= 150
+        && data.url is string && data.url.size() <= 500
+        && data.note is string && data.note.size() <= 1000
+        && data.emoji is string && data.emoji.size() > 0 && data.emoji.size() <= 16
+        && data.voters is list && data.voters.size() <= 2
+        && data.voters.toSet().size() == data.voters.size()
+        && data.voters.toSet().hasOnly(householdMembers)
+        && data.createdBy in householdMembers && data.createdAt is timestamp
+        && data.updatedBy == request.auth.uid && data.updatedAt == request.time
+        && ((data.status == 'done' && data.completedAt is timestamp) || (data.status != 'done' && data.completedAt == null));
+    }
+
     match /users/{userId} {
       allow create: if false;
       allow read: if owns(userId);
@@ -457,6 +480,17 @@ service cloud.firestore {
         allow update: if isMember(householdId) && validMealPlan()
           && request.resource.data.createdBy == resource.data.createdBy
           && request.resource.data.createdAt == resource.data.createdAt;
+      }
+
+      match /wishes/{wishId} {
+        allow read: if isMember(householdId);
+        allow create: if isMember(householdId) && validWish(householdId)
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.createdAt == request.time;
+        allow update: if isMember(householdId) && validWish(householdId)
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.createdAt == resource.data.createdAt;
+        allow delete: if isMember(householdId);
       }
 
       match /{collectionName}/{documentId} {

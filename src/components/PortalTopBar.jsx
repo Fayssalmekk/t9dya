@@ -1,4 +1,4 @@
-import { CarFront, HeartPulse, Home, MapPinned, Shirt, ShoppingCart, UserRound, WalletCards } from 'lucide-react'
+import { CarFront, Gift, HeartPulse, Home, MapPinned, Shirt, ShoppingCart, UserRound, WalletCards } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
@@ -8,7 +8,8 @@ const apps = [
   { path: '/hwayj', label: 'Hwayj', icon: Shirt, tone: 'bg-violet-600', soft: 'bg-violet-50 text-violet-700 dark:bg-violet-950 dark:text-violet-200' },
   { path: '/s7a', label: 'S7a', icon: HeartPulse, tone: 'bg-rose-500', soft: 'bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-200' },
   { path: '/map', label: 'Carte', icon: MapPinned, tone: 'bg-sky-600', soft: 'bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-200' },
-  { path: '/voiture', label: 'Voiture', icon: CarFront, tone: 'bg-emerald-600', soft: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200' }
+  { path: '/voiture', label: 'Voiture', icon: CarFront, tone: 'bg-emerald-600', soft: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200' },
+  { path: '/envies', label: 'Wish list', icon: Gift, tone: 'bg-fuchsia-600', soft: 'bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950 dark:text-fuchsia-200' }
 ]
 
 export default function PortalTopBar() {

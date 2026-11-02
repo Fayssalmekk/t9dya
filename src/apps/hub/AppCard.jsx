@@ -10,7 +10,8 @@ const accents = {
   amber: ['from-amber-400 to-orange-600', 'bg-amber-400/15'],
   rose: ['from-rose-400 to-pink-600', 'bg-rose-400/15'],
   sky: ['from-sky-400 to-blue-600', 'bg-sky-400/15'],
-  emerald: ['from-emerald-400 to-emerald-800', 'bg-emerald-400/15']
+  emerald: ['from-emerald-400 to-emerald-800', 'bg-emerald-400/15'],
+  fuchsia: ['from-fuchsia-400 to-violet-700', 'bg-fuchsia-400/15']
 }
 
 export default function AppCard({ app }) {

@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { AlertTriangle, Check, RefreshCw, Sparkles, Wrench } from 'lucide-react'
-import { motion, useReducedMotion } from 'framer-motion'
+import { useReducedMotion } from 'framer-motion'
 import { callHwayjAI, getHwayjAIErrorMessage } from '../hwayj/services/ai'
 import { saveCarAiPlan } from '../../services/car'
 import { displayDate, formatKm, taskStatus } from './model'

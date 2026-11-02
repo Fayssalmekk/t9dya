@@ -613,6 +613,7 @@ Scénarios de régression minimaux :
 11. La version web se met à jour sans page blanche.
 12. L’APK appelle l’API Vercel, gère le clavier, le retour et les rappels locaux.
 13. La Carte refuse toute écriture sur la position du partenaire, distingue une position ancienne du direct et supprime le document du membre quand il arrête le partage.
+14. La Wish list se synchronise entre les deux comptes : création, vote, modification, planification, réalisation, réouverture et suppression.
 
 ## 19. Pièges connus
 
@@ -636,3 +637,16 @@ Scénarios de régression minimaux :
 5. Génération et distribution du premier APK signé selon `docs/ANDROID.md`.
 
 Ne pas créer de nouvelle application, restaurer Moments/Dar, ajouter Calendrier/Valise/Stats dans Hwayj ou élargir les données santé sans une demande explicite du propriétaire.
+
+## 21. Application Wish list
+
+- Route : `/envies`, déclarée dans `src/apps/registry.js` et affichée comme septième espace du Hub.
+- Entrée React : `src/apps/wishlist/WishlistApp.jsx`; écran principal : `src/apps/wishlist/pages/WishlistPage.jsx`.
+- Service : `src/services/wishlist.js`.
+- Données partagées : `households/{householdId}/wishes/{wishId}`.
+- Catégories stables : `buy`, `gift`, `travel`, `outing`, `experience`, `project`.
+- États stables : `idea`, `planned`, `done`.
+- `forWhom` vaut `couple` ou l’UID d’un membre du foyer. `voters` contient uniquement les UID des membres et au maximum deux valeurs uniques.
+- Les deux partenaires ont volontairement les mêmes droits sur ces données communes. Les règles strictes `match /wishes/{wishId}` ne doivent pas être remplacées par le wildcard générique.
+- La date et le budget sont des aides d’organisation, pas des écritures Budget. Ne pas créer automatiquement une dépense à partir d’une envie.
+- Toute évolution des champs exige une mise à jour coordonnée du service, du formulaire et de `validWish()` dans `firestore.rules`, suivie du déploiement explicite des règles.

@@ -68,6 +68,18 @@ Hwayj demande une seule image `1024x1536` en qualité `medium` par ajout et anal
 
 ## Commandes de vérification
 
+## Wish list partagée
+
+La nouvelle application **Wish list** utilise `households/{householdId}/wishes`. Elle est synchronisée en direct entre les deux membres du foyer et stocke les achats souhaités, cadeaux, voyages, sorties, expériences et projets, ainsi que leur priorité, budget indicatif, date, destinataire, votes et état.
+
+Après avoir récupéré cette version, déployez obligatoirement les règles :
+
+```powershell
+npx firebase deploy --only firestore:rules
+```
+
+Test rapide : ajoutez une envie depuis un compte, vérifiez son apparition immédiate sur le second, cliquez sur « Ça me plaît », planifiez-la, marquez-la comme réalisée puis réouvrez-la. Un utilisateur hors du foyer ne doit jamais pouvoir lire ni modifier `wishes`.
+
 ### Nouvelle application Voiture
 
 Guide complet : [VOITURE.md](./VOITURE.md). **Déployez les nouvelles règles** avec `npx firebase deploy --only firestore:rules` avant d’utiliser Voiture, puis redéployez le Web et la fonction `/api/ai`. La checklist réutilise `OPENAI_API_KEY` et `OPENAI_TEXT_MODEL`. La première analyse emploie l’outil Web Search du Responses API ; `OPENAI_CAR_WEB_MODEL` est facultatif et hérite du modèle texte. Les valeurs facultatives prêtes dans `.env.example` sont `OPENAI_CAR_MAX_OUTPUT_TOKENS=1400`, `OPENAI_CAR_RESEARCH_MAX_OUTPUT_TOKENS=2400`, `OPENAI_CAR_HORIZON_KM=15000` et `OPENAI_CAR_REASONING_EFFORT=low`. Pour Android, exécutez `npm run android:update` et reconstruisez/réinstallez l’APK signé. Aucun index composite ni permission Android supplémentaire n’est nécessaire.

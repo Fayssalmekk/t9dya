@@ -1,6 +1,6 @@
 # T9dya
 
-Plateforme mobile-first privée pour un foyer de deux personnes : courses et repas T9dya, budget, dressing Hwayj et santé S7a.
+Plateforme mobile-first privée pour un foyer de deux personnes : courses et repas T9dya, budget, dressing Hwayj, santé S7a, voiture, carte et envies partagées.
 
 Une IA ou un développeur qui reprend le projet doit commencer par lire [`docs/AI_HANDOFF.md`](docs/AI_HANDOFF.md), puis `prompt.md` et `docs/SETUP.md`.
 
@@ -53,5 +53,6 @@ Le fonctionnement du journal des dépenses, des charges et des enveloppes est ex
 - `households/{id}/templates` : listes recurrentes
 - `households/{id}/pantry` : produits a surveiller
 - `households/{id}/trips` : sorties de courses archivees
+- `households/{id}/wishes` : achats, cadeaux, voyages et projets souhaités par le couple
 
 Le code d'invitation sert d'identifiant au document du foyer. Le second membre peut donc rejoindre le foyer sans lire ses donnees au prealable. Apres l'ajout, seules les deux personnes inscrites dans `members` peuvent lire ou modifier les donnees du foyer.

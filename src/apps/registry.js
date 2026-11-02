@@ -1,5 +1,5 @@
 import { lazy } from 'react'
-import { CarFront, HeartPulse, MapPinned, Shirt, ShoppingCart, WalletCards } from 'lucide-react'
+import { CarFront, Gift, HeartPulse, MapPinned, Shirt, ShoppingCart, WalletCards } from 'lucide-react'
 
 export const HubPage = lazy(() => import('./hub/HubPage'))
 export const HubSettingsPage = lazy(() => import('./hub/HubSettingsPage'))
@@ -10,5 +10,6 @@ export const appRegistry = [
   { id: 'hwayj', name: 'apps.hwayj.name', description: 'apps.hwayj.description', icon: Shirt, accent: 'violet', basePath: '/hwayj', enabled: true, comingSoon: false, component: lazy(() => import('./hwayj/HwayjApp')) },
   { id: 's7a', name: 'apps.s7a.name', description: 'apps.s7a.description', icon: HeartPulse, accent: 'rose', basePath: '/s7a', enabled: true, comingSoon: false, component: lazy(() => import('./s7a/S7aApp')) },
   { id: 'map', name: 'apps.map.name', description: 'apps.map.description', icon: MapPinned, accent: 'sky', basePath: '/map', enabled: true, comingSoon: false, component: lazy(() => import('./map/MapApp')) },
-  { id: 'car', name: 'Voiture', description: 'Kilométrage, entretiens et dépenses.', icon: CarFront, accent: 'emerald', basePath: '/voiture', enabled: true, comingSoon: false, component: lazy(() => import('./car/CarApp')) }
+  { id: 'car', name: 'Voiture', description: 'Kilométrage, entretiens et dépenses.', icon: CarFront, accent: 'emerald', basePath: '/voiture', enabled: true, comingSoon: false, component: lazy(() => import('./car/CarApp')) },
+  { id: 'wishlist', name: 'apps.wishlist.name', description: 'apps.wishlist.description', icon: Gift, accent: 'fuchsia', basePath: '/envies', enabled: true, comingSoon: false, component: lazy(() => import('./wishlist/WishlistApp')) }
 ]
